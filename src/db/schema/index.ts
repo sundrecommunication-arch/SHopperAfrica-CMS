@@ -6,3 +6,5 @@ export * from "./orders";
 export * from "./payments";
 export * from "./marketing";
 export * from "./platform";
+export * from "./ads";
+export * from "./content";

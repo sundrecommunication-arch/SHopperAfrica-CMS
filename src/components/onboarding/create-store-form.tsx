@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,7 +16,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function CreateStoreForm() {
-  const router = useRouter();
   const { update } = useSession();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
@@ -38,18 +36,24 @@ export function CreateStoreForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
 
       if (!res.ok) {
-        toast.error(data.error ?? "Could not create your store");
+        toast.error(data?.error ?? "Could not create your store");
+        setIsSubmitting(false);
         return;
       }
 
       toast.success("Your store is ready.");
-      await update(); // refresh the session so it picks up the new store membership
-      router.push("/dashboard");
-      router.refresh();
-    } finally {
+      // Refresh the session so it picks up the new store membership, then do a
+      // full navigation (not router.push) so the dashboard's server component
+      // reads the freshly-updated session cookie instead of a cached RSC tree.
+      await update();
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- intentional: router.push() here can render the dashboard from a stale RSC tree captured before the session cookie above was updated.
+      window.location.assign("/dashboard");
+    } catch (error) {
+      console.error("create store failed", error);
+      toast.error("Something went wrong creating your store. Please try again.");
       setIsSubmitting(false);
     }
   }

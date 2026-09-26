@@ -11,10 +11,22 @@ export default async function StoreSettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>General</CardTitle>
-          <CardDescription>
-            Your store link: <span className="font-mono">shopper.app/store/{store.slug}</span>
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>General</CardTitle>
+              <CardDescription className="mt-1">
+                Your store link: <a href={`/store/${store.slug}`} target="_blank" rel="noopener noreferrer" className="font-mono text-primary underline">/store/{store.slug}</a>
+              </CardDescription>
+            </div>
+            <a
+              href={`/store/${store.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-md border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors shadow-2xs"
+            >
+              Visit Store ↗
+            </a>
+          </div>
         </CardHeader>
         <CardContent>
           <StoreGeneralForm

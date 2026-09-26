@@ -1,11 +1,21 @@
-import { CreditCard } from "lucide-react";
-import { EmptyState } from "@/components/dashboard/empty-state";
+import { getCurrentStore } from "@/lib/tenant";
+import { listStorePaymentProviders } from "@/modules/payments/services/payment-service";
+import { PaymentMethodsForm } from "@/components/dashboard/payments/payment-methods-form";
 
-export default function PaymentsPage() {
+export default async function PaymentsPage() {
+  const { store } = await getCurrentStore();
+  const providers = await listStorePaymentProviders(store.id);
+
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Payments</h1>
-      <EmptyState icon={CreditCard} title="No payment methods set up." description="Add how customers can pay you — bank transfer, cash on delivery, or an online provider." />
+      <div>
+        <h1 className="text-2xl font-semibold">Payment Methods</h1>
+        <p className="text-muted-foreground text-sm">
+          Set up how your customers can pay for orders in {store.name}.
+        </p>
+      </div>
+
+      <PaymentMethodsForm initialProviders={providers} />
     </div>
   );
 }

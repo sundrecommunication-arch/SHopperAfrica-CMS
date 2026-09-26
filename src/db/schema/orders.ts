@@ -9,6 +9,7 @@ import {
 import { stores } from "./tenant";
 import { customers } from "./customers";
 import { products, productVariants } from "./catalog";
+import { users } from "./auth";
 
 // Payment status and fulfillment status are tracked separately — never
 // combine them into one field (docs section 22).
@@ -81,4 +82,22 @@ export const orderItems = pgTable("order_items", {
   unitPrice: numeric("unit_price", { precision: 12, scale: 2 }).notNull(),
   quantity: integer("quantity").notNull(),
   lineTotal: numeric("line_total", { precision: 12, scale: 2 }).notNull(),
+});
+
+// Logs each time a merchant taps "Nudge on WhatsApp" on an abandoned
+// checkout (src/app/dashboard/abandoned-carts) — lets the dashboard show
+// nudge history and avoid the merchant losing track of who's been contacted.
+export const abandonedCartNudges = pgTable("abandoned_cart_nudges", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  orderId: text("order_id")
+    .notNull()
+    .references(() => orders.id, { onDelete: "cascade" }),
+  storeId: text("store_id")
+    .notNull()
+    .references(() => stores.id, { onDelete: "cascade" }),
+  sentByUserId: text("sent_by_user_id").references(() => users.id, { onDelete: "set null" }),
+  channel: text("channel").notNull().default("whatsapp"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });

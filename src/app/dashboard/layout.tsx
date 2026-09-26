@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
@@ -19,9 +20,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="flex min-h-screen bg-background">
       <aside className="hidden w-60 shrink-0 border-r bg-sidebar text-sidebar-foreground md:flex md:flex-col">
         <div className="flex h-14 items-center gap-2 border-b px-4 font-semibold">
-          <span className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground text-xs">
-            S
-          </span>
+          <Image src="/logo-mark.png" alt="Shopper" width={24} height={24} className="size-6" priority />
           {activeStore.storeName}
         </div>
         <div className="flex-1 overflow-y-auto">
@@ -32,7 +31,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </aside>
 
-      <div className="flex min-h-screen flex-1 flex-col">
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <header className="flex h-14 items-center justify-between border-b px-4 md:hidden">
           <span className="font-semibold">{activeStore.storeName}</span>
           <UserMenu name={session.user.name} email={session.user.email} />

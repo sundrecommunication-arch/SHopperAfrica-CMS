@@ -1,28 +1,36 @@
-import { eq, and, count } from "drizzle-orm";
+import { eq, and, count, sum } from "drizzle-orm";
 import { getCurrentStore } from "@/lib/tenant";
 import { db } from "@/db";
 import { products, customers, orders } from "@/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 async function getOverviewStats(storeId: string) {
-  const [[productCount], [customerCount], [pendingOrderCount], [lowStockCount]] = await Promise.all([
+  const [
+    [productCount],
+    [customerCount],
+    [totalOrdersCount],
+    [pendingOrderCount],
+    [paidSalesSum],
+  ] = await Promise.all([
     db.select({ value: count() }).from(products).where(eq(products.storeId, storeId)),
     db.select({ value: count() }).from(customers).where(eq(customers.storeId, storeId)),
+    db.select({ value: count() }).from(orders).where(eq(orders.storeId, storeId)),
     db
       .select({ value: count() })
       .from(orders)
       .where(and(eq(orders.storeId, storeId), eq(orders.fulfillmentStatus, "NEW"))),
     db
-      .select({ value: count() })
-      .from(products)
-      .where(and(eq(products.storeId, storeId), eq(products.trackInventory, true))),
+      .select({ value: sum(orders.total) })
+      .from(orders)
+      .where(and(eq(orders.storeId, storeId), eq(orders.paymentStatus, "PAID"))),
   ]);
 
   return {
     products: productCount?.value ?? 0,
     customers: customerCount?.value ?? 0,
+    totalOrders: totalOrdersCount?.value ?? 0,
     pendingOrders: pendingOrderCount?.value ?? 0,
-    lowStockCandidates: lowStockCount?.value ?? 0,
+    totalSales: paidSalesSum?.value ? parseFloat(paidSalesSum.value) : 0,
   };
 }
 
@@ -31,12 +39,15 @@ export default async function DashboardOverviewPage() {
   const stats = await getOverviewStats(store.id);
 
   const cards = [
-    { label: "Today's sales", value: `${store.currencySymbol}0` },
-    { label: "Orders today", value: "0" },
-    { label: "Pending orders", value: stats.pendingOrders },
-    { label: "Products", value: stats.products },
+    {
+      label: "Total Paid Sales",
+      value: `${store.currencySymbol}${stats.totalSales.toLocaleString()}`,
+    },
+    { label: "Total Orders", value: stats.totalOrders },
+    { label: "Pending Orders", value: stats.pendingOrders },
+    { label: "Active Products", value: stats.products },
     { label: "Customers", value: stats.customers },
-    { label: "Low-stock products", value: "—" },
+    { label: "Store Status", value: store.isPublished ? "Live" : "Draft" },
   ];
 
   return (

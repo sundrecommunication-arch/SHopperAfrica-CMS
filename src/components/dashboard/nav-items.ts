@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
   ShoppingBag,
+  ShoppingCart,
   Package,
   FolderTree,
   Users,
@@ -9,6 +10,11 @@ import {
   CreditCard,
   Store,
   BarChart3,
+  Megaphone,
+  Newspaper,
+  FileText,
+  ListOrdered,
+  HelpCircle,
   Settings,
 } from "lucide-react";
 
@@ -23,6 +29,7 @@ export interface NavItem {
 export const navItems: NavItem[] = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard, mobilePrimary: true },
   { label: "Orders", href: "/dashboard/orders", icon: ShoppingBag, mobilePrimary: true },
+  { label: "Abandoned Carts", href: "/dashboard/abandoned-carts", icon: ShoppingCart },
   { label: "Products", href: "/dashboard/products", icon: Package, mobilePrimary: true },
   { label: "Categories", href: "/dashboard/categories", icon: FolderTree },
   { label: "Customers", href: "/dashboard/customers", icon: Users },
@@ -30,5 +37,10 @@ export const navItems: NavItem[] = [
   { label: "Payments", href: "/dashboard/payments", icon: CreditCard },
   { label: "Store", href: "/dashboard/store", icon: Store, mobilePrimary: true },
   { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+  { label: "Ad Performance", href: "/dashboard/ad-performance", icon: Megaphone },
+  { label: "Blog", href: "/dashboard/blog", icon: Newspaper },
+  { label: "Policies", href: "/dashboard/policies", icon: FileText },
+  { label: "Navigation", href: "/dashboard/nav", icon: ListOrdered },
+  { label: "FAQs", href: "/dashboard/faqs", icon: HelpCircle },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];

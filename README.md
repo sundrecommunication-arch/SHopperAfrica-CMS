@@ -4,10 +4,12 @@ A multi-tenant ecommerce CMS — the easiest way for a business to start
 selling online. See `docs/master-instruction.md` for the full product spec
 and phased roadmap this project follows.
 
-**This is Phase 1 — Foundation.** It gives you: project setup, the data
-model, authentication, tenant isolation, and a working (if mostly empty)
-merchant dashboard. Products, storefront, checkout, and payments are later
-phases (see the roadmap in the docs).
+**Phases 1–5 are done:** project setup, data model, authentication,
+tenant isolation, store creation/settings, full product & category management
+(products, images, categories, variants, inventory), the public storefront
+(`/store/[slug]`, product detail, category pages, interactive cart), and complete
+checkout & order management (guest checkout, Bank Transfer / COD payment methods,
+order confirmation receipts, and merchant dashboard order tracking).
 
 ## Stack
 
@@ -38,6 +40,10 @@ phases (see the roadmap in the docs).
    ```bash
    openssl rand -base64 32
    ```
+   Product/category image uploads need `SUPABASE_URL` and
+   `SUPABASE_SERVICE_ROLE_KEY` (same Supabase project as your database —
+   see the comments in `.env.example` for exactly where to find them). The
+   `media` storage bucket is created automatically on first upload.
 
 4. **Create the database tables:**
    ```bash
@@ -78,7 +84,7 @@ src/
                                resolve "what store am I acting on" server-side.
                                Every tenant-owned query should go through it.
   modules/                    One folder per business domain (services/validation/types).
-                               Only `auth` and `stores` are implemented in Phase 1 —
+                               `auth`, `stores`, `products`, `categories` are implemented —
                                the rest are scaffolded folders for later phases.
   components/
     ui/                       Design system primitives (button, input, card, etc.)
@@ -95,12 +101,10 @@ always resolve it through `getCurrentStore()` in `src/lib/tenant.ts`, which
 verifies the signed-in user actually belongs to that store before returning
 it. See `src/app/api/stores/current/route.ts` for the pattern.
 
-## What's next (Phase 3 onward)
+## What's next (Phase 4 onward)
 
 Per the roadmap in `docs/master-instruction.md`, section 70:
 
-- **Phase 3 — Products**: build out the `products` module (create/edit UI,
-  image upload, variants, categories) on top of the schema that's already here.
 - **Phase 4 — Storefront**: the public `/store/[slug]` pages customers browse.
 - **Phase 5 — Checkout**: cart, WhatsApp order-message generation, orders.
 - **Phase 6 — Online payments**: wire a real provider into `paymentProviders`.

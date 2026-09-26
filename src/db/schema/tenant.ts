@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, pgEnum, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, integer, pgEnum, unique } from "drizzle-orm/pg-core";
 import { users } from "./auth";
 
 // --- Enums -----------------------------------------------------------------
@@ -11,6 +11,13 @@ export const whatsappOrderBehaviorEnum = pgEnum("whatsapp_order_behavior", [
   "SEND_EVERY_ORDER",
   "CUSTOMER_CHOICE",
   "CONTACT_BUTTON_ONLY",
+]);
+
+export const heroTextPositionEnum = pgEnum("hero_text_position", [
+  "center",
+  "bottom-left",
+  "bottom-center",
+  "bottom-right",
 ]);
 
 // --- Tables ------------------------------------------------------------------
@@ -28,6 +35,15 @@ export const stores = pgTable("stores", {
   slug: text("slug").notNull().unique(), // used in /store/[slug]
   description: text("description"),
   logoUrl: text("logo_url"),
+  // Storefront hero/banner slider — shown at the top of the public store
+  // page (src/app/store/[slug]/page.tsx). Empty/absent falls back to a
+  // generic placeholder so new stores still render something reasonable.
+  heroImages: text("hero_images").array().notNull().default([]),
+  // Whether the store name/description/WhatsApp button overlay is drawn on
+  // top of the hero slider, and where — off by default since a merchant's
+  // hero images often already have their own text/branding baked in.
+  heroShowText: boolean("hero_show_text").notNull().default(false),
+  heroTextPosition: heroTextPositionEnum("hero_text_position").notNull().default("bottom-center"),
   contactEmail: text("contact_email"),
   contactPhone: text("contact_phone"),
   addressText: text("address_text"),
@@ -46,12 +62,22 @@ export const stores = pgTable("stores", {
   primaryColor: text("primary_color").notNull().default("#16a34a"),
   secondaryColor: text("secondary_color").notNull().default("#111827"),
   customDomain: text("custom_domain").unique(),
+  locale: text("locale").notNull().default("en"),
+  domainVerified: boolean("domain_verified").notNull().default(false),
+  // Random token the merchant proves ownership with, via a
+  // `_shopper-verify.<domain>` TXT record — see src/lib/domain-verification.ts.
+  domainVerificationToken: text("domain_verification_token"),
 
   // SaaS
   plan: planEnum("plan").notNull().default("FREE"),
   poweredByHidden: boolean("powered_by_hidden").notNull().default(false),
 
   isPublished: boolean("is_published").notNull().default(false),
+
+  // Abandoned-cart follow-up (src/app/dashboard/abandoned-carts) — how many
+  // hours a WEBSITE checkout can sit unpaid before it's surfaced to the
+  // merchant to nudge the customer on WhatsApp. Configurable per store.
+  abandonedCartThresholdHours: integer("abandoned_cart_threshold_hours").notNull().default(2),
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
