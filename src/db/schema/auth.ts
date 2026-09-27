@@ -55,3 +55,21 @@ export const verificationTokens = pgTable(
   },
   (vt) => [primaryKey({ columns: [vt.identifier, vt.token] })]
 );
+
+// Forgot-password flow. Deliberately separate from verificationTokens (Auth.js's own
+// table, keyed by identifier+token) rather than reused — this one is keyed by userId,
+// carries a usedAt marker so a token can't be replayed after a successful reset, and
+// stores only a SHA-256 hash of the token (see password-reset-service.ts) so a DB leak
+// alone can't be used to reset anyone's password.
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(),
+  expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
+  usedAt: timestamp("used_at", { mode: "date" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});

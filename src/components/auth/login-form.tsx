@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -50,7 +51,15 @@ export function LoginForm() {
         {errors.email && <p className="text-destructive text-xs">{errors.email.message}</p>}
       </div>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="password">Password</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="password">Password</Label>
+          <Link
+            href="/forgot-password"
+            className="text-xs text-primary underline-offset-4 hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
         <Input id="password" type="password" autoComplete="current-password" {...register("password")} />
         {errors.password && <p className="text-destructive text-xs">{errors.password.message}</p>}
       </div>
