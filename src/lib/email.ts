@@ -1,14 +1,17 @@
 import "server-only";
 import { Resend } from "resend";
 
-// Transactional email (currently just password-reset). The app otherwise notifies
-// merchants over WhatsApp — this is the first feature that needs real email delivery.
+// Transactional email (password-reset, contact form). The app otherwise notifies
+// merchants over WhatsApp — these are the only features that need real email delivery.
 //
 // RESEND_API_KEY: sign up free at resend.com, create an API key, add it to .env.
 // RESEND_FROM_EMAIL: optional. Until a sending domain is verified on the Resend
 // dashboard, leave this unset — it falls back to Resend's own test address, which
 // works immediately with no domain setup (fine for the testing phase). Once a real
 // domain is verified there, set this to something like "Shopper <no-reply@yourdomain.com>".
+//
+// CONTACT_INBOX_EMAIL: optional. Where messages from the /contact page's form are
+// delivered. Defaults to Sundre Communications' own inbox.
 
 function getClient(): Resend {
   const apiKey = process.env.RESEND_API_KEY;
@@ -22,6 +25,10 @@ function getClient(): Resend {
 
 function getFromAddress(): string {
   return process.env.RESEND_FROM_EMAIL ?? "Shopper <onboarding@resend.dev>";
+}
+
+function getContactInbox(): string {
+  return process.env.CONTACT_INBOX_EMAIL ?? "sundrecommunication@gmail.com";
 }
 
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
@@ -53,5 +60,34 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string): Prom
 
   if (error) {
     throw new Error(`Failed to send password reset email: ${error.message}`);
+  }
+}
+
+interface ContactMessage {
+  name: string;
+  email: string;
+  message: string;
+}
+
+/** Sent from the /contact marketing page — lands in Sundre Communications' inbox, reply-to the sender. */
+export async function sendContactMessage({ name, email, message }: ContactMessage): Promise<void> {
+  const resend = getClient();
+  const { error } = await resend.emails.send({
+    from: getFromAddress(),
+    to: getContactInbox(),
+    replyTo: email,
+    subject: `New Shopper contact message from ${name}`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+        <h2 style="margin-bottom: 8px;">New message from the Shopper contact page</h2>
+        <p style="color: #555; line-height: 1.5;"><strong>Name:</strong> ${name}</p>
+        <p style="color: #555; line-height: 1.5;"><strong>Email:</strong> ${email}</p>
+        <p style="color: #555; line-height: 1.5; white-space: pre-wrap;">${message}</p>
+      </div>
+    `,
+  });
+
+  if (error) {
+    throw new Error(`Failed to send contact message: ${error.message}`);
   }
 }

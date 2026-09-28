@@ -93,7 +93,7 @@ export default async function OrdersPage() {
                   </TableCell>
                   <TableCell>
                     {order.checkoutChannel === "WHATSAPP" ? (
-                      <Badge variant="outline" className="text-[10px] gap-1 text-[#128C7E] dark:text-[#25D366] border-[#25D366]/30">
+                      <Badge variant="outline" className="text-[10px] gap-1 text-muted-foreground border-border">
                         <MessageSquareQuote className="h-3 w-3" />
                         WhatsApp
                       </Badge>

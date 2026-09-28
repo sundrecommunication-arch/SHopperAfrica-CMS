@@ -206,7 +206,7 @@ export function StorefrontHeader({ store, categories = [], navItems }: Storefron
               href={`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(`Hi ${store.name}, I have a question about your products!`)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-[#25D366]/10 text-[#128C7E] dark:text-[#25D366] px-3 py-1.5 text-xs font-semibold hover:bg-[#25D366]/20 transition-colors"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-[var(--store-primary)]/10 text-[var(--store-primary)] px-3 py-1.5 text-xs font-semibold hover:bg-[var(--store-primary)]/20 transition-colors"
             >
               <MessageCircle className="h-4 w-4" />
               <span>WhatsApp</span>
@@ -332,7 +332,7 @@ export function StorefrontHeader({ store, categories = [], navItems }: Storefron
                 href={`https://wa.me/${whatsappPhone}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm font-medium text-[#128C7E] dark:text-[#25D366] py-1"
+                className="flex items-center gap-2 text-sm font-medium text-[var(--store-primary)] py-1"
               >
                 <MessageCircle className="h-4 w-4" />
                 Chat with us on WhatsApp

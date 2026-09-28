@@ -108,7 +108,7 @@ export default async function StorefrontPage({
                   href={`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(`Hello ${store.name}, I would like to make an inquiry!`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] text-white px-5 py-2.5 text-xs sm:text-sm font-semibold transition-all shadow-xs pointer-events-auto"
+                  className="inline-flex items-center gap-2 rounded-xl bg-[var(--store-primary)] hover:brightness-90 text-white px-5 py-2.5 text-xs sm:text-sm font-semibold transition-all shadow-xs pointer-events-auto"
                 >
                   <MessageCircle className="h-4 w-4" />
                   Chat with us on WhatsApp

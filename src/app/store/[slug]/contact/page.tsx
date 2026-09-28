@@ -79,7 +79,7 @@ export default async function ContactPage({ params }: ContactPageProps) {
               href={`https://wa.me/${whatsappPhone}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex w-fit items-center gap-2 rounded-full bg-[#25D366] px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-[#1EBE5D]"
+              className="inline-flex w-fit items-center gap-2 rounded-full bg-[var(--store-primary)] px-4 py-2 text-sm font-semibold text-white shadow-xs hover:brightness-90 transition-all"
             >
               <MessageCircle className="size-4" />
               Chat on WhatsApp

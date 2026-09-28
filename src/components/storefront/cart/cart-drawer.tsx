@@ -226,7 +226,7 @@ export function CartDrawer() {
                   <Button
                     onClick={handleWhatsAppOrder}
                     variant="outline"
-                    className="w-full border-[#25D366]/40 text-[#128C7E] dark:text-[#25D366] hover:bg-[#25D366]/10 font-medium py-5 gap-2"
+                    className="w-full border-[var(--store-primary)]/40 text-[var(--store-primary)] hover:bg-[var(--store-primary)]/10 font-medium py-5 gap-2"
                   >
                     <MessageSquareQuote className="h-5 w-5" />
                     Order via WhatsApp

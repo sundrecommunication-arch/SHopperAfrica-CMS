@@ -198,7 +198,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                         )}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#25D366] text-white py-2 text-xs font-semibold hover:bg-[#1EBE5D] transition-colors shadow-2xs"
+                        className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary text-primary-foreground py-2 text-xs font-semibold hover:bg-primary/90 transition-colors shadow-2xs"
                       >
                         <MessageCircle className="h-4 w-4" />
                         Message Customer on WhatsApp

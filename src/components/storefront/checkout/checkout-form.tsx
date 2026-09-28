@@ -498,7 +498,7 @@ export function CheckoutForm({ store, paymentProviders }: CheckoutFormProps) {
                   />
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center gap-2 font-semibold text-sm">
-                      <MessageSquareQuote className="h-4 w-4 text-[#25D366]" />
+                      <MessageSquareQuote className="h-4 w-4 text-[var(--store-primary)]" />
                       <span>Order on WhatsApp</span>
                     </div>
                     <p className="text-xs text-muted-foreground">

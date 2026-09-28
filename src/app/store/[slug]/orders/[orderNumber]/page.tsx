@@ -250,7 +250,7 @@ export default async function OrderReceiptPage({ params }: OrderReceiptPageProps
                 href={order.whatsappMessage}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] text-white py-4 text-sm font-semibold transition-all shadow-xs"
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-[var(--store-primary)] hover:brightness-90 text-white py-4 text-sm font-semibold transition-all shadow-xs"
               >
                 <MessageSquareQuote className="h-5 w-5" />
                 <span>Send Order on WhatsApp</span>

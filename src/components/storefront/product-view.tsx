@@ -277,7 +277,7 @@ export function ProductView({
                 <Button
                   onClick={handleWhatsAppOrder}
                   size="lg"
-                  className="w-full bg-[#25D366] hover:bg-[#1EBE5D] text-white py-6 text-base font-semibold shadow-xs"
+                  className="w-full bg-[var(--store-primary)] hover:brightness-90 transition-all text-white py-6 text-base font-semibold shadow-xs"
                 >
                   <MessageSquareQuote className="mr-2 h-5 w-5" />
                   Order on WhatsApp

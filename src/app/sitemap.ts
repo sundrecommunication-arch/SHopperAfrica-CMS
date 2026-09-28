@@ -9,7 +9,8 @@ import { stores, products, categories } from "@/db/schema";
  * is served at /sitemap.xml with zero manual config). It enumerates every
  * *published* store and its *active* products/categories, so a merchant
  * gets full SEO coverage the moment they publish a store or a product —
- * nothing to fill in, nothing to remember to update.
+ * nothing to fill in, nothing to remember to update. It also lists the
+ * platform's own marketing pages (src/app/(marketing)) so they're indexed too.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
@@ -21,6 +22,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const entries: MetadataRoute.Sitemap = [
     { url: appUrl, lastModified: new Date(), changeFrequency: "daily", priority: 1 },
+    { url: `${appUrl}/welcome`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.9 },
+    { url: `${appUrl}/features`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
+    { url: `${appUrl}/pricing`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
+    { url: `${appUrl}/contact`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
   ];
 
   for (const store of publishedStores) {
