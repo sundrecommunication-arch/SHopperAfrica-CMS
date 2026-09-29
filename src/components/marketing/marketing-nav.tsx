@@ -23,7 +23,7 @@ export function MarketingNav() {
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
         <Link href="/welcome" className="flex items-center gap-2 shrink-0" onClick={() => setOpen(false)}>
-          <Image src="/logo-full.png" alt="Shopper" width={120} height={32} priority className="h-7 w-auto" />
+          <Image src="/logo-full.png" alt="Shopper" width={287} height={200} priority className="h-7 w-auto" />
         </Link>
 
         <nav className="hidden md:flex items-center gap-1">
