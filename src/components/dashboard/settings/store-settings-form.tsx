@@ -3,13 +3,14 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Globe, Palette, MapPin, Save, Loader2, Sparkles, CheckCircle2, RefreshCw, Copy, ShoppingCart } from "lucide-react";
+import { Globe, Palette, MapPin, Save, Loader2, Sparkles, CheckCircle2, RefreshCw, Copy, ShoppingCart, Search, ExternalLink } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { ImageUploader, type UploadedImage } from "@/components/dashboard/products/image-uploader";
 
 interface StoreSettingsFormProps {
@@ -31,6 +32,10 @@ interface StoreSettingsFormProps {
     heroShowText?: boolean;
     heroTextPosition?: string;
     abandonedCartThresholdHours?: number;
+    metaTitle?: string | null;
+    metaDescription?: string | null;
+    searchConsoleVerification?: string | null;
+    llmsTxt?: string | null;
   };
 }
 
@@ -82,9 +87,17 @@ export function StoreSettingsForm({ store }: StoreSettingsFormProps) {
   const [abandonedCartThresholdHours, setAbandonedCartThresholdHours] = useState(
     store.abandonedCartThresholdHours ?? 2
   );
+  const [metaTitle, setMetaTitle] = useState(store.metaTitle ?? "");
+  const [metaDescription, setMetaDescription] = useState(store.metaDescription ?? "");
+  const [searchConsoleVerification, setSearchConsoleVerification] = useState(
+    store.searchConsoleVerification ?? ""
+  );
+  const [llmsTxt, setLlmsTxt] = useState(store.llmsTxt ?? "");
   const [isSaving, setIsSaving] = useState(false);
 
   const selectedCurrencyObj = currencies.find((c) => c.code === currency) ?? currencies[0];
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+  const storefrontPath = `${appUrl}/store/${store.slug}`;
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,6 +119,10 @@ export function StoreSettingsForm({ store }: StoreSettingsFormProps) {
           heroShowText,
           heroTextPosition,
           abandonedCartThresholdHours,
+          metaTitle: metaTitle.trim() || null,
+          metaDescription: metaDescription.trim() || null,
+          searchConsoleVerification: searchConsoleVerification.trim() || null,
+          llmsTxt: llmsTxt.trim() || null,
         }),
       });
 
@@ -412,6 +429,109 @@ export function StoreSettingsForm({ store }: StoreSettingsFormProps) {
               }
               className="w-28"
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 4c. SEO & Optimisation */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Search className="h-5 w-5 text-primary" />
+            SEO & Optimisation
+          </CardTitle>
+          <CardDescription>
+            Fine-tune how your store appears in Google and in AI tools like ChatGPT and
+            Perplexity. Everything here is optional — sensible defaults are already generated
+            from your store name and description.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="metaTitle">Page title</Label>
+            <Input
+              id="metaTitle"
+              placeholder={`${store.name} – ${store.slug}`}
+              maxLength={70}
+              value={metaTitle}
+              onChange={(e) => setMetaTitle(e.target.value)}
+            />
+            <p className="text-muted-foreground text-xs">
+              The clickable headline shown in Google search results and browser tabs. Keep it
+              under 60 characters.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="metaDescription">Meta description</Label>
+            <Textarea
+              id="metaDescription"
+              placeholder="A short, compelling summary of your store, shown under your title in search results."
+              maxLength={300}
+              rows={3}
+              value={metaDescription}
+              onChange={(e) => setMetaDescription(e.target.value)}
+            />
+            <p className="text-muted-foreground text-xs">Aim for 150–160 characters.</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="searchConsoleVerification">
+              Google Search Console verification code
+            </Label>
+            <Input
+              id="searchConsoleVerification"
+              placeholder="e.g. AbCdEfGhIjKlMnOpQrStUvWxYz1234567890"
+              value={searchConsoleVerification}
+              onChange={(e) => setSearchConsoleVerification(e.target.value)}
+            />
+            <p className="text-muted-foreground text-xs">
+              In Search Console, add your property, choose the &quot;HTML tag&quot; verification
+              method, and paste just the <code>content=&quot;...&quot;</code> value here — save,
+              then click Verify in Search Console.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="llmsTxt">llms.txt (advanced)</Label>
+            <Textarea
+              id="llmsTxt"
+              placeholder="Leave blank to auto-generate from your store info, categories and products."
+              rows={4}
+              value={llmsTxt}
+              onChange={(e) => setLlmsTxt(e.target.value)}
+              className="font-mono text-xs"
+            />
+            <p className="text-muted-foreground text-xs">
+              A plain-text summary AI assistants use to understand your store. Only fill this in
+              if you want to override the auto-generated version.
+            </p>
+          </div>
+
+          <div className="space-y-1.5 rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+            <p className="font-medium text-foreground">Your SEO files</p>
+            <a
+              href={`${appUrl}/sitemap.xml`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1 hover:text-foreground"
+            >
+              <ExternalLink className="h-3 w-3 shrink-0" />
+              <span className="truncate">{appUrl}/sitemap.xml</span>
+            </a>
+            <a
+              href={`${storefrontPath}/llms.txt`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1 hover:text-foreground"
+            >
+              <ExternalLink className="h-3 w-3 shrink-0" />
+              <span className="truncate">{storefrontPath}/llms.txt</span>
+            </a>
+            <p>
+              Both are generated automatically, and AI crawlers (ChatGPT, Perplexity, Claude,
+              Gemini) are already allowed to index your store.
+            </p>
           </div>
         </CardContent>
       </Card>

@@ -50,6 +50,10 @@ export async function getPublicStoreBySlug(slug: string) {
       customDomain: stores.customDomain,
       domainVerified: stores.domainVerified,
       locale: stores.locale,
+      metaTitle: stores.metaTitle,
+      metaDescription: stores.metaDescription,
+      searchConsoleVerification: stores.searchConsoleVerification,
+      llmsTxt: stores.llmsTxt,
     })
     .from(stores)
     .where(eq(stores.slug, slug))

@@ -8,6 +8,13 @@
       "when": 1788871327483,
       "tag": "0000_motionless_zodiak",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790789984438,
+      "tag": "0001_blushing_silver_samurai",
+      "breakpoints": true
     }
   ]
 }

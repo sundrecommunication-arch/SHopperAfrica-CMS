@@ -61,6 +61,22 @@ export const stores = pgTable("stores", {
   themeKey: text("theme_key").notNull().default("minimal"),
   primaryColor: text("primary_color").notNull().default("#16a34a"),
   secondaryColor: text("secondary_color").notNull().default("#111827"),
+
+  // SEO & optimisation (dashboard "SEO & Optimisation" settings card) --
+  // all optional; when left blank, sensible defaults are generated from
+  // the store's own name/description so every merchant gets baseline SEO
+  // for free.
+  metaTitle: text("meta_title"),
+  metaDescription: text("meta_description"),
+  // Content value only, from Google Search Console's "HTML tag"
+  // verification method -- rendered as
+  // <meta name="google-site-verification" content="...">. No OAuth/API
+  // needed; the merchant connects Search Console independently.
+  searchConsoleVerification: text("search_console_verification"),
+  // Optional override for /store/[slug]/llms.txt. Left blank, a summary
+  // is auto-generated from the store's products, categories and contact
+  // info.
+  llmsTxt: text("llms_txt"),
   customDomain: text("custom_domain").unique(),
   locale: text("locale").notNull().default("en"),
   domainVerified: boolean("domain_verified").notNull().default(false),
