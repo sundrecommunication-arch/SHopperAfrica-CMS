@@ -16,11 +16,29 @@ export const customers = pgTable(
     phone: text("phone").notNull(),
     email: text("email"),
     notes: text("notes"),
+    // Customer-facing storefront accounts (separate from the merchant/staff
+    // `users` table and its NextAuth sessions) -- null means this is still
+    // just a guest-checkout record with no password set. Signing up with the
+    // same phone number this row already has "claims" it in place (see
+    // src/modules/customer-auth), so past guest orders show up automatically.
+    passwordHash: text("password_hash"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (t) => [unique("customers_store_phone_unique").on(t.storeId, t.phone)]
 );
+
+// One row per active customer login session (mirrors the shape of Auth.js's
+// own `sessions` table for merchant/staff users) -- a storefront customer's
+// session cookie is scoped per store (see customer-auth-service.ts), so this
+// table just needs the token, who it belongs to, and when it expires.
+export const customerSessions = pgTable("customer_sessions", {
+  sessionToken: text("session_token").primaryKey(),
+  customerId: text("customer_id")
+    .notNull()
+    .references(() => customers.id, { onDelete: "cascade" }),
+  expires: timestamp("expires", { mode: "date" }).notNull(),
+});
 
 export const addresses = pgTable("addresses", {
   id: text("id")

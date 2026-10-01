@@ -192,6 +192,27 @@ export default async function OrderReceiptPage({ params }: OrderReceiptPageProps
 
         {/* Right Column: Order Info & Actions (5 Cols) */}
         <div className="space-y-6 md:col-span-5">
+          {/* Create an account (only shown to customers who checked out as a guest) */}
+          {!customer.passwordHash && (
+            <Card className="border-dashed">
+              <CardContent className="space-y-2 py-4">
+                <p className="text-sm font-medium">Track this order next time</p>
+                <p className="text-xs text-muted-foreground">
+                  Create a free account with your phone number and your orders
+                  (including this one) will show up in one place.
+                </p>
+                <Link
+                  href={`/store/${store.slug}/account?phone=${encodeURIComponent(customer.phone)}`}
+                  className="block"
+                >
+                  <Button variant="outline" size="sm" className="w-full mt-1">
+                    Create account
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Order Status & Delivery Info */}
           <Card>
             <CardHeader className="pb-3">

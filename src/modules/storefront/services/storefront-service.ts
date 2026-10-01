@@ -13,10 +13,28 @@ import {
   storePolicies,
   storeNavItems,
   faqs,
+  orders,
 } from "@/db/schema";
 import { DEFAULT_NAV_ITEMS } from "@/modules/nav/constants";
 
 export type PublicStore = NonNullable<Awaited<ReturnType<typeof getPublicStoreBySlug>>>;
+
+/** A logged-in customer's own order history (/store/[slug]/account) -- newest first. */
+export async function getCustomerOrders(customerId: string) {
+  return db
+    .select({
+      id: orders.id,
+      orderNumber: orders.orderNumber,
+      fulfillmentStatus: orders.fulfillmentStatus,
+      paymentStatus: orders.paymentStatus,
+      total: orders.total,
+      createdAt: orders.createdAt,
+    })
+    .from(orders)
+    .where(eq(orders.customerId, customerId))
+    .orderBy(desc(orders.createdAt));
+}
+
 export type PublicProductListItem = Awaited<ReturnType<typeof getPublicStoreProducts>>[number];
 export type PublicProductDetail = NonNullable<Awaited<ReturnType<typeof getPublicProductBySlug>>>;
 

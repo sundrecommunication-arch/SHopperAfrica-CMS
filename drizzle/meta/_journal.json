@@ -15,6 +15,13 @@
       "when": 1790789984438,
       "tag": "0001_blushing_silver_samurai",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790873474250,
+      "tag": "0002_foamy_the_stranger",
+      "breakpoints": true
     }
   ]
 }

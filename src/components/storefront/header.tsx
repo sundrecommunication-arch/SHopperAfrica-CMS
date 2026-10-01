@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ShoppingBag, Search, MessageCircle, Menu, X } from "lucide-react";
+import { ChevronDown, ShoppingBag, Search, MessageCircle, Menu, X, User } from "lucide-react";
 
 import { useCart } from "./cart/cart-context";
 import { formatWhatsAppPhone } from "@/modules/storefront/utils/whatsapp";
@@ -213,6 +213,15 @@ export function StorefrontHeader({ store, categories = [], navItems }: Storefron
             </a>
           )}
 
+          {/* My Account */}
+          <Link
+            href={`/store/${store.slug}/account`}
+            className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            aria-label="My Account"
+          >
+            <User className="h-5 w-5" />
+          </Link>
+
           {/* Cart Icon with Live Counter */}
           <button
             type="button"
@@ -325,6 +334,14 @@ export function StorefrontHeader({ store, categories = [], navItems }: Storefron
               </Link>
             )
           )}
+
+          <Link
+            href={`/store/${store.slug}/account`}
+            onClick={closeMobileMenu}
+            className="block text-sm font-medium hover:text-primary transition-colors py-2"
+          >
+            My Account
+          </Link>
 
           {store.whatsappEnabled && whatsappPhone && (
             <div className="pt-3 border-t mt-2">
