@@ -288,14 +288,14 @@ export default function WelcomePage() {
 
       {/* Final CTA */}
       <section className="mx-auto max-w-4xl px-4 pb-20 sm:px-6 sm:pb-28">
-        <Reveal className="rounded-3xl border border-border bg-foreground px-6 py-14 text-center text-background sm:px-12">
+        <Reveal className="rounded-3xl border border-border bg-primary px-6 py-14 text-center text-primary-foreground sm:px-12">
           <h2
             className="text-3xl font-semibold tracking-tight sm:text-4xl"
             style={{ fontFamily: "var(--font-marketing-display)" }}
           >
             Start selling online today — for free.
           </h2>
-          <p className="mx-auto mt-3 max-w-xl text-background/70">
+          <p className="mx-auto mt-3 max-w-xl text-primary-foreground/80">
             It takes less time to set up your Shopper store than it does to answer your next
             WhatsApp message.
           </p>
