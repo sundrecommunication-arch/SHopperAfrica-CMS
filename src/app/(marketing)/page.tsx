@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/marketing/reveal";
 
 export const metadata: Metadata = {
-  title: "A free website for every African business",
+  title: "A free e-commerce website builder for every African business",
 };
 
 const AD_PLATFORMS = [
@@ -84,20 +84,21 @@ export default function WelcomePage() {
         <div className="mx-auto flex max-w-4xl flex-col items-center gap-6 px-4 py-20 text-center sm:px-6 sm:py-28">
           <span className="animate-fade-up inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-muted-foreground">
             <Sparkles className="h-3.5 w-3.5 text-primary" />
-            Free for African business owners
+            Free e-commerce website builder for Africa
           </span>
           <h1
             className="animate-fade-up text-4xl font-semibold leading-[1.1] tracking-tight sm:text-6xl"
             style={{ fontFamily: "var(--font-marketing-display)", animationDelay: "0.1s" }}
           >
-            Every business deserves a home online.
+            The free way for African businesses to sell online.
           </h1>
           <p
             className="animate-fade-up max-w-2xl text-lg text-muted-foreground sm:text-xl"
             style={{ animationDelay: "0.2s" }}
           >
-            Shopper gives you a real storefront, a checkout, and a website Google can actually find —
-            free — so your business shows up everywhere your customers already are.
+            Shopper is a free e-commerce website — a real alternative to every other online store
+            builder in Africa — with a storefront, checkout, and a website Google can actually find,
+            so your business shows up everywhere your customers already are.
           </p>
           <div className="animate-fade-up flex flex-col gap-3 sm:flex-row" style={{ animationDelay: "0.3s" }}>
             <Button asChild size="lg" className="text-base">
@@ -227,18 +228,18 @@ export default function WelcomePage() {
                 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl"
                 style={{ fontFamily: "var(--font-marketing-display)" }}
               >
-                100% free for business owners across Africa.
+                A free e-commerce website for business owners across Africa.
               </h2>
               <p className="mt-4 text-muted-foreground">
-                A custom website normally costs what most small businesses can&apos;t spare — and
-                still needs a developer every time something changes. Shopper gives you the store,
-                the checkout, and the visibility a website is supposed to bring, at no cost to
-                start. No card required.
+                Other e-commerce website builders charge monthly fees most small businesses can&apos;t
+                spare, and still need a developer every time something changes. Shopper gives you
+                the online store, the checkout, and the visibility a paid platform would charge
+                you for — at no cost to start. No card required.
               </p>
               <p className="mt-3 text-sm text-muted-foreground">
-                Already running your store on WordPress, Wix, Bumpa, or another platform?
-                Moving over is free too — Shopper covers the same storefront basics without
-                the monthly subscription or plugin fees.
+                Already selling on WordPress, Wix, Bumpa, Shopify, or any other e-commerce website
+                builder? Shopper is a free alternative to all of them — moving over costs nothing,
+                and you keep the same storefront basics without the monthly subscription or plugin fees.
               </p>
               <ul className="mt-6 space-y-2">
                 {["No setup fees", "No monthly charge to start", "No developer needed"].map((item) => (

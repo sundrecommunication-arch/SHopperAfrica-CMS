@@ -26,8 +26,8 @@ export function MarketingFooter() {
               Shopper
             </div>
             <p className="max-w-sm text-sm text-muted-foreground">
-              Shopper gives African business owners a real website, storefront, and checkout —
-              free — so every ad, every search, and every WhatsApp chat leads somewhere real.
+              Shopper is a free e-commerce website — a real alternative to every other online store
+              builder in Africa — so every ad, every search, and every WhatsApp chat leads to a sale.
             </p>
           </div>
 

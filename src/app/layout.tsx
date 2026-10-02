@@ -4,7 +4,7 @@ import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
   title: "Shopper — Create your store in minutes",
-  description: "The easiest way for a business to start selling online.",
+  description: "A free e-commerce website builder for African businesses — a real alternative to every other online store builder, built to help you sell online.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
