@@ -4,6 +4,7 @@ import { eq, and } from "drizzle-orm";
 import { db } from "@/db";
 import { stores, orders, payments, paymentProviders, customers } from "@/db/schema";
 import { initializePaystackTransaction } from "@/modules/payments/adapters/paystack-adapter";
+import { getPublicOrigin } from "@/lib/request-origin";
 
 /**
  * Starts a Paystack transaction for an already-created (PENDING) order and
@@ -75,7 +76,9 @@ export async function POST(request: Request) {
     // A fresh reference per attempt — lets a customer retry after an
     // abandoned or failed attempt without colliding with the last one.
     const reference = `${order.orderNumber}-${Date.now()}`;
-    const origin = new URL(request.url).origin;
+    // Not `new URL(request.url).origin` — behind Railway's proxy that always
+    // reads as localhost:<internal port>. See getPublicOrigin for why.
+    const origin = getPublicOrigin(request);
     // Paystack appends its own ?reference=&trxref= to whatever we pass here
     // once the customer completes (or cancels) the payment.
     const callbackUrl = `${origin}/store/${storeSlug}/orders/${orderNumber}`;
