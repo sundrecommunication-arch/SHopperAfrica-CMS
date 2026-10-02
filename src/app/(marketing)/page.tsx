@@ -18,6 +18,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/marketing/reveal";
+import { HeroCarousel } from "@/components/marketing/hero-carousel";
 
 export const metadata: Metadata = {
   title: "A free e-commerce website builder for every African business",
@@ -107,6 +108,9 @@ export default function WelcomePage() {
             <Button asChild size="lg" variant="outline" className="text-base">
               <Link href="/login">Sign in</Link>
             </Button>
+          </div>
+          <div className="animate-fade-up mt-4 w-full" style={{ animationDelay: "0.4s" }}>
+            <HeroCarousel />
           </div>
         </div>
       </section>
