@@ -21,7 +21,10 @@ export function MarketingFooter() {
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-4">
           <div className="flex flex-col gap-3 md:col-span-2">
-            <Image src="/logo-full.png" alt="Shopper" width={287} height={200} className="h-7 w-auto" />
+            <div className="flex items-center gap-2 text-lg font-semibold">
+              <Image src="/logo-mark.png" alt="" width={28} height={28} className="size-7" />
+              Shopper
+            </div>
             <p className="max-w-sm text-sm text-muted-foreground">
               Shopper gives African business owners a real website, storefront, and checkout —
               free — so every ad, every search, and every WhatsApp chat leads somewhere real.

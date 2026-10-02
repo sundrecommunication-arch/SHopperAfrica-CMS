@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     default: "Shopper — A free website for every African business",
   },
   description:
-    "Shopper gives small business owners in Africa a real website, storefront, and WhatsApp checkout — free. Built to be found on Google, AI search, and every ad platform.",
+    "Shopper gives small business owners in Africa a real website, storefront, and WhatsApp checkout — free. A simple alternative to WordPress, Wix, and Bumpa, built to be found on Google, AI search, and every ad platform.",
 };
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {

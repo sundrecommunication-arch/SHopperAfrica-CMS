@@ -235,6 +235,11 @@ export default function WelcomePage() {
                 the checkout, and the visibility a website is supposed to bring, at no cost to
                 start. No card required.
               </p>
+              <p className="mt-3 text-sm text-muted-foreground">
+                Already running your store on WordPress, Wix, Bumpa, or another platform?
+                Moving over is free too — Shopper covers the same storefront basics without
+                the monthly subscription or plugin fees.
+              </p>
               <ul className="mt-6 space-y-2">
                 {["No setup fees", "No monthly charge to start", "No developer needed"].map((item) => (
                   <li key={item} className="flex items-center gap-2 text-sm font-medium">
