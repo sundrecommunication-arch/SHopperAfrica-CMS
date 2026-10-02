@@ -1,8 +1,24 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { createHmac, timingSafeEqual } from "crypto";
+import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
-import { orders, payments } from "@/db/schema";
+import { orders, payments, paymentProviders } from "@/db/schema";
+
+/**
+ * Verifies that a webhook payload was actually signed by Paystack using the
+ * store's own secret key, per Paystack's documented HMAC-SHA512 scheme.
+ * Without this check, anyone who knows (or guesses) an order reference could
+ * POST a fake "charge.success" event here and mark any order PAID for free.
+ */
+function isValidPaystackSignature(rawBody: string, signature: string | null, secretKey: string) {
+  if (!signature) return false;
+  const expected = createHmac("sha512", secretKey).update(rawBody).digest("hex");
+  const expectedBuf = Buffer.from(expected, "utf8");
+  const signatureBuf = Buffer.from(signature, "utf8");
+  if (expectedBuf.length !== signatureBuf.length) return false;
+  return timingSafeEqual(expectedBuf, signatureBuf);
+}
 
 export async function POST(
   request: Request,
@@ -32,6 +48,35 @@ export async function POST(
 
           const paymentRecord = paymentRows[0];
           if (paymentRecord) {
+            // Resolve the store's own Paystack secret key (same lookup the
+            // initialize/verify routes use) so we check the signature
+            // against the key that actually signed this specific event.
+            const [providerConfig] = await db
+              .select()
+              .from(paymentProviders)
+              .where(
+                and(
+                  eq(paymentProviders.storeId, paymentRecord.storeId),
+                  eq(paymentProviders.type, "PAYSTACK"),
+                  eq(paymentProviders.isEnabled, true)
+                )
+              )
+              .limit(1);
+
+            const secretKey =
+              (providerConfig?.config?.secretKey as string) || process.env.PAYSTACK_SECRET_KEY;
+
+            const signature = request.headers.get("x-paystack-signature");
+
+            if (!secretKey || !isValidPaystackSignature(bodyText, signature, secretKey)) {
+              console.error("Paystack webhook: signature verification failed", {
+                orderId: paymentRecord.orderId,
+                hasSecretKey: !!secretKey,
+                hasSignatureHeader: !!signature,
+              });
+              return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+            }
+
             await db.transaction(async (tx) => {
               await tx
                 .update(orders)
