@@ -22,7 +22,26 @@ export async function getCurrentStore(requestedStoreId?: string) {
     throw new TenantError("Not authenticated");
   }
 
-  const storeId = requestedStoreId ?? session.activeStoreId ?? undefined;
+  let storeId = requestedStoreId ?? session.activeStoreId ?? undefined;
+
+  // session.activeStoreId comes from the JWT, which is only refreshed when
+  // the client explicitly calls next-auth's update() and that new session
+  // cookie round-trips back to the browser. Right after onboarding creates
+  // a brand-new store, the dashboard redirect can land before that cookie
+  // update is applied, so activeStoreId is still null even though the
+  // membership row exists. Rather than surface "No store selected" to a
+  // user who very much just created one, fall back to looking their
+  // membership up directly — this also just means "pick their only store"
+  // for the common single-store case this app is built around.
+  if (!storeId) {
+    const [firstMembership] = await db
+      .select({ storeId: storeMembers.storeId })
+      .from(storeMembers)
+      .where(eq(storeMembers.userId, session.user.id))
+      .limit(1);
+    storeId = firstMembership?.storeId;
+  }
+
   if (!storeId) {
     throw new TenantError("No store selected");
   }
