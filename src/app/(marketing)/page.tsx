@@ -80,21 +80,21 @@ export default function WelcomePage() {
   return (
     <div className="flex flex-col">
       {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-accent/40 via-background to-background" />
-        <div className="mx-auto flex max-w-4xl flex-col items-center gap-6 px-4 py-20 text-center sm:px-6 sm:py-28">
-          <span className="animate-fade-up inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-muted-foreground">
+      <section className="relative isolate flex min-h-[640px] items-center overflow-hidden py-20 sm:min-h-[720px] sm:py-28">
+        <HeroCarousel />
+        <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center gap-6 px-4 text-center sm:px-6">
+          <span className="animate-fade-up inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/90 px-3 py-1 text-xs font-medium text-neutral-800 backdrop-blur-sm">
             <Sparkles className="h-3.5 w-3.5 text-primary" />
             Free e-commerce website builder for Africa
           </span>
           <h1
-            className="animate-fade-up text-4xl font-semibold leading-[1.1] tracking-tight sm:text-6xl"
+            className="animate-fade-up text-4xl font-semibold leading-[1.1] tracking-tight text-white sm:text-6xl"
             style={{ fontFamily: "var(--font-marketing-display)", animationDelay: "0.1s" }}
           >
             The free way for African businesses to sell online.
           </h1>
           <p
-            className="animate-fade-up max-w-2xl text-lg text-muted-foreground sm:text-xl"
+            className="animate-fade-up max-w-2xl text-lg text-white/85 sm:text-xl"
             style={{ animationDelay: "0.2s" }}
           >
             Shopper is a free e-commerce website — a real alternative to every other online store
@@ -108,9 +108,6 @@ export default function WelcomePage() {
             <Button asChild size="lg" variant="outline" className="text-base">
               <Link href="/login">Sign in</Link>
             </Button>
-          </div>
-          <div className="animate-fade-up mt-4 w-full" style={{ animationDelay: "0.4s" }}>
-            <HeroCarousel />
           </div>
         </div>
       </section>
