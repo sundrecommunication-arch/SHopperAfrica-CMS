@@ -1,17 +1,111 @@
 import NextAuth from "next-auth";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { authConfig } from "@/auth.config";
 
 // Next.js renamed the "middleware" file convention to "proxy" — this runs on
-// the server before a route renders and gates /dashboard + /onboarding.
+// the server before a route renders. It does two unrelated jobs, both
+// cheap to combine into one file since Next.js only allows one:
+//   1. Gate /dashboard and /onboarding behind a logged-in session.
+//   2. Rate limit a handful of sensitive, unauthenticated API routes
+//      (signup, login, password reset, payments, checkout) so one IP can't
+//      hammer them.
 const { auth } = NextAuth(authConfig);
 
+/**
+ * In-memory, per-instance rate limiter. Intentionally simple rather than
+ * Redis-backed: Shopper currently runs as a single Railway instance with no
+ * autoscaling, so in-memory state is accurate. If Shopper ever moves to
+ * multiple instances/autoscaling, this stops being accurate per client (each
+ * instance tracks its own counts) and should be swapped for a shared store
+ * (e.g. Upstash Redis + @upstash/ratelimit).
+ */
+type Bucket = { count: number; resetAt: number };
+
+const buckets = new Map<string, Bucket>();
+
+const RATE_LIMIT_RULES: Array<{ prefix: string; limit: number; windowMs: number }> = [
+  { prefix: "/api/signup", limit: 10, windowMs: 60_000 },
+  { prefix: "/api/storefront/auth", limit: 10, windowMs: 60_000 },
+  { prefix: "/api/auth/forgot-password", limit: 5, windowMs: 60_000 },
+  { prefix: "/api/auth/reset-password", limit: 5, windowMs: 60_000 },
+  { prefix: "/api/payments/initialize", limit: 20, windowMs: 60_000 },
+  { prefix: "/api/payments/verify", limit: 20, windowMs: 60_000 },
+  { prefix: "/api/storefront/orders", limit: 20, windowMs: 60_000 },
+  { prefix: "/login", limit: 15, windowMs: 60_000 },
+  { prefix: "/signup", limit: 15, windowMs: 60_000 },
+];
+
+function getClientIp(request: NextRequest): string {
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0].trim();
+  return request.headers.get("x-real-ip") ?? "unknown";
+}
+
+// Opportunistic cleanup so the Map doesn't grow unbounded between restarts.
+let lastCleanup = Date.now();
+function cleanupExpired() {
+  const now = Date.now();
+  if (now - lastCleanup < 60_000) return;
+  lastCleanup = now;
+  for (const [key, bucket] of buckets) {
+    if (bucket.resetAt < now) buckets.delete(key);
+  }
+}
+
+function checkRateLimit(request: NextRequest): NextResponse | null {
+  const { pathname } = request.nextUrl;
+  const rule = RATE_LIMIT_RULES.find((r) => pathname.startsWith(r.prefix));
+  if (!rule) return null;
+
+  cleanupExpired();
+
+  const ip = getClientIp(request);
+  const key = `${rule.prefix}:${ip}`;
+  const now = Date.now();
+  const bucket = buckets.get(key);
+
+  if (!bucket || bucket.resetAt < now) {
+    buckets.set(key, { count: 1, resetAt: now + rule.windowMs });
+    return null;
+  }
+
+  if (bucket.count >= rule.limit) {
+    const retryAfterSec = Math.ceil((bucket.resetAt - now) / 1000);
+    return NextResponse.json(
+      { error: "Too many requests. Please try again shortly." },
+      { status: 429, headers: { "Retry-After": String(retryAfterSec) } }
+    );
+  }
+
+  bucket.count += 1;
+  return null;
+}
+
 export function proxy(request: NextRequest) {
-  // @ts-expect-error - next-auth's `auth` wrapper accepts the proxy/middleware request shape
-  return auth(request);
+  const limited = checkRateLimit(request);
+  if (limited) return limited;
+
+  const { pathname } = request.nextUrl;
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/onboarding")) {
+    // @ts-expect-error - next-auth's `auth` wrapper accepts the proxy/middleware request shape
+    return auth(request);
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {
-  // Skip static files, images and the API routes themselves.
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\.\\w+$).*)"],
+  matcher: [
+    "/dashboard/:path*",
+    "/onboarding/:path*",
+    "/api/signup",
+    "/api/storefront/auth/:path*",
+    "/api/auth/forgot-password",
+    "/api/auth/reset-password",
+    "/api/payments/initialize",
+    "/api/payments/verify",
+    "/api/storefront/orders",
+    "/login",
+    "/signup",
+  ],
 };
