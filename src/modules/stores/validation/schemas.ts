@@ -32,3 +32,31 @@ export function slugify(input: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
+
+// --- Staff / team management -------------------------------------------------
+
+// OWNER is deliberately excluded here — invites only ever grant MANAGER or
+// STAFF. A store's OWNER is set at creation and transferring ownership isn't
+// a flow this app supports yet.
+export const inviteStaffSchema = z.object({
+  email: z.string().email("Enter a valid email"),
+  role: z.enum(["MANAGER", "STAFF"]),
+});
+
+export type InviteStaffInput = z.infer<typeof inviteStaffSchema>;
+
+export const updateMemberRoleSchema = z.object({
+  role: z.enum(["MANAGER", "STAFF"]),
+});
+
+export type UpdateMemberRoleInput = z.infer<typeof updateMemberRoleSchema>;
+
+export const acceptInviteSchema = z.object({
+  token: z.string().min(1, "Missing invite token"),
+  // Only required when the invited email doesn't already have an account —
+  // see POST /api/invites/[token]/accept.
+  name: z.string().min(2, "Enter your name").max(100).optional(),
+  password: z.string().min(8, "Password must be at least 8 characters").optional(),
+});
+
+export type AcceptInviteInput = z.infer<typeof acceptInviteSchema>;

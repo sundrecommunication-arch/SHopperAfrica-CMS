@@ -7,8 +7,8 @@ import { authConfig } from "@/auth.config";
 // cheap to combine into one file since Next.js only allows one:
 //   1. Gate /dashboard and /onboarding behind a logged-in session.
 //   2. Rate limit a handful of sensitive, unauthenticated API routes
-//      (signup, login, password reset, payments, checkout) so one IP can't
-//      hammer them.
+//      (signup, login, password reset, payments, checkout, invites) so one
+//      IP can't hammer them.
 const { auth } = NextAuth(authConfig);
 
 /**
@@ -31,6 +31,7 @@ const RATE_LIMIT_RULES: Array<{ prefix: string; limit: number; windowMs: number 
   { prefix: "/api/payments/initialize", limit: 20, windowMs: 60_000 },
   { prefix: "/api/payments/verify", limit: 20, windowMs: 60_000 },
   { prefix: "/api/storefront/orders", limit: 20, windowMs: 60_000 },
+  { prefix: "/api/invites", limit: 20, windowMs: 60_000 },
   { prefix: "/login", limit: 15, windowMs: 60_000 },
   { prefix: "/signup", limit: 15, windowMs: 60_000 },
 ];
@@ -105,6 +106,7 @@ export const config = {
     "/api/payments/initialize",
     "/api/payments/verify",
     "/api/storefront/orders",
+    "/api/invites/:path*",
     "/login",
     "/signup",
   ],

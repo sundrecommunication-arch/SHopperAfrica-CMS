@@ -7,15 +7,17 @@ import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { navItems } from "./nav-items";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import type { StoreRole } from "@/types/next-auth";
 
 // Compact bottom navigation for phones (docs section 42/83) — the merchant
 // manages orders and products from their phone as often as from a desktop.
 // A "More" tab opens the full section list so every dashboard page — not
 // just the four pinned here — stays reachable on mobile.
-export function MobileNav() {
+export function MobileNav({ role }: { role: StoreRole }) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
-  const primaryItems = navItems.filter((item) => item.mobilePrimary);
+  const visibleItems = navItems.filter((item) => !item.ownerOnly || role === "OWNER");
+  const primaryItems = visibleItems.filter((item) => item.mobilePrimary);
 
   const isItemActive = (href: string) =>
     href === "/dashboard" ? pathname === href : pathname.startsWith(href);
@@ -55,7 +57,7 @@ export function MobileNav() {
             <SheetTitle>Dashboard menu</SheetTitle>
           </SheetHeader>
           <nav className="flex flex-col gap-0.5 overflow-y-auto px-2 pb-6">
-            {navItems.map((item) => {
+            {visibleItems.map((item) => {
               const isActive = isItemActive(item.href);
               const Icon = item.icon;
               return (

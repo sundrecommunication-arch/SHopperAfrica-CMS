@@ -16,6 +16,7 @@ import {
   ListOrdered,
   HelpCircle,
   Settings,
+  UserPlus,
 } from "lucide-react";
 
 export interface NavItem {
@@ -24,6 +25,8 @@ export interface NavItem {
   icon: LucideIcon;
   /** Shown in the compact mobile bottom bar (docs section 42/83). */
   mobilePrimary?: boolean;
+  /** Hidden from MANAGER/STAFF — only the store owner sees this item. */
+  ownerOnly?: boolean;
 }
 
 export const navItems: NavItem[] = [
@@ -42,5 +45,6 @@ export const navItems: NavItem[] = [
   { label: "Policies", href: "/dashboard/policies", icon: FileText },
   { label: "Navigation", href: "/dashboard/nav", icon: ListOrdered },
   { label: "FAQs", href: "/dashboard/faqs", icon: HelpCircle },
+  { label: "Team", href: "/dashboard/team", icon: UserPlus, ownerOnly: true },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];

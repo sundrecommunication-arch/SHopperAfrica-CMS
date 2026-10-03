@@ -118,3 +118,26 @@ export const storeMembers = pgTable(
   },
   (t) => [unique("store_members_store_user_unique").on(t.storeId, t.userId)]
 );
+
+// A pending invitation to join a store's team, sent to an email address
+// that may or may not already have a Shopper account (see
+// src/modules/stores/services/staff-service.ts and src/app/invite/[token]).
+// Not unique on (storeId, email) — re-inviting the same address replaces
+// the prior pending row rather than fighting a constraint.
+export const storeInvites = pgTable("store_invites", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  storeId: text("store_id")
+    .notNull()
+    .references(() => stores.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  role: storeRoleEnum("role").notNull().default("STAFF"),
+  tokenHash: text("token_hash").notNull().unique(),
+  invitedByUserId: text("invited_by_user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at").notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});

@@ -5,6 +5,7 @@ import { getCurrentStore, TenantError } from "@/lib/tenant";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { UserMenu } from "@/components/dashboard/user-menu";
+import type { StoreRole } from "@/types/next-auth";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -20,9 +21,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // to a direct DB lookup of the user's own membership (see src/lib/tenant.ts)
   // — reuse that here instead of duplicating the stale check.
   let activeStoreName: string;
+  let role: StoreRole;
   try {
-    const { store } = await getCurrentStore();
-    activeStoreName = store.name;
+    const result = await getCurrentStore();
+    activeStoreName = result.store.name;
+    role = result.role;
   } catch (error) {
     if (error instanceof TenantError) {
       redirect("/onboarding");
@@ -38,7 +41,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {activeStoreName}
         </div>
         <div className="flex-1 overflow-y-auto">
-          <SidebarNav />
+          <SidebarNav role={role} />
         </div>
         <div className="border-t p-2">
           <UserMenu name={session.user.name} email={session.user.email} />
@@ -51,7 +54,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <UserMenu name={session.user.name} email={session.user.email} />
         </header>
         <main className="flex-1 p-4 pb-20 md:p-8 md:pb-8">{children}</main>
-        <MobileNav />
+        <MobileNav role={role} />
       </div>
     </div>
   );

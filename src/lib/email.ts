@@ -1,8 +1,9 @@
 import "server-only";
 import { Resend } from "resend";
 
-// Transactional email (password-reset, contact form). The app otherwise notifies
-// merchants over WhatsApp — these are the only features that need real email delivery.
+// Transactional email (password-reset, contact form, team invites). The app
+// otherwise notifies merchants over WhatsApp — these are the only features
+// that need real email delivery.
 //
 // RESEND_API_KEY: sign up free at resend.com, create an API key, add it to .env.
 // RESEND_FROM_EMAIL: optional. Until a sending domain is verified on the Resend
@@ -89,5 +90,51 @@ export async function sendContactMessage({ name, email, message }: ContactMessag
 
   if (error) {
     throw new Error(`Failed to send contact message: ${error.message}`);
+  }
+}
+
+interface TeamInviteDetails {
+  storeName: string;
+  inviteUrl: string;
+  role: "OWNER" | "MANAGER" | "STAFF";
+}
+
+const ROLE_LABEL: Record<TeamInviteDetails["role"], string> = {
+  OWNER: "owner",
+  MANAGER: "manager",
+  STAFF: "staff member",
+};
+
+/** Sent when a store owner invites someone to join their team (src/modules/stores/services/staff-service.ts). */
+export async function sendTeamInviteEmail(to: string, details: TeamInviteDetails): Promise<void> {
+  const resend = getClient();
+  const roleLabel = ROLE_LABEL[details.role];
+  const { error } = await resend.emails.send({
+    from: getFromAddress(),
+    to,
+    subject: `You've been invited to join ${details.storeName} on Shopper`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+        <h2 style="margin-bottom: 8px;">Join ${details.storeName} on Shopper</h2>
+        <p style="color: #555; line-height: 1.5;">
+          You've been invited to join <strong>${details.storeName}</strong>'s team as a
+          <strong>${roleLabel}</strong>. Click the button below to accept — this link expires
+          in 7 days.
+        </p>
+        <p style="margin: 24px 0;">
+          <a href="${details.inviteUrl}"
+             style="background: #111; color: #fff; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+            Accept invite
+          </a>
+        </p>
+        <p style="color: #888; font-size: 13px; line-height: 1.5;">
+          If you weren't expecting this, you can safely ignore this email.
+        </p>
+      </div>
+    `,
+  });
+
+  if (error) {
+    throw new Error(`Failed to send team invite email: ${error.message}`);
   }
 }

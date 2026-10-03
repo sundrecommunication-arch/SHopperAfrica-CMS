@@ -4,13 +4,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { navItems } from "./nav-items";
+import type { StoreRole } from "@/types/next-auth";
 
-export function SidebarNav() {
+export function SidebarNav({ role }: { role: StoreRole }) {
   const pathname = usePathname();
+  const visibleItems = navItems.filter((item) => !item.ownerOnly || role === "OWNER");
 
   return (
     <nav className="flex flex-col gap-0.5 p-2">
-      {navItems.map((item) => {
+      {visibleItems.map((item) => {
         const isActive = item.href === "/dashboard" ? pathname === item.href : pathname.startsWith(item.href);
         const Icon = item.icon;
         return (
