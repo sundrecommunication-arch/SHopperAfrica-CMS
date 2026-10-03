@@ -3,13 +3,21 @@ import { NextResponse, type NextRequest } from "next/server";
 import { authConfig } from "@/auth.config";
 
 // Next.js renamed the "middleware" file convention to "proxy" — this runs on
-// the server before a route renders. It does two unrelated jobs, both
+// the server before a route renders. It does three unrelated jobs, all
 // cheap to combine into one file since Next.js only allows one:
-//   1. Gate /dashboard and /onboarding behind a logged-in session.
-//   2. Rate limit a handful of sensitive, unauthenticated API routes
+//   1. Redirect the bare apex domain (shopperafrica.com) to www. Both are
+//      still pointed at this same app in DNS, so without this, a visitor who
+//      lands on the apex domain gets a session cookie scoped to apex — which
+//      breaks sign-in once NextAuth sends them to www (AUTH_URL in
+//      auth.config.ts always builds its redirects against www).
+//   2. Gate /dashboard and /onboarding behind a logged-in session.
+//   3. Rate limit a handful of sensitive, unauthenticated API routes
 //      (signup, login, password reset, payments, checkout, invites) so one
 //      IP can't hammer them.
 const { auth } = NextAuth(authConfig);
+
+const CANONICAL_HOST = "www.shopperafrica.com";
+const APEX_HOST = "shopperafrica.com";
 
 /**
  * In-memory, per-instance rate limiter. Intentionally simple rather than
@@ -83,6 +91,17 @@ function checkRateLimit(request: NextRequest): NextResponse | null {
 }
 
 export function proxy(request: NextRequest) {
+  // x-forwarded-host is what Railway's proxy sets to the domain the visitor
+  // actually typed; raw "host" is the fallback for any environment without
+  // a proxy in front (e.g. running `next start` directly).
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  if (host === APEX_HOST) {
+    const url = new URL(request.nextUrl.pathname + request.nextUrl.search, `https://${CANONICAL_HOST}`);
+    // 308 (not 301/302) so a POST to e.g. /api/storefront/orders stays a
+    // POST after the redirect instead of silently becoming a GET.
+    return NextResponse.redirect(url, 308);
+  }
+
   const limited = checkRateLimit(request);
   if (limited) return limited;
 
@@ -96,18 +115,10 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/dashboard/:path*",
-    "/onboarding/:path*",
-    "/api/signup",
-    "/api/storefront/auth/:path*",
-    "/api/auth/forgot-password",
-    "/api/auth/reset-password",
-    "/api/payments/initialize",
-    "/api/payments/verify",
-    "/api/storefront/orders",
-    "/api/invites/:path*",
-    "/login",
-    "/signup",
-  ],
+  // Broadened from a specific path list to everything except Next's own
+  // static/image assets and favicon — the apex→www redirect above has to
+  // apply to every route, not just the ones rate-limited or auth-gated
+  // below (those are still filtered inside proxy() itself, so this doesn't
+  // change their behavior).
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
