@@ -265,6 +265,8 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
         ? "WhatsApp Order"
         : data.paymentMethodType === "PAYSTACK"
         ? "Paystack Online Payment"
+        : data.paymentMethodType === "PAYDUNYA"
+        ? "Online Payment (PayDunya)"
         : "Bank Transfer";
 
     // 4d. Insert order

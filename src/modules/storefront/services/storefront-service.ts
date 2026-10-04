@@ -36,9 +36,16 @@ export async function getCustomerOrders(customerId: string) {
     .orderBy(desc(orders.createdAt));
 }
 
-/** A logged-in customer's saved delivery addresses (/store/[slug]/account, checkout) -- default first, then newest. */
+/**
+ * A logged-in customer's saved delivery addresses (/store/[slug]/account,
+ * checkout) -- default first, then newest. Every order (guest or not) writes
+ * a row to `addresses` for the merchant's own records, so a repeat customer
+ * can rack up several rows for the exact same address -- this dedupes by
+ * (line1, city, state) before returning, keeping each address's most recent
+ * row, and caps the list so checkout's address picker stays short.
+ */
 export async function getCustomerAddresses(customerId: string) {
-  return db
+  const rows = await db
     .select({
       id: addresses.id,
       label: addresses.label,
@@ -50,6 +57,17 @@ export async function getCustomerAddresses(customerId: string) {
     .from(addresses)
     .where(eq(addresses.customerId, customerId))
     .orderBy(desc(addresses.isDefault), desc(addresses.createdAt));
+
+  const seen = new Set<string>();
+  const deduped: typeof rows = [];
+  for (const row of rows) {
+    const key = `${row.line1.trim().toLowerCase()}|${row.city.trim().toLowerCase()}|${(row.state ?? "").trim().toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(row);
+    if (deduped.length >= 5) break;
+  }
+  return deduped;
 }
 
 export type PublicProductListItem = Awaited<ReturnType<typeof getPublicStoreProducts>>[number];

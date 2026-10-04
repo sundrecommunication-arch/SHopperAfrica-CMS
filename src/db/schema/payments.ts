@@ -8,6 +8,7 @@ export const paymentProviderTypeEnum = pgEnum("payment_provider_type", [
   "CASH_ON_DELIVERY",
   "WHATSAPP",
   "PAYSTACK",
+  "PAYDUNYA",
   "FLUTTERWAVE",
   "STRIPE",
   "OTHER",

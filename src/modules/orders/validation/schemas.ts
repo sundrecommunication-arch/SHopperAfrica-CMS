@@ -15,7 +15,9 @@ export const createOrderSchema = z.object({
   city: z.string().min(2, "City is required"),
   state: z.string().optional(),
   customerNotes: z.string().optional(),
-  paymentMethodType: z.enum(["MANUAL", "CASH_ON_DELIVERY", "WHATSAPP", "PAYSTACK"]).default("MANUAL"),
+  paymentMethodType: z
+    .enum(["MANUAL", "CASH_ON_DELIVERY", "WHATSAPP", "PAYSTACK", "PAYDUNYA"])
+    .default("MANUAL"),
   checkoutChannel: z.enum(["WEBSITE", "WHATSAPP"]).default("WEBSITE"),
   discountCode: z.string().optional(),
   items: z.array(orderItemInputSchema).min(1, "Cart cannot be empty"),

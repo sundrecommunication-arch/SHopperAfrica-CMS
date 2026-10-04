@@ -1,18 +1,25 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, CreditCard } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
 /**
- * Paystack redirects back to this receipt page (via the callback_url we set
- * in /api/payments/initialize) with ?reference=&trxref= query params, before
- * the webhook has necessarily landed. This runs once on arrival to verify
- * the payment immediately, so the customer doesn't sit looking at "Pending"
+ * Both Paystack and PayDunya redirect back to this receipt page (via the
+ * callback/return URL we set in /api/payments/initialize), before the
+ * webhook has necessarily landed. This runs once on arrival whenever the
+ * order is still PENDING, so the customer doesn't sit looking at "Pending"
  * for however long the webhook takes.
+ *
+ * Despite the name (kept to avoid a wider rename), this now covers either
+ * online provider -- /api/payments/verify resolves which one, and the
+ * transaction reference to check, from our own DB record of the order's
+ * payment attempt rather than from the URL. Paystack appends ?reference=&
+ * trxref= to the redirect and PayDunya doesn't append anything reliable at
+ * all, so neither is something we parse here anymore.
  */
 export function PaystackPaymentVerifier({
   storeSlug,
@@ -24,20 +31,18 @@ export function PaystackPaymentVerifier({
   isPending: boolean;
 }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [isVerifying, setIsVerifying] = useState(false);
   const attempted = useRef(false);
 
   useEffect(() => {
-    const reference = searchParams.get("reference") || searchParams.get("trxref");
-    if (!reference || !isPending || attempted.current) return;
+    if (!isPending || attempted.current) return;
     attempted.current = true;
     setIsVerifying(true);
 
     fetch("/api/payments/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ storeSlug, orderNumber, reference }),
+      body: JSON.stringify({ storeSlug, orderNumber }),
     })
       .then((res) => res.json().catch(() => null))
       .then((data) => {
@@ -47,7 +52,7 @@ export function PaystackPaymentVerifier({
         router.refresh();
       })
       .finally(() => setIsVerifying(false));
-  }, [searchParams, isPending, storeSlug, orderNumber, router]);
+  }, [isPending, storeSlug, orderNumber, router]);
 
   if (!isVerifying) return null;
 

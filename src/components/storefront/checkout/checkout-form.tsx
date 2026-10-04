@@ -14,6 +14,7 @@ import {
   ArrowRight,
   CheckCircle2,
   CreditCard,
+  Wallet,
   Tag,
   Loader2,
   X,
@@ -28,7 +29,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 
 interface PaymentOption {
   id: string;
-  type: "MANUAL" | "CASH_ON_DELIVERY" | "WHATSAPP" | "PAYSTACK" | string;
+  type: "MANUAL" | "CASH_ON_DELIVERY" | "WHATSAPP" | "PAYSTACK" | "PAYDUNYA" | string;
   label: string;
   config: Record<string, unknown>;
 }
@@ -106,10 +107,10 @@ export function CheckoutForm({
   // Payment Selection
   const defaultMethod =
     paymentProviders.length > 0
-      ? (paymentProviders[0].type as "MANUAL" | "CASH_ON_DELIVERY" | "WHATSAPP" | "PAYSTACK")
+      ? (paymentProviders[0].type as "MANUAL" | "CASH_ON_DELIVERY" | "WHATSAPP" | "PAYSTACK" | "PAYDUNYA")
       : "MANUAL";
   const [selectedMethod, setSelectedMethod] = useState<
-    "MANUAL" | "CASH_ON_DELIVERY" | "WHATSAPP" | "PAYSTACK"
+    "MANUAL" | "CASH_ON_DELIVERY" | "WHATSAPP" | "PAYSTACK" | "PAYDUNYA"
   >(defaultMethod);
 
   // Coupon State
@@ -199,8 +200,11 @@ export function CheckoutForm({
       toast.error("Please enter your city");
       return;
     }
-    if (selectedMethod === "PAYSTACK" && !customerEmail.trim()) {
-      toast.error("Please enter your email address to pay by card online");
+    if (
+      (selectedMethod === "PAYSTACK" || selectedMethod === "PAYDUNYA") &&
+      !customerEmail.trim()
+    ) {
+      toast.error("Please enter your email address to pay online");
       return;
     }
 
@@ -252,17 +256,19 @@ export function CheckoutForm({
         }).catch(() => {});
       }
 
-      // For online card payments, the order now exists as PENDING — hand off
-      // to Paystack's hosted checkout before showing the receipt. Every other
-      // method (bank transfer, cash on delivery, WhatsApp) has nothing further
-      // to do, so it goes straight to the receipt as before.
-      if (selectedMethod === "PAYSTACK") {
+      // For online payments (Paystack or PayDunya), the order now exists as
+      // PENDING — hand off to the provider's hosted checkout before showing
+      // the receipt. Every other method (bank transfer, cash on delivery,
+      // WhatsApp) has nothing further to do, so it goes straight to the
+      // receipt as before.
+      if (selectedMethod === "PAYSTACK" || selectedMethod === "PAYDUNYA") {
         const initRes = await fetch("/api/payments/initialize", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             storeSlug: store.slug,
             orderNumber: data.order.orderNumber,
+            paymentMethodType: selectedMethod,
           }),
         });
         const initData = await initRes.json().catch(() => null);
@@ -270,7 +276,7 @@ export function CheckoutForm({
         if (!initRes.ok || !initData?.authorizationUrl) {
           toast.error(
             initData?.error ??
-              "Your order was placed, but we couldn't start the card payment. You can retry from your order page."
+              "Your order was placed, but we couldn't start the online payment. You can retry from your order page."
           );
           clearCart();
           router.push(data.receiptUrl);
@@ -345,7 +351,7 @@ export function CheckoutForm({
                 <div className="space-y-2">
                   <Label htmlFor="customerEmail">
                     Email Address{" "}
-                    {selectedMethod === "PAYSTACK" ? (
+                    {selectedMethod === "PAYSTACK" || selectedMethod === "PAYDUNYA" ? (
                       <span className="text-destructive">*</span>
                     ) : (
                       "(optional)"
@@ -357,11 +363,11 @@ export function CheckoutForm({
                     placeholder="e.g. amina@example.com"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
-                    required={selectedMethod === "PAYSTACK"}
+                    required={selectedMethod === "PAYSTACK" || selectedMethod === "PAYDUNYA"}
                   />
-                  {selectedMethod === "PAYSTACK" && (
+                  {(selectedMethod === "PAYSTACK" || selectedMethod === "PAYDUNYA") && (
                     <p className="text-xs text-muted-foreground">
-                      Required for card payment — your receipt goes here too.
+                      Required for online payment — your receipt goes here too.
                     </p>
                   )}
                 </div>
@@ -531,6 +537,35 @@ export function CheckoutForm({
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Pay instantly with Debit Card, Bank Transfer, USSD, or Apple Pay.
+                    </p>
+                  </div>
+                </label>
+              )}
+
+              {/* PayDunya Online Payment */}
+              {paymentProviders.some((p) => p.type === "PAYDUNYA") && (
+                <label
+                  className={`flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-all ${
+                    selectedMethod === "PAYDUNYA"
+                      ? "border-primary bg-primary/5 ring-1 ring-primary"
+                      : "border-border hover:bg-muted/40"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="PAYDUNYA"
+                    checked={selectedMethod === "PAYDUNYA"}
+                    onChange={() => setSelectedMethod("PAYDUNYA")}
+                    className="mt-1 text-primary"
+                  />
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2 font-semibold text-sm">
+                      <Wallet className="h-4 w-4 text-amber-600" />
+                      <span>Online Payment (PayDunya)</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Pay instantly with Mobile Money, Card, or Bank Transfer via PayDunya.
                     </p>
                   </div>
                 </label>

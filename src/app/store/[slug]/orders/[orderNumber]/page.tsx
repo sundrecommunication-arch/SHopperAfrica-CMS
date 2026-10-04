@@ -51,7 +51,9 @@ export default async function OrderReceiptPage({ params }: OrderReceiptPageProps
     order.paymentMethod?.toLowerCase().includes("manual");
 
   const isPaystackPending =
-    order.paymentMethod === "Paystack Online Payment" && order.paymentStatus === "PENDING";
+    (order.paymentMethod === "Paystack Online Payment" ||
+      order.paymentMethod === "Online Payment (PayDunya)") &&
+    order.paymentStatus === "PENDING";
 
   return (
     <div className="container mx-auto max-w-4xl px-4 py-10 sm:px-6 space-y-8">

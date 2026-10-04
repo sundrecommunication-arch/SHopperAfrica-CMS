@@ -13,6 +13,7 @@ export const savePaymentProviderSchema = z.object({
     "CASH_ON_DELIVERY",
     "WHATSAPP",
     "PAYSTACK",
+    "PAYDUNYA",
     "FLUTTERWAVE",
     "STRIPE",
   ]),
