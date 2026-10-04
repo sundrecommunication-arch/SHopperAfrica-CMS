@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { db } from "@/db";
 import { stores } from "@/db/schema";
-import { getCurrentStore, TenantError } from "@/lib/tenant";
+import { getCurrentStore, requireRole, TenantError } from "@/lib/tenant";
 import {
   generateDomainVerificationToken,
   getDomainDnsInstructions,
@@ -25,7 +25,8 @@ const registerDomainSchema = z.object({
  */
 export async function POST(request: Request) {
   try {
-    const { store } = await getCurrentStore();
+    const { store, role } = await getCurrentStore();
+    requireRole(role, ["OWNER", "MANAGER"]);
     const body = await request.json();
     const parsed = registerDomainSchema.safeParse(body);
     if (!parsed.success) {

@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { stores } from "@/db/schema";
-import { getCurrentStore, TenantError } from "@/lib/tenant";
+import { getCurrentStore, requireRole, TenantError } from "@/lib/tenant";
 import { getDomainDnsInstructions, verifyDomainOwnership } from "@/lib/domain-verification";
 
 /** Current domain status + the DNS instructions to show while it's pending. */
@@ -29,7 +29,8 @@ export async function GET() {
 /** Re-checks DNS for the merchant's pending domain and flips it to verified on success. */
 export async function POST() {
   try {
-    const { store } = await getCurrentStore();
+    const { store, role } = await getCurrentStore();
+    requireRole(role, ["OWNER", "MANAGER"]);
     if (!store.customDomain) {
       return NextResponse.json({ error: "No custom domain is set for this store." }, { status: 400 });
     }

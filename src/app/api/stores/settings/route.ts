@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { db } from "@/db";
 import { stores } from "@/db/schema";
-import { getCurrentStore } from "@/lib/tenant";
+import { getCurrentStore, requireRole, TenantError } from "@/lib/tenant";
 import { generateDomainVerificationToken, isValidDomain } from "@/lib/domain-verification";
 
 const updateStoreSettingsSchema = z.object({
@@ -35,7 +35,8 @@ const updateStoreSettingsSchema = z.object({
 
 export async function PATCH(request: Request) {
   try {
-    const { store } = await getCurrentStore();
+    const { store, role } = await getCurrentStore();
+    requireRole(role, ["OWNER", "MANAGER"]);
     const body = await request.json();
     const parsed = updateStoreSettingsSchema.safeParse(body);
 
@@ -76,6 +77,9 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ store: updated });
   } catch (error) {
+    if (error instanceof TenantError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     if (error instanceof Error && error.message.includes("Unauthorized")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
