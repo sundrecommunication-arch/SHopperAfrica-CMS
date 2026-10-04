@@ -4,8 +4,8 @@ import { and, eq, or } from "drizzle-orm";
 import { cookies } from "next/headers";
 
 import { db } from "@/db";
-import { customers, customerSessions } from "@/db/schema";
-import type { CustomerSignupInput, CustomerLoginInput } from "../validation/schemas";
+import { customers, customerSessions, addresses } from "@/db/schema";
+import type { CustomerSignupInput, CustomerLoginInput, SaveAddressInput } from "../validation/schemas";
 
 // Storefront customer accounts are entirely separate from the merchant/staff
 // NextAuth session system (src/auth.ts) -- different table, different cookie,
@@ -154,4 +154,33 @@ export async function getCurrentCustomer(storeId: string, storeSlug: string) {
   }
 
   return row.customer;
+}
+
+/**
+ * Saves a delivery address to a logged-in customer's account, offered as a
+ * "save this address" checkbox at checkout (checkout-form.tsx). The very
+ * first address a customer saves becomes their default automatically;
+ * later ones don't, so there's always at most one default without the
+ * customer having to manage that explicitly.
+ */
+export async function saveCustomerAddress(customerId: string, input: SaveAddressInput) {
+  const existing = await db
+    .select({ id: addresses.id })
+    .from(addresses)
+    .where(eq(addresses.customerId, customerId))
+    .limit(1);
+
+  const [address] = await db
+    .insert(addresses)
+    .values({
+      customerId,
+      label: input.label?.trim() || null,
+      line1: input.line1.trim(),
+      city: input.city.trim(),
+      state: input.state?.trim() || null,
+      isDefault: existing.length === 0,
+    })
+    .returning();
+
+  return address;
 }

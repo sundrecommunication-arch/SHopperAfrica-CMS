@@ -33,6 +33,21 @@ interface PaymentOption {
   config: Record<string, unknown>;
 }
 
+interface SavedAddress {
+  id: string;
+  label: string | null;
+  line1: string;
+  city: string;
+  state: string | null;
+  isDefault: boolean;
+}
+
+interface CheckoutCustomer {
+  name: string;
+  phone: string;
+  email: string | null;
+}
+
 interface CheckoutFormProps {
   store: {
     id: string;
@@ -43,22 +58,50 @@ interface CheckoutFormProps {
     whatsappEnabled: boolean;
   };
   paymentProviders: PaymentOption[];
+  customer?: CheckoutCustomer | null;
+  addresses?: SavedAddress[];
 }
 
-export function CheckoutForm({ store, paymentProviders }: CheckoutFormProps) {
+export function CheckoutForm({
+  store,
+  paymentProviders,
+  customer = null,
+  addresses = [],
+}: CheckoutFormProps) {
   const router = useRouter();
   const { items, subtotal, clearCart } = useCart();
 
-  // Customer State
-  const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
-  const [customerEmail, setCustomerEmail] = useState("");
+  // Customer State -- prefilled from the logged-in customer's account, if any.
+  const [customerName, setCustomerName] = useState(customer?.name ?? "");
+  const [customerPhone, setCustomerPhone] = useState(customer?.phone ?? "");
+  const [customerEmail, setCustomerEmail] = useState(customer?.email ?? "");
 
-  // Delivery State
-  const [deliveryAddress, setDeliveryAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
+  // Delivery State -- defaults to the customer's default saved address, if any.
+  const defaultAddress = addresses.find((a) => a.isDefault) ?? addresses[0] ?? null;
+  const [selectedAddressId, setSelectedAddressId] = useState<string>(
+    defaultAddress ? defaultAddress.id : "new"
+  );
+  const [deliveryAddress, setDeliveryAddress] = useState(defaultAddress?.line1 ?? "");
+  const [city, setCity] = useState(defaultAddress?.city ?? "");
+  const [state, setState] = useState(defaultAddress?.state ?? "");
   const [customerNotes, setCustomerNotes] = useState("");
+  const [saveAddress, setSaveAddress] = useState(false);
+
+  const handleSelectAddress = (id: string) => {
+    setSelectedAddressId(id);
+    if (id === "new") {
+      setDeliveryAddress("");
+      setCity("");
+      setState("");
+      return;
+    }
+    const addr = addresses.find((a) => a.id === id);
+    if (addr) {
+      setDeliveryAddress(addr.line1);
+      setCity(addr.city);
+      setState(addr.state ?? "");
+    }
+  };
 
   // Payment Selection
   const defaultMethod =
@@ -193,6 +236,22 @@ export function CheckoutForm({ store, paymentProviders }: CheckoutFormProps) {
         throw new Error(data.error ?? "Failed to place order");
       }
 
+      // Best-effort -- a logged-in customer checking "save this address" gets
+      // it saved for next time, but a failure here should never block the
+      // order they just successfully placed.
+      if (customer && saveAddress && selectedAddressId === "new") {
+        fetch("/api/storefront/account/addresses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            storeSlug: store.slug,
+            line1: deliveryAddress.trim(),
+            city: city.trim(),
+            state: state.trim() || undefined,
+          }),
+        }).catch(() => {});
+      }
+
       // For online card payments, the order now exists as PENDING — hand off
       // to Paystack's hosted checkout before showing the receipt. Every other
       // method (bank transfer, cash on delivery, WhatsApp) has nothing further
@@ -322,6 +381,57 @@ export function CheckoutForm({ store, paymentProviders }: CheckoutFormProps) {
               <CardDescription>Where should we deliver your order?</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {addresses.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Use a saved address</Label>
+                  <div className="space-y-2">
+                    {addresses.map((addr) => (
+                      <label
+                        key={addr.id}
+                        className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-all ${
+                          selectedAddressId === addr.id
+                            ? "border-primary bg-primary/5 ring-1 ring-primary"
+                            : "border-border hover:bg-muted/40"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="savedAddress"
+                          value={addr.id}
+                          checked={selectedAddressId === addr.id}
+                          onChange={() => handleSelectAddress(addr.id)}
+                          className="mt-1 text-primary"
+                        />
+                        <div className="flex-1 text-sm">
+                          {addr.label && <div className="font-semibold">{addr.label}</div>}
+                          <div className="text-muted-foreground">
+                            {addr.line1}, {addr.city}
+                            {addr.state ? `, ${addr.state}` : ""}
+                          </div>
+                        </div>
+                      </label>
+                    ))}
+                    <label
+                      className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-all ${
+                        selectedAddressId === "new"
+                          ? "border-primary bg-primary/5 ring-1 ring-primary"
+                          : "border-border hover:bg-muted/40"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="savedAddress"
+                        value="new"
+                        checked={selectedAddressId === "new"}
+                        onChange={() => handleSelectAddress("new")}
+                        className="mt-1 text-primary"
+                      />
+                      <div className="flex-1 text-sm font-medium">Enter a new address</div>
+                    </label>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="deliveryAddress">
                   Street Address <span className="text-destructive">*</span>
@@ -370,6 +480,18 @@ export function CheckoutForm({ store, paymentProviders }: CheckoutFormProps) {
                   onChange={(e) => setCustomerNotes(e.target.value)}
                 />
               </div>
+
+              {customer && selectedAddressId === "new" && (
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={saveAddress}
+                    onChange={(e) => setSaveAddress(e.target.checked)}
+                    className="h-4 w-4 rounded border-border text-primary"
+                  />
+                  <span>Save this address for next time</span>
+                </label>
+              )}
             </CardContent>
           </Card>
 
@@ -653,7 +775,11 @@ export function CheckoutForm({ store, paymentProviders }: CheckoutFormProps) {
 
               <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground pt-2">
                 <ShieldCheck className="h-4 w-4 text-primary" />
-                <span>Secure guest checkout • No login required</span>
+                <span>
+                  {customer
+                    ? `Signed in as ${customer.name.split(" ")[0]} • Secure checkout`
+                    : "Secure guest checkout • No login required"}
+                </span>
               </div>
             </CardContent>
           </Card>

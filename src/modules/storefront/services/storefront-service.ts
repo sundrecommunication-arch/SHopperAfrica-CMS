@@ -14,6 +14,7 @@ import {
   storeNavItems,
   faqs,
   orders,
+  addresses,
 } from "@/db/schema";
 import { DEFAULT_NAV_ITEMS } from "@/modules/nav/constants";
 
@@ -33,6 +34,22 @@ export async function getCustomerOrders(customerId: string) {
     .from(orders)
     .where(eq(orders.customerId, customerId))
     .orderBy(desc(orders.createdAt));
+}
+
+/** A logged-in customer's saved delivery addresses (/store/[slug]/account, checkout) -- default first, then newest. */
+export async function getCustomerAddresses(customerId: string) {
+  return db
+    .select({
+      id: addresses.id,
+      label: addresses.label,
+      line1: addresses.line1,
+      city: addresses.city,
+      state: addresses.state,
+      isDefault: addresses.isDefault,
+    })
+    .from(addresses)
+    .where(eq(addresses.customerId, customerId))
+    .orderBy(desc(addresses.isDefault), desc(addresses.createdAt));
 }
 
 export type PublicProductListItem = Awaited<ReturnType<typeof getPublicStoreProducts>>[number];
