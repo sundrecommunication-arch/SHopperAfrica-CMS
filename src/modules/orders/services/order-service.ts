@@ -1,5 +1,5 @@
 import "server-only";
-import { eq, and, desc, count, inArray } from "drizzle-orm";
+import { eq, and, desc, count, inArray, gte, lte } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -441,6 +441,8 @@ export async function listStoreOrders(
     fulfillmentStatus?: string;
     paymentStatus?: string;
     search?: string;
+    from?: Date | null;
+    to?: Date | null;
   }
 ) {
   const conditions = [eq(orders.storeId, storeId)];
@@ -450,6 +452,12 @@ export async function listStoreOrders(
   }
   if (filters?.paymentStatus) {
     conditions.push(eq(orders.paymentStatus, filters.paymentStatus as PaymentStatus));
+  }
+  if (filters?.from) {
+    conditions.push(gte(orders.createdAt, filters.from));
+  }
+  if (filters?.to) {
+    conditions.push(lte(orders.createdAt, filters.to));
   }
 
   const rows = await db

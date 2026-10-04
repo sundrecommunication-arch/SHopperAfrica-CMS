@@ -4,6 +4,8 @@ import { ShoppingBag, ChevronRight, MessageSquareQuote, Globe } from "lucide-rea
 
 import { getCurrentStore } from "@/lib/tenant";
 import { listStoreOrders } from "@/modules/orders/services/order-service";
+import { resolveDateRange } from "@/lib/date-range";
+import { DateRangeFilter } from "@/components/dashboard/filters/date-range-filter";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -15,23 +17,36 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-export default async function OrdersPage() {
+export default async function OrdersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string; from?: string; to?: string }>;
+}) {
   const { store } = await getCurrentStore();
-  const orderList = await listStoreOrders(store.id);
+  const sp = await searchParams;
+  const dateRange = resolveDateRange(sp);
+  const orderList = await listStoreOrders(store.id, { from: dateRange.from, to: dateRange.to });
 
   if (orderList.length === 0) {
     return (
       <div className="flex flex-col gap-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Orders</h1>
-          <p className="text-muted-foreground text-sm">
-            Track and manage your customer purchases.
-          </p>
+        <div className="flex flex-col gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold">Orders</h1>
+            <p className="text-muted-foreground text-sm">
+              Track and manage your customer purchases.
+            </p>
+          </div>
+          <DateRangeFilter />
         </div>
         <EmptyState
           icon={ShoppingBag}
-          title="No orders yet."
-          description="Your orders will appear here when customers purchase from your store."
+          title={dateRange.key === "all" ? "No orders yet." : "No orders in this period."}
+          description={
+            dateRange.key === "all"
+              ? "Your orders will appear here when customers purchase from your store."
+              : "Try a wider date range, or switch back to All time."
+          }
         />
       </div>
     );
@@ -39,13 +54,15 @@ export default async function OrdersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Orders</h1>
           <p className="text-muted-foreground text-sm">
-            {orderList.length} {orderList.length === 1 ? "order" : "orders"} placed in {store.name}
+            {orderList.length} {orderList.length === 1 ? "order" : "orders"} placed in {store.name}{" "}
+            &mdash; {dateRange.label.toLowerCase()}
           </p>
         </div>
+        <DateRangeFilter />
       </div>
 
       <div className="rounded-xl border bg-card overflow-hidden">

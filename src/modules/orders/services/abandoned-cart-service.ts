@@ -1,5 +1,5 @@
 import "server-only";
-import { eq, and, lt, inArray, desc } from "drizzle-orm";
+import { eq, and, lt, gte, lte, inArray, desc } from "drizzle-orm";
 
 import { db } from "@/db";
 import { orders, orderItems, customers, abandonedCartNudges } from "@/db/schema";
@@ -41,9 +41,18 @@ export interface AbandonedCheckout {
  */
 export async function listAbandonedCheckouts(
   storeId: string,
-  thresholdHours: number
+  thresholdHours: number,
+  range?: { from?: Date | null; to?: Date | null }
 ): Promise<AbandonedCheckout[]> {
   const cutoff = new Date(Date.now() - thresholdHours * 60 * 60 * 1000);
+
+  // The date-range filter narrows *when the checkout was started*, on top
+  // of (not instead of) the existing "still unpaid after N hours" cutoff --
+  // a range that's entirely more recent than the cutoff would just show
+  // nothing, which is the correct, honest result rather than ignoring it.
+  const dc = [];
+  if (range?.from) dc.push(gte(orders.createdAt, range.from));
+  if (range?.to) dc.push(lte(orders.createdAt, range.to));
 
   const staleOrders = await db
     .select({
@@ -64,7 +73,8 @@ export async function listAbandonedCheckouts(
         eq(orders.paymentStatus, "PENDING"),
         eq(orders.fulfillmentStatus, "NEW"),
         inArray(orders.paymentMethod, ABANDONABLE_PAYMENT_METHODS),
-        lt(orders.createdAt, cutoff)
+        lt(orders.createdAt, cutoff),
+        ...dc
       )
     )
     .orderBy(orders.createdAt);
