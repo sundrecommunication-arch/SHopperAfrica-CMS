@@ -6,10 +6,16 @@ import {
   TrendingUp,
   CreditCard,
   Package,
+  BarChart3,
 } from "lucide-react";
 
 import { getCurrentStore } from "@/lib/tenant";
-import { getStoreAnalytics } from "@/modules/analytics/services/analytics-service";
+import {
+  getStoreAnalytics,
+  getStoreSalesTrend,
+} from "@/modules/analytics/services/analytics-service";
+import { resolveDateRange } from "@/lib/date-range";
+import { DateRangeFilter } from "@/components/dashboard/filters/date-range-filter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Table,
@@ -21,9 +27,40 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-export default async function AnalyticsPage() {
+export default async function AnalyticsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string; from?: string; to?: string }>;
+}) {
   const { store } = await getCurrentStore();
-  const analytics = await getStoreAnalytics(store.id);
+  const sp = await searchParams;
+  const dateRange = resolveDateRange(sp);
+
+  // The chart itself is capped at 60 daily bars even for a wide custom
+  // range -- the summary cards above still reflect the full selected range,
+  // this just keeps the chart from turning into an unreadable wall of bars.
+  const now = new Date();
+  const trendTo = dateRange.to ?? now;
+  let trendFrom = dateRange.from ?? (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 13);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  })();
+  const MAX_TREND_DAYS = 60;
+  const spanDays = Math.ceil((trendTo.getTime() - trendFrom.getTime()) / 86_400_000) + 1;
+  if (spanDays > MAX_TREND_DAYS) {
+    trendFrom = new Date(trendTo);
+    trendFrom.setDate(trendFrom.getDate() - (MAX_TREND_DAYS - 1));
+    trendFrom.setHours(0, 0, 0, 0);
+  }
+
+  const [analytics, salesTrend] = await Promise.all([
+    getStoreAnalytics(store.id, dateRange),
+    getStoreSalesTrend(store.id, { from: trendFrom, to: trendTo }),
+  ]);
+  const maxTrendRevenue = Math.max(...salesTrend.map((t) => t.revenue), 0);
+  const hasTrendData = salesTrend.some((t) => t.revenue > 0);
 
   const metrics = [
     {
@@ -54,11 +91,15 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-semibold">Analytics & Performance</h1>
-        <p className="text-muted-foreground text-sm">
-          Track revenue, customer volume, and best-selling items for {store.name}.
-        </p>
+      <div className="flex flex-col gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">Analytics & Performance</h1>
+          <p className="text-muted-foreground text-sm">
+            Track revenue, customer volume, and best-selling items for {store.name} &mdash;{" "}
+            {dateRange.label.toLowerCase()}.
+          </p>
+        </div>
+        <DateRangeFilter />
       </div>
 
       {/* Metrics Row */}
@@ -85,6 +126,69 @@ export default async function AnalyticsPage() {
           );
         })}
       </div>
+
+      {/* Sales Trend */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-primary" />
+            Sales Trend
+          </CardTitle>
+          <CardDescription>
+            Paid revenue by day, {dateRange.label.toLowerCase()} ({salesTrend.length}{" "}
+            {salesTrend.length === 1 ? "day" : "days"} shown).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!hasTrendData ? (
+            <p className="text-xs text-muted-foreground py-6 text-center">
+              No paid orders in this period yet. Daily revenue will chart here once orders come in.
+            </p>
+          ) : (
+            <div>
+              <div className="flex items-end gap-[2px] h-40">
+                {salesTrend.map((t) => {
+                  const heightPct =
+                    maxTrendRevenue > 0 ? (t.revenue / maxTrendRevenue) * 100 : 0;
+                  const label = new Date(`${t.date}T00:00:00`).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  });
+                  return (
+                    <div key={t.date} className="group relative flex-1 h-full flex items-end">
+                      <div className="pointer-events-none absolute bottom-full left-1/2 mb-1.5 hidden -translate-x-1/2 flex-col items-center whitespace-nowrap rounded-md border bg-popover px-2 py-1 text-[10px] shadow-sm group-hover:flex z-10">
+                        <span className="font-semibold text-foreground">
+                          {store.currencySymbol}
+                          {t.revenue.toLocaleString()}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {label} &middot; {t.orderCount} order{t.orderCount === 1 ? "" : "s"}
+                        </span>
+                      </div>
+                      <div
+                        className={`w-full rounded-t transition-colors ${
+                          t.revenue > 0 ? "bg-primary/80 group-hover:bg-primary" : "bg-border"
+                        }`}
+                        style={{ height: t.revenue > 0 ? `${Math.max(heightPct, 3)}%` : "2px" }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex gap-[2px] mt-1.5">
+                {salesTrend.map((t) => (
+                  <span
+                    key={t.date}
+                    className="flex-1 text-center text-[9px] text-muted-foreground tabular-nums"
+                  >
+                    {new Date(`${t.date}T00:00:00`).getDate()}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* 2-Column Grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">

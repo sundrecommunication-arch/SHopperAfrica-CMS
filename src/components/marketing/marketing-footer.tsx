@@ -29,6 +29,29 @@ export function MarketingFooter() {
               Shopper is a free e-commerce website — a real alternative to every other online store
               builder in Africa — so every ad, every search, and every WhatsApp chat leads to a sale.
             </p>
+            <a
+              href="https://www.instagram.com/shopperafricacms/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex w-fit items-center gap-1.5 text-sm text-foreground/80 hover:text-foreground"
+            >
+              {/* lucide-react dropped brand/logo icons, so this is a small inline glyph instead of a package icon. */}
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4"
+                aria-hidden="true"
+              >
+                <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+              </svg>
+              @shopperafricacms
+            </a>
           </div>
 
           <div className="flex flex-col gap-2">
