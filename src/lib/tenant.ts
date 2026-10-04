@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { eq, and } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -15,8 +16,13 @@ export class TenantError extends Error {}
  *
  * Every data-access function for tenant-owned tables should take the
  * storeId from here, not from a request body or query param.
+ *
+ * Wrapped in React's cache() because the dashboard layout AND nearly every
+ * dashboard page call this with no args on the same navigation. Without
+ * cache(), that's 2 full DB round-trips in the layout plus 2 more in the
+ * page for every single click — this dedupes them to one call per request.
  */
-export async function getCurrentStore(requestedStoreId?: string) {
+export const getCurrentStore = cache(async (requestedStoreId?: string) => {
   const session = await auth();
   if (!session?.user?.id) {
     throw new TenantError("Not authenticated");
@@ -46,23 +52,27 @@ export async function getCurrentStore(requestedStoreId?: string) {
     throw new TenantError("No store selected");
   }
 
-  const [membership] = await db
-    .select({ role: storeMembers.role })
-    .from(storeMembers)
-    .where(and(eq(storeMembers.storeId, storeId), eq(storeMembers.userId, session.user.id)))
-    .limit(1);
+  // Membership check and store fetch both depend only on storeId (not on
+  // each other), so run them concurrently instead of as two sequential
+  // round-trips.
+  const [[membership], [store]] = await Promise.all([
+    db
+      .select({ role: storeMembers.role })
+      .from(storeMembers)
+      .where(and(eq(storeMembers.storeId, storeId), eq(storeMembers.userId, session.user.id)))
+      .limit(1),
+    db.select().from(stores).where(eq(stores.id, storeId)).limit(1),
+  ]);
 
   if (!membership) {
     throw new TenantError("You do not have access to this store");
   }
-
-  const [store] = await db.select().from(stores).where(eq(stores.id, storeId)).limit(1);
   if (!store) {
     throw new TenantError("Store not found");
   }
 
   return { store, role: membership.role as StoreRole, userId: session.user.id };
-}
+});
 
 /** Throws unless the caller's role is in `allowed`. Use inside mutations. */
 export function requireRole(role: StoreRole, allowed: StoreRole[]) {
