@@ -4,6 +4,12 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { stores, products, categories } from "@/db/schema";
 
+// Build the sitemap per request, not once at build time: a build-time copy
+// goes stale as soon as a merchant publishes a new store or product, and
+// prerendering it makes every build worker hit the DB at once (which blows
+// past the Supabase session pooler's 15-client limit).
+export const dynamic = "force-dynamic";
+
 /**
  * Auto-generated sitemap — Next's native App Router convention (this file
  * is served at /sitemap.xml with zero manual config). It enumerates every

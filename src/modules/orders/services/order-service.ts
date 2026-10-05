@@ -1,5 +1,5 @@
 import "server-only";
-import { eq, and, desc, count, inArray, gte, lte } from "drizzle-orm";
+import { eq, and, desc, count, inArray, gte, lte, isNotNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -20,6 +20,7 @@ import {
 
 type FulfillmentStatus = (typeof fulfillmentStatusEnum.enumValues)[number];
 type PaymentStatus = (typeof paymentStatusEnum.enumValues)[number];
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 import {
   createOrderSchema,
   updateOrderStatusSchema,
@@ -350,32 +351,33 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
       }))
     );
 
-    // 4f. Decrement inventory
+    // 4f. Decrement inventory. Done as a single atomic SQL update per line
+    // (not "read value, write value - qty") so two customers checking out at
+    // the same moment can't both buy the last unit. For products that don't
+    // allow backorders, the update only matches if enough stock is still
+    // there — otherwise the whole order rolls back (docs section 77).
     for (const item of validatedItems) {
-      if (item.trackInventory) {
-        if (item.variantId) {
-          const v = variantMap.get(item.variantId);
-          if (v) {
-            await tx
-              .update(productVariants)
-              .set({
-                inventoryQuantity: Math.max(0, v.inventoryQuantity - item.quantity),
-                updatedAt: new Date(),
-              })
-              .where(eq(productVariants.id, item.variantId));
-          }
-        } else {
-          const p = productMap.get(item.productId);
-          if (p) {
-            await tx
-              .update(products)
-              .set({
-                inventoryQuantity: Math.max(0, p.inventoryQuantity - item.quantity),
-                updatedAt: new Date(),
-              })
-              .where(eq(products.id, item.productId));
-          }
-        }
+      if (!item.trackInventory) continue;
+
+      const table = item.variantId ? productVariants : products;
+      const rowId = item.variantId ?? item.productId;
+      const updated = await tx
+        .update(table)
+        .set({
+          inventoryQuantity: sql`greatest(0, ${table.inventoryQuantity} - ${item.quantity})`,
+          updatedAt: new Date(),
+        })
+        .where(
+          item.allowBackorder
+            ? eq(table.id, rowId)
+            : and(eq(table.id, rowId), gte(table.inventoryQuantity, item.quantity))
+        )
+        .returning({ id: table.id });
+
+      if (updated.length === 0) {
+        throw new OrderServiceError(
+          `Sorry, "${item.productName}${item.variantName ? ` (${item.variantName})` : ""}" just sold out. Please update your cart.`
+        );
       }
     }
 
@@ -593,35 +595,96 @@ export async function updateOrderStatus(
     updateData.paymentStatus = parsed.data.paymentStatus;
   }
 
-  const [updated] = await db
-    .update(orders)
-    .set(updateData)
-    .where(and(eq(orders.id, orderId), eq(orders.storeId, storeId)))
-    .returning();
+  return db.transaction(async (tx) => {
+    // Guarded on the fulfillment status we just read: if someone else changed
+    // it in the meantime, this matches nothing and we stop — otherwise two
+    // simultaneous "Cancel" clicks could restock the same order twice.
+    const [updated] = await tx
+      .update(orders)
+      .set(updateData)
+      .where(
+        and(
+          eq(orders.id, orderId),
+          eq(orders.storeId, storeId),
+          eq(orders.fulfillmentStatus, existing.fulfillmentStatus)
+        )
+      )
+      .returning();
 
-  if (!updated) {
-    throw new OrderServiceError("Order not found");
+    if (!updated) {
+      throw new OrderServiceError(
+        "This order was just updated by someone else. Please refresh and try again."
+      );
+    }
+
+    // Stock is held by every order that isn't cancelled: cancelling puts it
+    // back, and un-cancelling takes it out again.
+    if (changes.fulfillmentStatus === "CANCELLED") {
+      await adjustOrderInventory(tx, orderId, "restock");
+    } else if (changes.fulfillmentStatus && existing.fulfillmentStatus === "CANCELLED") {
+      await adjustOrderInventory(tx, orderId, "deduct");
+    }
+
+    // Update payments record status if payment status changed
+    if (parsed.data.paymentStatus) {
+      const txStatus =
+        parsed.data.paymentStatus === "PAID"
+          ? ("SUCCEEDED" as const)
+          : parsed.data.paymentStatus === "FAILED"
+          ? ("FAILED" as const)
+          : parsed.data.paymentStatus === "REFUNDED" || parsed.data.paymentStatus === "PARTIALLY_REFUNDED"
+          ? ("REFUNDED" as const)
+          : ("PENDING" as const);
+
+      await tx
+        .update(payments)
+        .set({
+          status: txStatus,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(payments.orderId, orderId), eq(payments.storeId, storeId)));
+    }
+
+    return { order: updated, changes };
+  });
+}
+
+/**
+ * Puts an order's items back into stock (or takes them out again). Only
+ * touches products that currently track inventory; never goes below zero.
+ */
+async function adjustOrderInventory(tx: Tx, orderId: string, direction: "restock" | "deduct") {
+  const items = await tx
+    .select({
+      productId: orderItems.productId,
+      variantId: orderItems.variantId,
+      quantity: orderItems.quantity,
+      trackInventory: products.trackInventory,
+    })
+    .from(orderItems)
+    .innerJoin(products, eq(products.id, orderItems.productId))
+    .where(and(eq(orderItems.orderId, orderId), isNotNull(orderItems.productId)));
+
+  for (const item of items) {
+    if (!item.trackInventory) continue;
+    const delta = direction === "restock" ? item.quantity : -item.quantity;
+
+    if (item.variantId) {
+      await tx
+        .update(productVariants)
+        .set({
+          inventoryQuantity: sql`greatest(0, ${productVariants.inventoryQuantity} + ${delta})`,
+          updatedAt: new Date(),
+        })
+        .where(eq(productVariants.id, item.variantId));
+    } else {
+      await tx
+        .update(products)
+        .set({
+          inventoryQuantity: sql`greatest(0, ${products.inventoryQuantity} + ${delta})`,
+          updatedAt: new Date(),
+        })
+        .where(eq(products.id, item.productId!));
+    }
   }
-
-  // Update payments record status if payment status changed
-  if (parsed.data.paymentStatus) {
-    const txStatus =
-      parsed.data.paymentStatus === "PAID"
-        ? ("SUCCEEDED" as const)
-        : parsed.data.paymentStatus === "FAILED"
-        ? ("FAILED" as const)
-        : parsed.data.paymentStatus === "REFUNDED" || parsed.data.paymentStatus === "PARTIALLY_REFUNDED"
-        ? ("REFUNDED" as const)
-        : ("PENDING" as const);
-
-    await db
-      .update(payments)
-      .set({
-        status: txStatus,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(payments.orderId, orderId), eq(payments.storeId, storeId)));
-  }
-
-  return { order: updated, changes };
 }
