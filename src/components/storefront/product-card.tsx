@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Plus, ShoppingBag } from "lucide-react";
 
@@ -22,6 +23,8 @@ export interface StorefrontProductItem {
   productType?: string | null;
   brand?: string | null;
   primaryImageUrl?: string | null;
+  /** Has options (size/colour) -- quick add opens the product page to pick one. */
+  hasVariants?: boolean;
 }
 
 interface ProductCardProps {
@@ -32,6 +35,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product, storeSlug, currencySymbol }: ProductCardProps) {
   const { addItem } = useCart();
+  const router = useRouter();
 
   const numPrice = parseFloat(product.price);
   const numCompareAt = product.compareAtPrice ? parseFloat(product.compareAtPrice) : null;
@@ -50,6 +54,11 @@ export function ProductCard({ product, storeSlug, currencySymbol }: ProductCardP
     e.stopPropagation();
 
     if (isOutOfStock) return;
+
+    if (product.hasVariants) {
+      router.push(`/store/${storeSlug}/products/${product.slug}`);
+      return;
+    }
 
     addItem({
       productId: product.id,

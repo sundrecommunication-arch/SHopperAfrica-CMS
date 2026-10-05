@@ -379,6 +379,18 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
           `Sorry, "${item.productName}${item.variantName ? ` (${item.variantName})` : ""}" just sold out. Please update your cart.`
         );
       }
+
+      // A product with options stores the total of its options' stock --
+      // keep that total in step with the option we just sold.
+      if (item.variantId) {
+        await tx
+          .update(products)
+          .set({
+            inventoryQuantity: sql`greatest(0, ${products.inventoryQuantity} - ${item.quantity})`,
+            updatedAt: new Date(),
+          })
+          .where(eq(products.id, item.productId));
+      }
     }
 
     // 4g. Create payment transaction record
@@ -677,14 +689,15 @@ async function adjustOrderInventory(tx: Tx, orderId: string, direction: "restock
           updatedAt: new Date(),
         })
         .where(eq(productVariants.id, item.variantId));
-    } else {
-      await tx
-        .update(products)
-        .set({
-          inventoryQuantity: sql`greatest(0, ${products.inventoryQuantity} + ${delta})`,
-          updatedAt: new Date(),
-        })
-        .where(eq(products.id, item.productId!));
     }
+    // The product row holds its own stock, or (for products with options)
+    // the total of its options' stock -- either way it moves too.
+    await tx
+      .update(products)
+      .set({
+        inventoryQuantity: sql`greatest(0, ${products.inventoryQuantity} + ${delta})`,
+        updatedAt: new Date(),
+      })
+      .where(eq(products.id, item.productId!));
   }
 }

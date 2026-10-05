@@ -263,13 +263,24 @@ export function ProductForm({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="inventoryQuantity">Quantity</Label>
-              <Input
-                id="inventoryQuantity"
-                type="number"
-                min="0"
-                disabled={!trackInventory}
-                {...register("inventoryQuantity")}
-              />
+              {variants.length > 0 ? (
+                <p className="text-sm text-muted-foreground py-2">
+                  Stock is set per option below (
+                  {(variants as ProductVariantInput[]).reduce(
+                    (sum, v) => sum + (Number(v.inventoryQuantity) || 0),
+                    0
+                  )}{" "}
+                  in total).
+                </p>
+              ) : (
+                <Input
+                  id="inventoryQuantity"
+                  type="number"
+                  min="0"
+                  disabled={!trackInventory}
+                  {...register("inventoryQuantity")}
+                />
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="lowStockThreshold">Low stock warning at</Label>

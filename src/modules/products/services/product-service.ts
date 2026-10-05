@@ -29,6 +29,18 @@ function parseInput(input: ProductInput) {
   return parsed.data;
 }
 
+/**
+ * A product with options (variants) has no stock of its own -- its stock is
+ * the total across its options. Storing that total on the product keeps every
+ * place that reads products.inventoryQuantity (cards, dashboard, SEO data) in
+ * agreement with what's actually orderable.
+ */
+function totalStock(data: { inventoryQuantity: number; variants: { inventoryQuantity: number }[] }) {
+  return data.variants.length > 0
+    ? data.variants.reduce((sum, v) => sum + v.inventoryQuantity, 0)
+    : data.inventoryQuantity;
+}
+
 export async function createProduct(storeId: string, input: ProductInput) {
   const data = parseInput(input);
   await assertUniqueSlug(storeId, data.slug);
@@ -50,7 +62,7 @@ export async function createProduct(storeId: string, input: ProductInput) {
         sku: data.sku || null,
         weight: toNumericString(data.weight),
         trackInventory: data.trackInventory,
-        inventoryQuantity: data.inventoryQuantity,
+        inventoryQuantity: totalStock(data),
         allowBackorder: data.allowBackorder,
         lowStockThreshold: data.lowStockThreshold,
         seoTitle: data.seoTitle || null,
@@ -112,7 +124,7 @@ export async function updateProduct(storeId: string, productId: string, input: P
         sku: data.sku || null,
         weight: toNumericString(data.weight),
         trackInventory: data.trackInventory,
-        inventoryQuantity: data.inventoryQuantity,
+        inventoryQuantity: totalStock(data),
         allowBackorder: data.allowBackorder,
         lowStockThreshold: data.lowStockThreshold,
         seoTitle: data.seoTitle || null,

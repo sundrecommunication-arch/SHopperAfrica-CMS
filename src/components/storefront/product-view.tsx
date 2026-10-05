@@ -51,9 +51,16 @@ export function ProductView({
 }: ProductViewProps) {
   const { addItem } = useCart();
 
-  const [selectedVariant, setSelectedVariant] = useState<VariantItem | null>(
-    product.variants.length > 0 ? product.variants[0] : null
-  );
+  // Start on the first option that can actually be bought, so one sold-out
+  // size doesn't make the whole product look out of stock.
+  const [selectedVariant, setSelectedVariant] = useState<VariantItem | null>(() => {
+    if (product.variants.length === 0) return null;
+    const needsStock = product.trackInventory && !product.allowBackorder;
+    return (
+      (needsStock && product.variants.find((v) => v.inventoryQuantity > 0)) ||
+      product.variants[0]
+    );
+  });
   const [quantity, setQuantity] = useState(1);
   const [isAddedRecently, setIsAddedRecently] = useState(false);
 

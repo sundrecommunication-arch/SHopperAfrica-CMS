@@ -1,5 +1,5 @@
 import "server-only";
-import { eq, and, desc, asc, inArray, ilike, or, ne, isNull } from "drizzle-orm";
+import { eq, and, desc, asc, inArray, ilike, or, ne, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -229,6 +229,7 @@ export async function getPublicStoreProducts(
       productType: products.productType,
       brand: products.brand,
       createdAt: products.createdAt,
+      hasVariants: sql<boolean>`exists (select 1 from ${productVariants} where ${productVariants.productId} = ${products.id})`,
     })
     .from(products)
     .where(and(...conditions))
@@ -391,6 +392,7 @@ export async function getPublicRelatedProducts(
       productType: products.productType,
       brand: products.brand,
       createdAt: products.createdAt,
+      hasVariants: sql<boolean>`exists (select 1 from ${productVariants} where ${productVariants.productId} = ${products.id})`,
     })
     .from(products)
     .where(and(inArray(products.id, candidateIds), eq(products.status, "ACTIVE")));
