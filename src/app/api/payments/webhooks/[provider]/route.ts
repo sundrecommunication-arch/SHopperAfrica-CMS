@@ -1,10 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
-import { eq, and } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 
 import { db } from "@/db";
 import { orders, payments, paymentProviders } from "@/db/schema";
 import { confirmPaydunyaTransaction } from "@/modules/payments/adapters/paydunya-adapter";
+import { getPublicOrigin } from "@/lib/request-origin";
+import { notifyOrderPlaced } from "@/modules/notifications/services/order-notifications";
 
 /**
  * Verifies that a webhook payload was actually signed by Paystack using the
@@ -79,10 +81,17 @@ export async function POST(
             }
 
             await db.transaction(async (tx) => {
-              await tx
+              // Conditional on not-yet-PAID: webhook retries (and the verify
+              // route racing us) must only send the new-order emails once.
+              const transitioned = await tx
                 .update(orders)
                 .set({ paymentStatus: "PAID", updatedAt: new Date() })
-                .where(eq(orders.id, paymentRecord.orderId));
+                .where(and(eq(orders.id, paymentRecord.orderId), ne(orders.paymentStatus, "PAID")))
+                .returning({ id: orders.id });
+              if (transitioned.length > 0) {
+                const origin = getPublicOrigin(request);
+                after(() => notifyOrderPlaced(paymentRecord.orderId, origin));
+              }
 
               await tx
                 .update(payments)
@@ -162,10 +171,15 @@ export async function POST(
 
             if (confirmation.responseCode === "00" && confirmation.status === "completed") {
               await db.transaction(async (tx) => {
-                await tx
+                const transitioned = await tx
                   .update(orders)
                   .set({ paymentStatus: "PAID", updatedAt: new Date() })
-                  .where(eq(orders.id, paymentRecord.orderId));
+                  .where(and(eq(orders.id, paymentRecord.orderId), ne(orders.paymentStatus, "PAID")))
+                  .returning({ id: orders.id });
+                if (transitioned.length > 0) {
+                  const origin = getPublicOrigin(request);
+                  after(() => notifyOrderPlaced(paymentRecord.orderId, origin));
+                }
 
                 await tx
                   .update(payments)

@@ -20,6 +20,9 @@ export const createOrderSchema = z.object({
     .default("MANUAL"),
   checkoutChannel: z.enum(["WEBSITE", "WHATSAPP"]).default("WEBSITE"),
   discountCode: z.string().optional(),
+  // Required only when the store has delivery options set up — checked in
+  // createStorefrontOrder, which also prices it server-side.
+  deliveryOptionId: z.string().optional(),
   items: z.array(orderItemInputSchema).min(1, "Cart cannot be empty"),
 });
 

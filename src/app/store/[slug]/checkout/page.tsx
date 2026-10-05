@@ -6,6 +6,7 @@ import { ChevronRight } from "lucide-react";
 
 import { getPublicStoreBySlug, getCustomerAddresses } from "@/modules/storefront/services/storefront-service";
 import { getPublicStorePaymentProviders } from "@/modules/payments/services/payment-service";
+import { listDeliveryOptions } from "@/modules/shipping/services/shipping-service";
 import { getCurrentCustomer } from "@/modules/customer-auth/services/customer-auth-service";
 import { CheckoutForm } from "@/components/storefront/checkout/checkout-form";
 
@@ -36,7 +37,10 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
     notFound();
   }
 
-  const paymentProviders = await getPublicStorePaymentProviders(store.id);
+  const [paymentProviders, deliveryOptions] = await Promise.all([
+    getPublicStorePaymentProviders(store.id),
+    listDeliveryOptions(store.id),
+  ]);
 
   // Logged-in storefront customers get the checkout form prefilled with their
   // account details and saved addresses -- guests see the form exactly as
@@ -67,6 +71,7 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
       <CheckoutForm
         store={store}
         paymentProviders={paymentProviders}
+        deliveryOptions={deliveryOptions}
         customer={customer ? { name: customer.name, phone: customer.phone, email: customer.email } : null}
         addresses={addresses}
       />

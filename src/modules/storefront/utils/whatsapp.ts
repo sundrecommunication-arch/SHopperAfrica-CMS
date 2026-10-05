@@ -64,12 +64,20 @@ export function buildCartWhatsAppUrl(options: {
   currencySymbol: string;
   customerName?: string;
   deliveryAddress?: string;
+  // Only known once the order is priced server-side (order-service); the
+  // cart drawer's quick "order on WhatsApp" link leaves these out.
+  orderNumber?: string;
+  discount?: number;
+  deliveryMethod?: string | null;
+  deliveryFee?: number;
+  total?: number;
 }): string {
   const phone = formatWhatsAppPhone(options.whatsappNumber);
   const subtotal = options.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  const sym = options.currencySymbol;
 
   const lines: (string | null)[] = [
-    `*🛍️ NEW ORDER — ${options.storeName}*`,
+    `*🛍️ NEW ORDER${options.orderNumber ? ` #${options.orderNumber}` : ""} — ${options.storeName}*`,
     options.customerName ? `Customer: ${options.customerName}` : null,
     ``,
     `*Items:*`,
@@ -83,8 +91,22 @@ export function buildCartWhatsAppUrl(options: {
 
   lines.push(
     ``,
-    `*Subtotal: ${options.currencySymbol}${subtotal.toLocaleString()}*`
+    `*Subtotal: ${sym}${subtotal.toLocaleString()}*`
   );
+
+  if (options.discount) {
+    lines.push(`Discount: -${sym}${options.discount.toLocaleString()}`);
+  }
+  if (options.deliveryMethod) {
+    lines.push(
+      `Delivery (${options.deliveryMethod}): ${
+        options.deliveryFee ? `${sym}${options.deliveryFee.toLocaleString()}` : "Free"
+      }`
+    );
+  }
+  if (options.total !== undefined) {
+    lines.push(`*TOTAL: ${sym}${options.total.toLocaleString()}*`);
+  }
 
   if (options.deliveryAddress) {
     lines.push(`Delivery Address: ${options.deliveryAddress}`);

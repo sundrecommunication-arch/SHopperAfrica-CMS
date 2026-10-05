@@ -17,6 +17,7 @@ import {
   HelpCircle,
   Settings,
   UserPlus,
+  Truck,
 } from "lucide-react";
 
 export interface NavItem {
@@ -37,6 +38,7 @@ export const navItems: NavItem[] = [
   { label: "Categories", href: "/dashboard/categories", icon: FolderTree },
   { label: "Customers", href: "/dashboard/customers", icon: Users },
   { label: "Discounts", href: "/dashboard/discounts", icon: Tag },
+  { label: "Delivery", href: "/dashboard/delivery", icon: Truck },
   { label: "Payments", href: "/dashboard/payments", icon: CreditCard },
   { label: "Store", href: "/dashboard/store", icon: Store, mobilePrimary: true },
   { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },

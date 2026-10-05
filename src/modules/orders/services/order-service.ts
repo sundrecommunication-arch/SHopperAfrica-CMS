@@ -27,6 +27,10 @@ import {
   type UpdateOrderStatusInput,
 } from "../validation/schemas";
 import { buildCartWhatsAppUrl } from "@/modules/storefront/utils/whatsapp";
+import {
+  listDeliveryOptions,
+  calculateDeliveryFee,
+} from "@/modules/shipping/services/shipping-service";
 
 export class OrderServiceError extends Error {}
 
@@ -180,9 +184,27 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
     }
   }
 
+  // 3c. Resolve delivery option & fee from the DB — never from the client.
+  // Stores with no delivery options keep the old behaviour: no fee, arranged
+  // with the merchant directly.
+  const afterDiscount = Math.max(0, calculatedSubtotal - calculatedDiscount);
+  const deliveryOptions = await listDeliveryOptions(store.id);
+  let deliveryFee = 0;
+  let deliveryMethod: string | null = null;
+
+  if (deliveryOptions.length > 0) {
+    const chosen = deliveryOptions.find((o) => o.id === data.deliveryOptionId);
+    if (!chosen) {
+      throw new OrderServiceError("Please choose a delivery option");
+    }
+    deliveryFee = calculateDeliveryFee(chosen, afterDiscount);
+    deliveryMethod = chosen.name;
+  }
+
   const subtotalStr = String(calculatedSubtotal);
   const discountStr = String(Math.round(calculatedDiscount * 100) / 100);
-  const finalTotalNum = Math.max(0, calculatedSubtotal - calculatedDiscount);
+  const shippingStr = String(deliveryFee);
+  const finalTotalNum = afterDiscount + deliveryFee;
   const totalStr = String(finalTotalNum);
 
   // 4. Execute atomic transaction
@@ -255,6 +277,11 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
       })),
       customerName: data.customerName.trim(),
       deliveryAddress: fullDeliveryAddress,
+      orderNumber,
+      discount: calculatedDiscount,
+      deliveryMethod,
+      deliveryFee,
+      total: finalTotalNum,
     });
 
     // Determine payment method label
@@ -281,10 +308,11 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
         checkoutChannel: data.checkoutChannel,
         subtotal: subtotalStr,
         discountAmount: discountStr,
-        shippingAmount: "0",
+        shippingAmount: shippingStr,
         taxAmount: "0",
         total: totalStr,
         paymentMethod: paymentLabel,
+        deliveryMethod,
         deliveryAddressText: fullDeliveryAddress,
         customerNotes: data.customerNotes?.trim() || null,
         whatsappMessage: whatsappOrderMsg,
@@ -519,7 +547,9 @@ export async function getOrderById(storeId: string, orderId: string) {
 }
 
 /**
- * Updates fulfillment and/or payment status for an order.
+ * Updates fulfillment and/or payment status for an order. Returns the
+ * updated order plus which statuses actually changed (so callers can
+ * notify the customer without re-sending on a no-op save).
  */
 export async function updateOrderStatus(
   storeId: string,
@@ -529,6 +559,27 @@ export async function updateOrderStatus(
   const parsed = updateOrderStatusSchema.safeParse(input);
   if (!parsed.success) {
     throw new OrderServiceError(parsed.error.issues[0]?.message ?? "Invalid status update");
+  }
+
+  const [existing] = await db
+    .select({
+      fulfillmentStatus: orders.fulfillmentStatus,
+      paymentStatus: orders.paymentStatus,
+    })
+    .from(orders)
+    .where(and(eq(orders.id, orderId), eq(orders.storeId, storeId)))
+    .limit(1);
+
+  if (!existing) {
+    throw new OrderServiceError("Order not found");
+  }
+
+  const changes: { fulfillmentStatus?: FulfillmentStatus; paymentStatus?: PaymentStatus } = {};
+  if (parsed.data.fulfillmentStatus && parsed.data.fulfillmentStatus !== existing.fulfillmentStatus) {
+    changes.fulfillmentStatus = parsed.data.fulfillmentStatus;
+  }
+  if (parsed.data.paymentStatus && parsed.data.paymentStatus !== existing.paymentStatus) {
+    changes.paymentStatus = parsed.data.paymentStatus;
   }
 
   const updateData: Record<string, unknown> = {
@@ -572,5 +623,5 @@ export async function updateOrderStatus(
       .where(and(eq(payments.orderId, orderId), eq(payments.storeId, storeId)));
   }
 
-  return updated;
+  return { order: updated, changes };
 }

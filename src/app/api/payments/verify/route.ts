@@ -1,10 +1,12 @@
-import { NextResponse } from "next/server";
-import { eq, and } from "drizzle-orm";
+import { NextResponse, after } from "next/server";
+import { eq, and, ne } from "drizzle-orm";
 
 import { db } from "@/db";
 import { stores, orders, payments, paymentProviders } from "@/db/schema";
 import { verifyPaystackTransaction } from "@/modules/payments/adapters/paystack-adapter";
 import { confirmPaydunyaTransaction } from "@/modules/payments/adapters/paydunya-adapter";
+import { getPublicOrigin } from "@/lib/request-origin";
+import { notifyOrderPlaced } from "@/modules/notifications/services/order-notifications";
 
 export async function POST(request: Request) {
   try {
@@ -114,13 +116,16 @@ export async function POST(request: Request) {
     }
 
     if (verifiedSuccess) {
-      await db
+      // Conditional on not-yet-PAID so that if the webhook confirms the
+      // same payment concurrently, only one of them sends the emails.
+      const transitioned = await db
         .update(orders)
         .set({
           paymentStatus: "PAID",
           updatedAt: new Date(),
         })
-        .where(eq(orders.id, order.id));
+        .where(and(eq(orders.id, order.id), ne(orders.paymentStatus, "PAID")))
+        .returning({ id: orders.id });
 
       await db
         .update(payments)
@@ -130,6 +135,11 @@ export async function POST(request: Request) {
           updatedAt: new Date(),
         })
         .where(and(eq(payments.orderId, order.id), eq(payments.storeId, store.id)));
+
+      if (transitioned.length > 0) {
+        const origin = getPublicOrigin(request);
+        after(() => notifyOrderPlaced(order.id, origin));
+      }
 
       return NextResponse.json({ success: true, message: "Payment verified successfully" });
     }

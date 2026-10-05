@@ -1,6 +1,6 @@
 # shipping module
 
-Reserved for a later development phase (see `docs/master-instruction.md`,
-section 70 — the phased roadmap). When this module is built out, follow the
-same shape as `modules/stores`: `services/` for business logic,
-`validation/` for zod schemas, `types/` for module-local types.
+Merchant "delivery options" (Dashboard → Delivery): a name, a flat fee, and an
+optional free-above threshold. Each option is one `shipping_zones` row with one
+`shipping_rates` row. `utils/delivery-fee.ts` is shared by checkout (display)
+and `order-service` (authoritative server-side pricing).

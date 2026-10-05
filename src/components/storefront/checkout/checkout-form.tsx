@@ -18,6 +18,7 @@ import {
   Tag,
   Loader2,
   X,
+  Truck,
 } from "lucide-react";
 
 import { useCart } from "../cart/cart-context";
@@ -26,6 +27,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { calculateDeliveryFee, type DeliveryOption } from "@/modules/shipping/utils/delivery-fee";
 
 interface PaymentOption {
   id: string;
@@ -59,6 +61,7 @@ interface CheckoutFormProps {
     whatsappEnabled: boolean;
   };
   paymentProviders: PaymentOption[];
+  deliveryOptions?: DeliveryOption[];
   customer?: CheckoutCustomer | null;
   addresses?: SavedAddress[];
 }
@@ -66,6 +69,7 @@ interface CheckoutFormProps {
 export function CheckoutForm({
   store,
   paymentProviders,
+  deliveryOptions = [],
   customer = null,
   addresses = [],
 }: CheckoutFormProps) {
@@ -123,11 +127,20 @@ export function CheckoutForm({
   } | null>(null);
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
 
+  // Delivery option -- only shown when the merchant has set some up. The
+  // fee here is for display; the server recalculates it when placing the order.
+  const [deliveryOptionId, setDeliveryOptionId] = useState<string>(
+    deliveryOptions.length === 1 ? deliveryOptions[0].id : ""
+  );
+  const selectedDelivery = deliveryOptions.find((o) => o.id === deliveryOptionId) ?? null;
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Calculated final total
   const discountAmount = appliedDiscount?.discountAmount ?? 0;
-  const finalTotal = Math.max(0, subtotal - discountAmount);
+  const afterDiscount = Math.max(0, subtotal - discountAmount);
+  const deliveryFee = selectedDelivery ? calculateDeliveryFee(selectedDelivery, afterDiscount) : 0;
+  const finalTotal = afterDiscount + deliveryFee;
 
   // If cart is empty, show empty state
   if (items.length === 0) {
@@ -200,6 +213,10 @@ export function CheckoutForm({
       toast.error("Please enter your city");
       return;
     }
+    if (deliveryOptions.length > 0 && !selectedDelivery) {
+      toast.error("Please choose a delivery option");
+      return;
+    }
     if (
       (selectedMethod === "PAYSTACK" || selectedMethod === "PAYDUNYA") &&
       !customerEmail.trim()
@@ -222,6 +239,7 @@ export function CheckoutForm({
         paymentMethodType: selectedMethod,
         checkoutChannel: "WEBSITE",
         discountCode: appliedDiscount?.code || undefined,
+        deliveryOptionId: selectedDelivery?.id,
         items: items.map((i) => ({
           productId: i.productId,
           variantId: i.variantId || null,
@@ -486,6 +504,51 @@ export function CheckoutForm({
                   onChange={(e) => setCustomerNotes(e.target.value)}
                 />
               </div>
+
+              {deliveryOptions.length > 0 && (
+                <div className="space-y-2 border-t pt-4">
+                  <Label className="flex items-center gap-1.5">
+                    <Truck className="h-4 w-4 text-primary" />
+                    Delivery Option <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="space-y-2">
+                    {deliveryOptions.map((option) => {
+                      const fee = calculateDeliveryFee(option, afterDiscount);
+                      return (
+                        <label
+                          key={option.id}
+                          className={`flex items-center gap-3 rounded-xl border p-3 cursor-pointer transition-all ${
+                            deliveryOptionId === option.id
+                              ? "border-primary bg-primary/5 ring-1 ring-primary"
+                              : "border-border hover:bg-muted/40"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="deliveryOption"
+                            value={option.id}
+                            checked={deliveryOptionId === option.id}
+                            onChange={() => setDeliveryOptionId(option.id)}
+                            className="text-primary"
+                          />
+                          <div className="flex-1 text-sm">
+                            <div className="font-medium">{option.name}</div>
+                            {option.freeAboveAmount !== null && fee > 0 && (
+                              <div className="text-xs text-muted-foreground">
+                                Free for orders above {store.currencySymbol}
+                                {option.freeAboveAmount.toLocaleString()}
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-sm font-semibold">
+                            {fee === 0 ? "Free" : `${store.currencySymbol}${fee.toLocaleString()}`}
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {customer && selectedAddressId === "new" && (
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -775,8 +838,16 @@ export function CheckoutForm({
                 )}
 
                 <div className="flex justify-between text-muted-foreground">
-                  <span>Delivery</span>
-                  <span className="text-xs">Free / Standard</span>
+                  <span>Delivery{selectedDelivery ? ` (${selectedDelivery.name})` : ""}</span>
+                  <span className={deliveryOptions.length === 0 || !selectedDelivery ? "text-xs" : ""}>
+                    {deliveryOptions.length === 0
+                      ? "Arranged with seller"
+                      : !selectedDelivery
+                      ? "Choose an option"
+                      : deliveryFee === 0
+                      ? "Free"
+                      : `${store.currencySymbol}${deliveryFee.toLocaleString()}`}
+                  </span>
                 </div>
 
                 <div className="border-t pt-2 flex justify-between font-bold text-base text-foreground">

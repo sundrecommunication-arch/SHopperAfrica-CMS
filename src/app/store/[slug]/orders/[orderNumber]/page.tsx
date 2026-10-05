@@ -176,9 +176,24 @@ export default async function OrderReceiptPage({ params }: OrderReceiptPageProps
                     {subtotalNum.toLocaleString()}
                   </span>
                 </div>
+                {parseFloat(order.discountAmount) > 0 && (
+                  <div className="flex justify-between text-emerald-600 dark:text-emerald-400 text-xs">
+                    <span>Discount</span>
+                    <span>
+                      -{store.currencySymbol}
+                      {parseFloat(order.discountAmount).toLocaleString()}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between text-muted-foreground text-xs">
-                  <span>Delivery</span>
-                  <span>Free / Standard</span>
+                  <span>Delivery{order.deliveryMethod ? ` (${order.deliveryMethod})` : ""}</span>
+                  <span>
+                    {!order.deliveryMethod
+                      ? "Arranged with seller"
+                      : parseFloat(order.shippingAmount) === 0
+                      ? "Free"
+                      : `${store.currencySymbol}${parseFloat(order.shippingAmount).toLocaleString()}`}
+                  </span>
                 </div>
                 <div className="border-t pt-2 flex justify-between font-extrabold text-base text-foreground">
                   <span>Total</span>

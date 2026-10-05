@@ -147,7 +147,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                   </span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
-                  <span>Shipping</span>
+                  <span>Delivery{order.deliveryMethod ? ` (${order.deliveryMethod})` : ""}</span>
                   <span>{store.currencySymbol}{parseFloat(order.shippingAmount).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">

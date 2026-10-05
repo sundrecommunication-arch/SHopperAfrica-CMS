@@ -58,6 +58,7 @@ export const orders = pgTable("orders", {
   total: numeric("total", { precision: 12, scale: 2 }).notNull(),
 
   paymentMethod: text("payment_method"), // e.g. "Bank Transfer", "Cash on Delivery"
+  deliveryMethod: text("delivery_method"), // snapshot of the chosen delivery option's name, e.g. "Lagos", "Pickup"
   deliveryAddressText: text("delivery_address_text"),
   customerNotes: text("customer_notes"),
   whatsappMessage: text("whatsapp_message"), // the generated order message, if applicable

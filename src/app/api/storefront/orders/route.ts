@@ -1,4 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
+import { getPublicOrigin } from "@/lib/request-origin";
+import { notifyOrderPlaced } from "@/modules/notifications/services/order-notifications";
 import {
   createStorefrontOrder,
   OrderServiceError,
@@ -8,6 +10,13 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const result = await createStorefrontOrder(body);
+
+    // Online-payment orders aren't real until paid -- their emails go out
+    // from the payment verify/webhook routes instead, once confirmed.
+    if (body.paymentMethodType !== "PAYSTACK" && body.paymentMethodType !== "PAYDUNYA") {
+      const origin = getPublicOrigin(request);
+      after(() => notifyOrderPlaced(result.orderId, origin));
+    }
 
     return NextResponse.json({
       success: true,

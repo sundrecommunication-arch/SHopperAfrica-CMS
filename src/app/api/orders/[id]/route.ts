@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { getCurrentStore } from "@/lib/tenant";
+import { getPublicOrigin } from "@/lib/request-origin";
+import { notifyOrderStatusChanged } from "@/modules/notifications/services/order-notifications";
 import {
   updateOrderStatus,
   OrderServiceError,
@@ -14,8 +16,14 @@ export async function PATCH(
     const { id: orderId } = await params;
     const body = await request.json();
 
-    const updated = await updateOrderStatus(store.id, orderId, body);
-    return NextResponse.json({ order: updated });
+    const { order, changes } = await updateOrderStatus(store.id, orderId, body);
+
+    if (changes.fulfillmentStatus || changes.paymentStatus) {
+      const origin = getPublicOrigin(request);
+      after(() => notifyOrderStatusChanged(order.id, origin, changes));
+    }
+
+    return NextResponse.json({ order });
   } catch (error) {
     if (error instanceof OrderServiceError) {
       return NextResponse.json({ error: error.message }, { status: 400 });
