@@ -100,6 +100,7 @@ export async function getPublicStoreBySlug(slug: string) {
       secondaryColor: stores.secondaryColor,
       isPublished: stores.isPublished,
       poweredByHidden: stores.poweredByHidden,
+      suspendedAt: stores.suspendedAt,
       customDomain: stores.customDomain,
       domainVerified: stores.domainVerified,
       locale: stores.locale,

@@ -6,6 +6,7 @@ import { stores, orders, payments, paymentProviders, customers } from "@/db/sche
 import { initializePaystackTransaction } from "@/modules/payments/adapters/paystack-adapter";
 import { initializePaydunyaTransaction } from "@/modules/payments/adapters/paydunya-adapter";
 import { getPublicOrigin } from "@/lib/request-origin";
+import { getStorePlan } from "@/modules/subscriptions/services/subscription-service";
 
 /**
  * Starts an online-payment transaction (Paystack or PayDunya) for an
@@ -65,6 +66,13 @@ export async function POST(request: Request) {
 
     if (providerType !== "PAYSTACK" && providerType !== "PAYDUNYA") {
       return NextResponse.json({ error: "Unsupported online payment method" }, { status: 400 });
+    }
+
+    if (!(await getStorePlan(store.id)).limits.onlinePayments) {
+      return NextResponse.json(
+        { error: "Online payment isn't available for this store right now. Please choose another payment method." },
+        { status: 400 }
+      );
     }
 
     const [customer] = await db

@@ -18,6 +18,7 @@ import {
   Settings,
   UserPlus,
   Truck,
+  Crown,
 } from "lucide-react";
 
 export interface NavItem {
@@ -48,5 +49,6 @@ export const navItems: NavItem[] = [
   { label: "Navigation", href: "/dashboard/nav", icon: ListOrdered },
   { label: "FAQs", href: "/dashboard/faqs", icon: HelpCircle },
   { label: "Team", href: "/dashboard/team", icon: UserPlus, ownerOnly: true },
+  { label: "Billing", href: "/dashboard/billing", icon: Crown, ownerOnly: true },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];

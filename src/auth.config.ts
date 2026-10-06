@@ -28,8 +28,11 @@ export const authConfig = {
       const isLoggedIn = !!auth?.user;
       const isOnDashboard = request.nextUrl.pathname.startsWith("/dashboard");
       const isOnOnboarding = request.nextUrl.pathname.startsWith("/onboarding");
+      // /admin only needs a login here; the admin check itself happens
+      // server-side in src/lib/platform-admin.ts.
+      const isOnAdmin = request.nextUrl.pathname.startsWith("/admin");
 
-      if (isOnDashboard || isOnOnboarding) {
+      if (isOnDashboard || isOnOnboarding || isOnAdmin) {
         return isLoggedIn;
       }
       return true;

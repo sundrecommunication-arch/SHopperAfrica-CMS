@@ -11,6 +11,7 @@ import {
   isValidDomain,
 } from "@/lib/domain-verification";
 import { requestDomainAlias } from "@/services/vercel-domain";
+import { assertFeature, SubscriptionServiceError } from "@/modules/subscriptions/services/subscription-service";
 
 const registerDomainSchema = z.object({
   customDomain: z.string().min(1).refine(isValidDomain, {
@@ -36,6 +37,7 @@ export async function POST(request: Request) {
       );
     }
     const { customDomain } = parsed.data;
+    await assertFeature(store.id, "customDomain");
     const token = generateDomainVerificationToken();
 
     const [updated] = await db
@@ -66,6 +68,9 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     if (error instanceof TenantError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+    if (error instanceof SubscriptionServiceError) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
     console.error("register domain failed", error);

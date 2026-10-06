@@ -106,7 +106,11 @@ export function proxy(request: NextRequest) {
   if (limited) return limited;
 
   const { pathname } = request.nextUrl;
-  if (pathname.startsWith("/dashboard") || pathname.startsWith("/onboarding")) {
+  if (
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/onboarding") ||
+    pathname.startsWith("/admin")
+  ) {
     // @ts-expect-error - next-auth's `auth` wrapper accepts the proxy/middleware request shape
     return auth(request);
   }

@@ -7,6 +7,10 @@ import { orders, payments, paymentProviders } from "@/db/schema";
 import { confirmPaydunyaTransaction } from "@/modules/payments/adapters/paydunya-adapter";
 import { getPublicOrigin } from "@/lib/request-origin";
 import { notifyOrderPlaced } from "@/modules/notifications/services/order-notifications";
+import {
+  confirmPlanPayment,
+  getPlatformPaystackKey,
+} from "@/modules/subscriptions/services/subscription-service";
 
 /**
  * Verifies that a webhook payload was actually signed by Paystack using the
@@ -31,6 +35,22 @@ export async function POST(
     const { provider } = await params;
     const bodyText = await request.text();
     const event = JSON.parse(bodyText);
+
+    // Plan payments made to Shopper's own Paystack account arrive on this
+    // same URL; they're tagged metadata.kind = "subscription".
+    if (
+      provider === "paystack" &&
+      event.event === "charge.success" &&
+      event.data?.metadata?.kind === "subscription"
+    ) {
+      const platformKey = getPlatformPaystackKey();
+      const signature = request.headers.get("x-paystack-signature");
+      if (!platformKey || !isValidPaystackSignature(bodyText, signature, platformKey)) {
+        return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+      }
+      await confirmPlanPayment(event.data.reference as string);
+      return NextResponse.json({ received: true });
+    }
 
     if (provider === "paystack") {
       // Paystack webhook event

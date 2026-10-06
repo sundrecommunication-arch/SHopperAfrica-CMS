@@ -87,6 +87,10 @@ export const stores = pgTable("stores", {
   // SaaS
   plan: planEnum("plan").notNull().default("FREE"),
   poweredByHidden: boolean("powered_by_hidden").notNull().default(false),
+  // Set by a platform admin (src/app/admin). A suspended store's storefront
+  // shows "temporarily unavailable" and can't take orders; nothing is deleted.
+  suspendedAt: timestamp("suspended_at"),
+  suspendedReason: text("suspended_reason"),
 
   isPublished: boolean("is_published").notNull().default(false),
 

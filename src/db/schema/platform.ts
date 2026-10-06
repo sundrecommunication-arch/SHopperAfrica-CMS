@@ -6,6 +6,7 @@ import {
   jsonb,
   pgEnum,
   unique,
+  numeric,
 } from "drizzle-orm/pg-core";
 import { stores } from "./tenant";
 import { users } from "./auth";
@@ -94,7 +95,10 @@ export const subscriptions = pgTable("subscriptions", {
     .references(() => stores.id, { onDelete: "cascade" }),
   plan: planEnum("plan").notNull().default("FREE"),
   status: subscriptionStatusEnum("status").notNull().default("ACTIVE"),
+  // Paid plans run until currentPeriodEnd, then the store falls back to FREE
+  // (worked out on read -- see modules/subscriptions). null = no end (FREE).
   currentPeriodEnd: timestamp("current_period_end"),
+  isTrial: boolean("is_trial").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -129,5 +133,26 @@ export const auditLogs = pgTable("audit_logs", {
   entityType: text("entity_type"),
   entityId: text("entity_id"),
   metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// One row per plan purchase through Shopper's own Paystack account (not a
+// merchant's). PENDING until verified server-side; each SUCCEEDED row adds
+// one 30-day period to the store's subscription.
+export const subscriptionPayments = pgTable("subscription_payments", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  storeId: text("store_id")
+    .notNull()
+    .references(() => stores.id, { onDelete: "cascade" }),
+  plan: planEnum("plan").notNull(),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  currency: text("currency").notNull().default("NGN"),
+  reference: text("reference").notNull().unique(),
+  status: text("status").$type<"PENDING" | "SUCCEEDED" | "FAILED">().notNull().default("PENDING"),
+  paidByUserId: text("paid_by_user_id").references(() => users.id, { onDelete: "set null" }),
+  periodEnd: timestamp("period_end"),
+  paidAt: timestamp("paid_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

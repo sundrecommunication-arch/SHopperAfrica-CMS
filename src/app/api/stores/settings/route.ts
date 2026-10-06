@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { stores } from "@/db/schema";
 import { getCurrentStore, requireRole, TenantError } from "@/lib/tenant";
 import { generateDomainVerificationToken, isValidDomain } from "@/lib/domain-verification";
+import { assertFeature, SubscriptionServiceError } from "@/modules/subscriptions/services/subscription-service";
 
 const updateStoreSettingsSchema = z.object({
   isPublished: z.boolean().optional(),
@@ -58,6 +59,7 @@ export async function PATCH(request: Request) {
     if ("customDomain" in parsed.data) {
       const nextDomain = parsed.data.customDomain;
       if (nextDomain && nextDomain !== store.customDomain) {
+        await assertFeature(store.id, "customDomain");
         updateData.domainVerificationToken = generateDomainVerificationToken();
         updateData.domainVerified = false;
       } else if (!nextDomain) {
@@ -77,6 +79,9 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ store: updated });
   } catch (error) {
+    if (error instanceof SubscriptionServiceError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     if (error instanceof TenantError) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }

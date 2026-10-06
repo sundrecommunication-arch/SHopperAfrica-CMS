@@ -28,6 +28,7 @@ import {
   type UpdateOrderStatusInput,
 } from "../validation/schemas";
 import { buildCartWhatsAppUrl } from "@/modules/storefront/utils/whatsapp";
+import { getStorePlan } from "@/modules/subscriptions/services/subscription-service";
 import {
   listDeliveryOptions,
   calculateDeliveryFee,
@@ -58,6 +59,15 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
 
   if (!store) {
     throw new OrderServiceError("Store not found");
+  }
+  if (store.suspendedAt) {
+    throw new OrderServiceError("This store isn't taking orders right now.");
+  }
+  if (
+    (data.paymentMethodType === "PAYSTACK" || data.paymentMethodType === "PAYDUNYA") &&
+    !(await getStorePlan(store.id)).limits.onlinePayments
+  ) {
+    throw new OrderServiceError("Online payment isn't available for this store. Please choose another payment method.");
   }
 
   // 2. Fetch authoritative products and variants from DB

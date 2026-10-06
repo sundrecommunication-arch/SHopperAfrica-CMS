@@ -15,6 +15,7 @@ import { StorefrontHeader } from "@/components/storefront/header";
 import { StorefrontFooter } from "@/components/storefront/footer";
 import { JsonLd } from "@/components/seo/json-ld";
 import { buildStoreSchema } from "@/lib/structured-data";
+import { getStorePlan } from "@/modules/subscriptions/services/subscription-service";
 
 interface StoreLayoutProps {
   children: React.ReactNode;
@@ -54,11 +55,28 @@ export default async function StorefrontLayout({
     notFound();
   }
 
-  const [categories, policies, navItems] = await Promise.all([
+  // Suspended by a platform admin: nothing is deleted, the store just
+  // isn't browsable or orderable until it's reinstated.
+  if (store.suspendedAt) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-2 bg-background px-4 text-center">
+        <AlertCircle className="h-8 w-8 text-muted-foreground" />
+        <h1 className="text-xl font-semibold">{store.name} is temporarily unavailable</h1>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          This store isn&apos;t taking orders right now. Please check back later.
+        </p>
+      </div>
+    );
+  }
+
+  const [categories, policies, navItems, storePlan] = await Promise.all([
     getPublicStoreCategories(store.id),
     getPublicStorePolicies(store.id),
     getPublicNavItems(store.id),
+    getStorePlan(store.id),
   ]);
+  // "Powered by Shopper" is hidden exactly when the plan includes it.
+  const footerStore = { ...store, poweredByHidden: storePlan.limits.hideBranding };
 
   return (
     <div
@@ -92,7 +110,7 @@ export default async function StorefrontLayout({
 
         <CartDrawer />
 
-        <StorefrontFooter store={store} policies={policies} navItems={navItems} />
+        <StorefrontFooter store={footerStore} policies={policies} navItems={navItems} />
       </CartProvider>
     </div>
   );

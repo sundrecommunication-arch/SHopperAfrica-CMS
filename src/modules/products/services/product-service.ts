@@ -4,6 +4,10 @@ import { eq, and, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { products, productImages, productVariants, productCategories } from "@/db/schema";
 import { productSchema, type ProductInput } from "../validation/schemas";
+import {
+  assertCanAddProduct,
+  SubscriptionServiceError,
+} from "@/modules/subscriptions/services/subscription-service";
 
 export class ProductServiceError extends Error {}
 
@@ -44,6 +48,12 @@ function totalStock(data: { inventoryQuantity: number; variants: { inventoryQuan
 export async function createProduct(storeId: string, input: ProductInput) {
   const data = parseInput(input);
   await assertUniqueSlug(storeId, data.slug);
+  try {
+    await assertCanAddProduct(storeId);
+  } catch (error) {
+    if (error instanceof SubscriptionServiceError) throw new ProductServiceError(error.message);
+    throw error;
+  }
 
   return db.transaction(async (tx) => {
     const [product] = await tx

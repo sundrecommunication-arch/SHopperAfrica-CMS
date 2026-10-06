@@ -8,6 +8,7 @@ import {
 } from "@/lib/ad-platforms";
 import { createOAuthState } from "@/lib/ad-platforms/oauth-state";
 import { getAppBaseUrl } from "@/lib/ad-platforms/config";
+import { getStorePlan } from "@/modules/subscriptions/services/subscription-service";
 
 /** Starts the OAuth flow: redirects the merchant to Google/Meta/TikTok's consent screen. */
 export async function GET(
@@ -25,6 +26,10 @@ export async function GET(
 
   try {
     const { store } = await getCurrentStore();
+    if (!(await getStorePlan(store.id)).limits.ads) {
+      dashboardUrl.searchParams.set("error", "upgrade_required");
+      return NextResponse.redirect(dashboardUrl);
+    }
     const state = createOAuthState(store.id);
     const adapter = getAdapter(platform);
     const authorizeUrl = adapter.getAuthorizeUrl(state, getRedirectUri(platform));

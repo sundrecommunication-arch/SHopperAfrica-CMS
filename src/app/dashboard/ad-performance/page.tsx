@@ -3,6 +3,8 @@ import { getCurrentStore } from "@/lib/tenant";
 import { getMetricsForStore, listConnections } from "@/modules/ads/services/ad-connections-service";
 import { AdPerformanceDashboard, type PlatformPanelData } from "@/components/dashboard/ads/ad-performance-dashboard";
 import type { AdPlatform } from "@/lib/ad-platforms";
+import { getStorePlan } from "@/modules/subscriptions/services/subscription-service";
+import { UpgradeNotice } from "@/components/dashboard/billing/upgrade-notice";
 
 const PLATFORMS: AdPlatform[] = ["GOOGLE_ADS", "META", "TIKTOK"];
 
@@ -12,6 +14,14 @@ function toDateStr(date: Date): string {
 
 export default async function AdPerformancePage() {
   const { store } = await getCurrentStore();
+  if (!(await getStorePlan(store.id)).limits.ads) {
+    return (
+      <div className="flex flex-col gap-6">
+        <h1 className="text-2xl font-semibold">Ad Performance</h1>
+        <UpgradeNotice feature="The ad performance dashboard" planName="Business" />
+      </div>
+    );
+  }
   const connections = await listConnections(store.id);
 
   const to = new Date();

@@ -5,6 +5,7 @@ import { eq, and, isNull, gt } from "drizzle-orm";
 import { db } from "@/db";
 import { users, storeMembers, storeInvites, stores } from "@/db/schema";
 import { sendTeamInviteEmail } from "@/lib/email";
+import { assertFeature, SubscriptionServiceError } from "@/modules/subscriptions/services/subscription-service";
 import {
   inviteStaffSchema,
   updateMemberRoleSchema,
@@ -72,6 +73,13 @@ export async function inviteStaffMember(params: {
     throw new StaffServiceError(parsed.error.issues[0]?.message ?? "Invalid input");
   }
   const { email, role } = parsed.data;
+
+  try {
+    await assertFeature(params.storeId, "team");
+  } catch (error) {
+    if (error instanceof SubscriptionServiceError) throw new StaffServiceError(error.message);
+    throw error;
+  }
 
   const [store] = await db.select({ name: stores.name }).from(stores).where(eq(stores.id, params.storeId)).limit(1);
   if (!store) {
