@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { stores, products, categories } from "@/db/schema";
+import { COMPARISONS } from "@/modules/marketing/comparisons";
 
 // Build the sitemap per request, not once at build time: a build-time copy
 // goes stale as soon as a merchant publishes a new store or product, and
@@ -31,6 +32,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${appUrl}/features`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
     { url: `${appUrl}/pricing`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
     { url: `${appUrl}/contact`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
+    {
+      url: `${appUrl}/guides/how-to-create-an-online-store-in-nigeria`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    ...COMPARISONS.map((c) => ({
+      url: `${appUrl}/compare/${c.slug}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
   ];
 
   for (const store of publishedStores) {

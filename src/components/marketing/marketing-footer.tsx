@@ -8,6 +8,14 @@ const PRODUCT_LINKS = [
   { href: "/contact", label: "Contact us" },
 ];
 
+const RESOURCE_LINKS = [
+  { href: "/guides/how-to-create-an-online-store-in-nigeria", label: "Create an online store in Nigeria" },
+  { href: "/compare/shopper-vs-bumpa", label: "Shopper vs Bumpa" },
+  { href: "/compare/shopper-vs-shopify", label: "Shopper vs Shopify" },
+  { href: "/compare/shopper-vs-wix", label: "Shopper vs Wix" },
+  { href: "/compare/shopper-vs-selling-on-whatsapp", label: "Store vs selling in DMs" },
+];
+
 const ACCOUNT_LINKS = [
   { href: "/signup", label: "Create your store" },
   { href: "/login", label: "Sign in" },
@@ -19,7 +27,7 @@ export function MarketingFooter() {
   return (
     <footer className="border-t border-border/70 bg-muted/30">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-        <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-4">
+        <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-5">
           <div className="flex flex-col gap-3 md:col-span-2">
             <div className="flex items-center gap-2 text-lg font-semibold">
               <Image src="/logo-mark.png" alt="" width={28} height={28} className="size-7" />
@@ -59,6 +67,17 @@ export function MarketingFooter() {
               Product
             </span>
             {PRODUCT_LINKS.map((link) => (
+              <Link key={link.href} href={link.href} className="text-sm text-foreground/80 hover:text-foreground">
+                {link.label}
+              </Link>
+            ))}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Resources
+            </span>
+            {RESOURCE_LINKS.map((link) => (
               <Link key={link.href} href={link.href} className="text-sm text-foreground/80 hover:text-foreground">
                 {link.label}
               </Link>
