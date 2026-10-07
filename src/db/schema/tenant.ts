@@ -101,7 +101,7 @@ export const stores = pgTable("stores", {
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}).enableRLS();
 
 // Links a user to a store with a role. A user can belong to many stores
 // (e.g. an agency staff member managing several client stores).
@@ -121,7 +121,7 @@ export const storeMembers = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [unique("store_members_store_user_unique").on(t.storeId, t.userId)]
-);
+).enableRLS();
 
 // A pending invitation to join a store's team, sent to an email address
 // that may or may not already have a Shopper account (see
@@ -144,4 +144,4 @@ export const storeInvites = pgTable("store_invites", {
   expiresAt: timestamp("expires_at").notNull(),
   acceptedAt: timestamp("accepted_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}).enableRLS();

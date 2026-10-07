@@ -30,7 +30,7 @@ export const categories = pgTable("categories", {
   imageUrl: text("image_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}).enableRLS();
 
 export const products = pgTable("products", {
   id: text("id")
@@ -63,7 +63,7 @@ export const products = pgTable("products", {
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}).enableRLS();
 
 export const productImages = pgTable("product_images", {
   id: text("id")
@@ -76,7 +76,7 @@ export const productImages = pgTable("product_images", {
   position: integer("position").notNull().default(0),
   isPrimary: boolean("is_primary").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}).enableRLS();
 
 // Product options, e.g. { "Color": "Black", "Size": "M" }
 export const productVariants = pgTable("product_variants", {
@@ -95,7 +95,7 @@ export const productVariants = pgTable("product_variants", {
   imageUrl: text("image_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}).enableRLS();
 
 export const productCategories = pgTable(
   "product_categories",
@@ -108,4 +108,4 @@ export const productCategories = pgTable(
       .references(() => categories.id, { onDelete: "cascade" }),
   },
   (t) => [primaryKey({ columns: [t.productId, t.categoryId] })]
-);
+).enableRLS();

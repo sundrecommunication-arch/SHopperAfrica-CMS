@@ -26,7 +26,7 @@ export const customers = pgTable(
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (t) => [unique("customers_store_phone_unique").on(t.storeId, t.phone)]
-);
+).enableRLS();
 
 // One row per active customer login session (mirrors the shape of Auth.js's
 // own `sessions` table for merchant/staff users) -- a storefront customer's
@@ -38,7 +38,7 @@ export const customerSessions = pgTable("customer_sessions", {
     .notNull()
     .references(() => customers.id, { onDelete: "cascade" }),
   expires: timestamp("expires", { mode: "date" }).notNull(),
-});
+}).enableRLS();
 
 export const addresses = pgTable("addresses", {
   id: text("id")
@@ -56,4 +56,4 @@ export const addresses = pgTable("addresses", {
   postalCode: text("postal_code"),
   isDefault: boolean("is_default").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}).enableRLS();

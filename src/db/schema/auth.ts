@@ -15,7 +15,7 @@ export const users = pgTable("users", {
   signupAttribution: jsonb("signup_attribution").$type<Record<string, string>>(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}).enableRLS();
 
 // Auth.js (NextAuth) required tables — enables future OAuth providers without rework.
 export const accounts = pgTable(
@@ -38,7 +38,7 @@ export const accounts = pgTable(
   (account) => [
     primaryKey({ columns: [account.provider, account.providerAccountId] }),
   ]
-);
+).enableRLS();
 
 export const sessions = pgTable("sessions", {
   sessionToken: text("session_token").primaryKey(),
@@ -46,7 +46,7 @@ export const sessions = pgTable("sessions", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   expires: timestamp("expires", { mode: "date" }).notNull(),
-});
+}).enableRLS();
 
 export const verificationTokens = pgTable(
   "verification_tokens",
@@ -56,7 +56,7 @@ export const verificationTokens = pgTable(
     expires: timestamp("expires", { mode: "date" }).notNull(),
   },
   (vt) => [primaryKey({ columns: [vt.identifier, vt.token] })]
-);
+).enableRLS();
 
 // Forgot-password flow. Deliberately separate from verificationTokens (Auth.js's own
 // table, keyed by identifier+token) rather than reused — this one is keyed by userId,
@@ -74,4 +74,4 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
   usedAt: timestamp("used_at", { mode: "date" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}).enableRLS();

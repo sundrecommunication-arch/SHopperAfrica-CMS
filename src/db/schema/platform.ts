@@ -24,7 +24,7 @@ export const themes = pgTable("themes", {
   description: text("description"),
   previewImageUrl: text("preview_image_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}).enableRLS();
 
 // Extended, rarely-changed store settings that don't belong on the hot
 // `stores` row. One row per store.
@@ -52,7 +52,7 @@ export const storeSettings = pgTable("store_settings", {
   homepageLayout: jsonb("homepage_layout").$type<Record<string, unknown>>().default({}),
 
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}).enableRLS();
 
 export const notificationTypeEnum = pgEnum("notification_type", [
   "NEW_ORDER",
@@ -77,7 +77,7 @@ export const notifications = pgTable("notifications", {
   isRead: boolean("is_read").notNull().default(false),
   relatedOrderId: text("related_order_id").references(() => orders.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}).enableRLS();
 
 export const subscriptionStatusEnum = pgEnum("subscription_status", [
   "ACTIVE",
@@ -101,7 +101,7 @@ export const subscriptions = pgTable("subscriptions", {
   isTrial: boolean("is_trial").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}).enableRLS();
 
 // Plan-driven feature flags, e.g. { key: "custom_domain", enabled: true }.
 // Lets plans change later without rewriting the application (docs section 34).
@@ -119,7 +119,7 @@ export const featureEntitlements = pgTable(
     limitValue: text("limit_value"), // optional numeric limit stored as text, e.g. max products
   },
   (t) => [unique("feature_entitlements_store_key_unique").on(t.storeId, t.key)]
-);
+).enableRLS();
 
 export const auditLogs = pgTable("audit_logs", {
   id: text("id")
@@ -134,7 +134,7 @@ export const auditLogs = pgTable("audit_logs", {
   entityId: text("entity_id"),
   metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}).enableRLS();
 
 // One row per plan purchase through Shopper's own Paystack account (not a
 // merchant's). PENDING until verified server-side; each SUCCEEDED row adds
@@ -155,4 +155,4 @@ export const subscriptionPayments = pgTable("subscription_payments", {
   periodEnd: timestamp("period_end"),
   paidAt: timestamp("paid_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}).enableRLS();

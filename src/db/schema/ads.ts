@@ -60,7 +60,7 @@ export const adAccountConnections = pgTable(
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (t) => [unique("ad_account_connections_store_platform_unique").on(t.storeId, t.platform)]
-);
+).enableRLS();
 
 // Daily performance snapshot per connection — synced on a schedule (see
 // src/tasks/syncAdMetrics.ts) rather than queried live on every dashboard
@@ -84,4 +84,4 @@ export const adMetricsDaily = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [unique("ad_metrics_daily_connection_date_unique").on(t.connectionId, t.date)]
-);
+).enableRLS();

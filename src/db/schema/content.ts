@@ -30,7 +30,7 @@ export const blogPosts = pgTable(
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (t) => [unique("blog_posts_store_slug_unique").on(t.storeId, t.slug)]
-);
+).enableRLS();
 
 // --- Store policies (legal pages) --------------------------------------------
 
@@ -61,7 +61,7 @@ export const storePolicies = pgTable(
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (t) => [unique("store_policies_store_type_unique").on(t.storeId, t.type)]
-);
+).enableRLS();
 
 // --- Storefront navigation ----------------------------------------------------
 
@@ -99,7 +99,7 @@ export const storeNavItems = pgTable("store_nav_items", {
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}).enableRLS();
 
 // --- FAQs ---------------------------------------------------------------
 
@@ -122,4 +122,4 @@ export const faqs = pgTable("faqs", {
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}).enableRLS();

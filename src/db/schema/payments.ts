@@ -36,7 +36,7 @@ export const paymentProviders = pgTable("payment_providers", {
   config: jsonb("config").$type<Record<string, unknown>>().notNull().default({}),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}).enableRLS();
 
 // A transaction attempt against an order. Never mark PAID from a client
 // signal alone — always verify server-side against the provider (docs section 69/78).
@@ -58,4 +58,4 @@ export const payments = pgTable("payments", {
   rawPayload: jsonb("raw_payload").$type<Record<string, unknown>>(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}).enableRLS();

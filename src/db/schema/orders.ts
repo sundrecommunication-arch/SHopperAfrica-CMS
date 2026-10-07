@@ -65,7 +65,7 @@ export const orders = pgTable("orders", {
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}).enableRLS();
 
 export const orderItems = pgTable("order_items", {
   id: text("id")
@@ -83,7 +83,7 @@ export const orderItems = pgTable("order_items", {
   unitPrice: numeric("unit_price", { precision: 12, scale: 2 }).notNull(),
   quantity: integer("quantity").notNull(),
   lineTotal: numeric("line_total", { precision: 12, scale: 2 }).notNull(),
-});
+}).enableRLS();
 
 // Logs each time a merchant taps "Nudge on WhatsApp" on an abandoned
 // checkout (src/app/dashboard/abandoned-carts) — lets the dashboard show
@@ -101,4 +101,4 @@ export const abandonedCartNudges = pgTable("abandoned_cart_nudges", {
   sentByUserId: text("sent_by_user_id").references(() => users.id, { onDelete: "set null" }),
   channel: text("channel").notNull().default("whatsapp"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}).enableRLS();

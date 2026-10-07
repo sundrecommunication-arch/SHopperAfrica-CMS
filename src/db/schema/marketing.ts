@@ -40,7 +40,7 @@ export const discounts = pgTable(
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (t) => [unique("discounts_store_code_unique").on(t.storeId, t.code)]
-);
+).enableRLS();
 
 export const discountUsages = pgTable("discount_usages", {
   id: text("id")
@@ -54,7 +54,7 @@ export const discountUsages = pgTable("discount_usages", {
     .references(() => orders.id, { onDelete: "cascade" }),
   customerId: text("customer_id").references(() => customers.id, { onDelete: "set null" }),
   usedAt: timestamp("used_at").notNull().defaultNow(),
-});
+}).enableRLS();
 
 // Simple named zones (e.g. "Lagos", "Abuja") with a flat rate — matches the
 // V1 simplicity goal in docs section 27. Zone-by-polygon can come later.
@@ -68,7 +68,7 @@ export const shippingZones = pgTable("shipping_zones", {
   name: text("name").notNull(),
   regions: jsonb("regions").$type<string[]>().notNull().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}).enableRLS();
 
 export const shippingRates = pgTable("shipping_rates", {
   id: text("id")
@@ -81,4 +81,4 @@ export const shippingRates = pgTable("shipping_rates", {
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull().default("0"),
   freeAboveAmount: numeric("free_above_amount", { precision: 12, scale: 2 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}).enableRLS();
