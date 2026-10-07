@@ -10,11 +10,13 @@ import type { NextConfig } from "next";
 // referrer data than the default.
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  // Google Analytics + Meta Pixel load on marketing/signup pages only
+  // (src/components/marketing/analytics.tsx).
+  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: https://*.supabase.co https://images.unsplash.com https://www.facebook.com",
-  "connect-src 'self' https://www.google-analytics.com https://www.facebook.com",
+  "img-src 'self' data: https://*.supabase.co https://images.unsplash.com https://www.facebook.com https://*.google-analytics.com https://www.googletagmanager.com",
+  "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://connect.facebook.net",
   "frame-src 'self' https://checkout.paystack.com",
   "frame-ancestors 'self'",
   "base-uri 'self'",

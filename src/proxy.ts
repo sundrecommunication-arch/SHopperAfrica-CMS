@@ -1,6 +1,11 @@
 import NextAuth from "next-auth";
 import { NextResponse, type NextRequest } from "next/server";
 import { authConfig } from "@/auth.config";
+import {
+  ATTRIBUTION_COOKIE,
+  ATTRIBUTION_MAX_AGE,
+  attributionFromRequest,
+} from "@/lib/attribution";
 
 // Next.js renamed the "middleware" file convention to "proxy" — this runs on
 // the server before a route renders. It does three unrelated jobs, all
@@ -115,7 +120,38 @@ export function proxy(request: NextRequest) {
     return auth(request);
   }
 
-  return NextResponse.next();
+  return withAttribution(request, NextResponse.next());
+}
+
+// Paths that are Shopper's own marketing/auth pages. Merchants' storefronts
+// (/store/...) are deliberately excluded: their shoppers aren't Shopper leads.
+const NON_MARKETING_PREFIXES = ["/store/", "/api/", "/dashboard", "/admin", "/onboarding", "/invite/"];
+
+/**
+ * Records the latest campaign touch (utm_*, ad click ids, or an external
+ * referrer) in a first-party cookie so signup can attribute the new merchant.
+ * Direct visits leave an existing cookie alone.
+ */
+function withAttribution(request: NextRequest, response: NextResponse) {
+  const { pathname } = request.nextUrl;
+  if (request.method !== "GET" || NON_MARKETING_PREFIXES.some((p) => pathname.startsWith(p))) {
+    return response;
+  }
+  const attribution = attributionFromRequest(
+    request.nextUrl,
+    request.headers.get("referer"),
+    request.headers.get("x-forwarded-host") ?? request.nextUrl.hostname
+  );
+  if (attribution) {
+    response.cookies.set(ATTRIBUTION_COOKIE, JSON.stringify(attribution), {
+      maxAge: ATTRIBUTION_MAX_AGE,
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+    });
+  }
+  return response;
 }
 
 export const config = {

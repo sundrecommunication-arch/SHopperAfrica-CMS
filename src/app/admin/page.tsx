@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getPlatformOverview } from "@/modules/admin/services/admin-service";
+import { getPlatformOverview, getSignupFunnelBySource } from "@/modules/admin/services/admin-service";
 import { PLANS, PLAN_ORDER, formatNaira } from "@/modules/subscriptions/plans";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -16,7 +16,7 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
 }
 
 export default async function AdminOverviewPage() {
-  const o = await getPlatformOverview();
+  const [o, funnel] = await Promise.all([getPlatformOverview(), getSignupFunnelBySource(90)]);
   const totalOrders = o.salesByCurrency.reduce((n, r) => n + r.orders, 0);
 
   return (
@@ -33,6 +33,50 @@ export default async function AdminOverviewPage() {
         <Stat label="Plan revenue (30 days)" value={formatNaira(o.revenueLast30)} hint={`${formatNaira(o.revenueAllTime)} all time`} />
         <Stat label="Orders on Shopper" value={totalOrders.toLocaleString()} hint="excluding cancelled" />
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Where merchants come from (last 90 days)</CardTitle>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          {funnel.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No sign-ups in the last 90 days.</p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs text-muted-foreground">
+                <tr>
+                  <th className="py-2 pr-4 font-medium">Source</th>
+                  <th className="py-2 pr-4 text-right font-medium">Sign-ups</th>
+                  <th className="py-2 pr-4 text-right font-medium">Stores</th>
+                  <th className="py-2 pr-4 text-right font-medium">Activated</th>
+                  <th className="py-2 text-right font-medium">Paying</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {funnel.map((r) => (
+                  <tr key={r.source}>
+                    <td className="py-2 pr-4 font-medium">{r.source}</td>
+                    <td className="py-2 pr-4 text-right">{r.signups}</td>
+                    <td className="py-2 pr-4 text-right">{r.stores}</td>
+                    <td className="py-2 pr-4 text-right">
+                      {r.activated}
+                      {r.stores > 0 && (
+                        <span className="ml-1 text-xs text-muted-foreground">
+                          ({Math.round((r.activated / r.stores) * 100)}%)
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-2 text-right">{r.paying}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <p className="mt-2 text-xs text-muted-foreground">
+            Activated = at least one product and one order. Tag links with ?utm_source=… so they show up here.
+          </p>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

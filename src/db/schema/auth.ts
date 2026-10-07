@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, primaryKey, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, primaryKey, integer, jsonb } from "drizzle-orm/pg-core";
 import type { AdapterAccountType } from "@auth/core/adapters";
 
 // Core user account. A user can own/belong to multiple stores (see storeMembers).
@@ -11,6 +11,8 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash"), // null when the user only uses an OAuth provider
   emailVerified: timestamp("email_verified", { mode: "date" }),
   image: text("image"),
+  // Marketing source at signup (utm_source etc.) -- see src/lib/attribution.ts.
+  signupAttribution: jsonb("signup_attribution").$type<Record<string, string>>(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

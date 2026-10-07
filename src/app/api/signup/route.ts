@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { ATTRIBUTION_COOKIE, parseAttributionCookie } from "@/lib/attribution";
 import { createUser, AuthServiceError } from "@/modules/auth/services/user-service";
 
 export async function POST(request: Request) {
@@ -8,7 +10,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const user = await createUser(body);
+    const attribution = parseAttributionCookie((await cookies()).get(ATTRIBUTION_COOKIE)?.value);
+    const user = await createUser(body, attribution as Record<string, string> | null);
     return NextResponse.json({ user }, { status: 201 });
   } catch (error) {
     if (error instanceof AuthServiceError) {

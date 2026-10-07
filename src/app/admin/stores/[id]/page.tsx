@@ -30,7 +30,8 @@ export default async function AdminStorePage({ params }: { params: Promise<{ id:
           <h1 className="text-2xl font-semibold">{store.name}</h1>
           <p className="text-sm text-muted-foreground">
             {store.ownerName ? `${store.ownerName} · ` : ""}
-            {store.ownerEmail} · joined {store.createdAt.toLocaleDateString("en-GB")}
+            {store.ownerEmail} · joined {store.createdAt.toLocaleDateString("en-GB")} · source:{" "}
+            {store.ownerSource ?? "direct"}
           </p>
           <Link href={`/store/${store.slug}`} target="_blank" className="text-sm text-primary hover:underline">
             /store/{store.slug} ↗

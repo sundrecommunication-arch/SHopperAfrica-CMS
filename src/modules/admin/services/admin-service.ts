@@ -112,6 +112,34 @@ export async function getPlatformOverview() {
   };
 }
 
+/**
+ * Marketing funnel by signup source for the last `days`: sign-ups -> stores
+ * created -> activated (>=1 product and >=1 non-cancelled order) -> paying
+ * (a current, non-trial paid plan). "direct" = no campaign info recorded.
+ */
+export async function getSignupFunnelBySource(days = 90) {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const source = sql<string>`coalesce(${users.signupAttribution}->>'source', 'direct')`;
+  const rows = await db
+    .select({
+      source,
+      signups: sql<number>`count(distinct ${users.id})`.mapWith(Number),
+      stores: sql<number>`count(distinct ${stores.id})`.mapWith(Number),
+      activated: sql<number>`count(distinct ${stores.id}) filter (where
+        exists (select 1 from ${products} where ${products.storeId} = ${stores.id})
+        and exists (select 1 from ${orders} where ${orders.storeId} = ${stores.id} and ${orders.fulfillmentStatus} <> 'CANCELLED'))`.mapWith(Number),
+      paying: sql<number>`count(distinct ${stores.id}) filter (where
+        ${subscriptions.plan} <> 'FREE' and not ${subscriptions.isTrial} and ${subscriptions.currentPeriodEnd} > now())`.mapWith(Number),
+    })
+    .from(users)
+    .leftJoin(stores, eq(stores.ownerId, users.id))
+    .leftJoin(subscriptions, eq(subscriptions.storeId, stores.id))
+    .where(gte(users.createdAt, since))
+    .groupBy(source)
+    .orderBy(desc(sql`count(distinct ${users.id})`));
+  return rows;
+}
+
 export async function listStoresForAdmin(opts: { search?: string; storeId?: string } = {}) {
   const term = opts.search?.trim();
   const rows = await db
@@ -127,6 +155,7 @@ export async function listStoresForAdmin(opts: { search?: string; storeId?: stri
       createdAt: stores.createdAt,
       ownerEmail: users.email,
       ownerName: users.name,
+      ownerSource: sql<string | null>`${users.signupAttribution}->>'source'`,
       plan: subscriptions.plan,
       periodEnd: subscriptions.currentPeriodEnd,
       isTrial: subscriptions.isTrial,

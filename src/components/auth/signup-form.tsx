@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { trackSignUp } from "@/components/marketing/analytics";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -48,6 +49,7 @@ export function SignupForm() {
         return;
       }
 
+      trackSignUp();
       router.push("/onboarding");
       router.refresh();
     } finally {

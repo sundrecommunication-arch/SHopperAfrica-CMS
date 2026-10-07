@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { MarketingNav } from "@/components/marketing/marketing-nav";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
+import { MarketingAnalytics } from "@/components/marketing/analytics";
 
 export const metadata: Metadata = {
   title: {
@@ -37,6 +38,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           {children}
         </main>
         <MarketingFooter />
+        <MarketingAnalytics />
       </div>
     </>
   );

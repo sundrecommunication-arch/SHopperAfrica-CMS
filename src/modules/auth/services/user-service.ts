@@ -9,7 +9,7 @@ import { signUpSchema, type SignUpInput } from "../validation/schemas";
 export class AuthServiceError extends Error {}
 
 /** Creates a new user account. Throws AuthServiceError on bad input or a duplicate email. */
-export async function createUser(input: SignUpInput) {
+export async function createUser(input: SignUpInput, attribution?: Record<string, string> | null) {
   const parsed = signUpSchema.safeParse(input);
   if (!parsed.success) {
     throw new AuthServiceError(parsed.error.issues[0]?.message ?? "Invalid input");
@@ -25,7 +25,7 @@ export async function createUser(input: SignUpInput) {
 
   const [user] = await db
     .insert(users)
-    .values({ name, email, passwordHash })
+    .values({ name, email, passwordHash, signupAttribution: attribution ?? null })
     .returning({ id: users.id, email: users.email, name: users.name });
 
   return user;

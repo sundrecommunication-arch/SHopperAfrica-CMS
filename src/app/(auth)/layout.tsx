@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { MarketingAnalytics } from "@/components/marketing/analytics";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -10,6 +11,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           Shopper
         </Link>
         <div className="rounded-xl border bg-card p-6 shadow-sm">{children}</div>
+        <MarketingAnalytics />
       </div>
     </div>
   );
