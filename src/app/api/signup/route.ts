@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { ATTRIBUTION_COOKIE, parseAttributionCookie } from "@/lib/attribution";
+import { CONSENT_COOKIE } from "@/lib/consent";
 import { createUser, AuthServiceError } from "@/modules/auth/services/user-service";
 
 export async function POST(request: Request) {
@@ -10,7 +11,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    const attribution = parseAttributionCookie((await cookies()).get(ATTRIBUTION_COOKIE)?.value);
+    const jar = await cookies();
+    const attribution =
+      jar.get(CONSENT_COOKIE)?.value === "denied"
+        ? null
+        : parseAttributionCookie(jar.get(ATTRIBUTION_COOKIE)?.value);
     const user = await createUser(body, attribution as Record<string, string> | null);
     return NextResponse.json({ user }, { status: 201 });
   } catch (error) {

@@ -6,6 +6,7 @@ import {
   ATTRIBUTION_MAX_AGE,
   attributionFromRequest,
 } from "@/lib/attribution";
+import { CONSENT_COOKIE } from "@/lib/consent";
 
 // Next.js renamed the "middleware" file convention to "proxy" — this runs on
 // the server before a route renders. It does three unrelated jobs, all
@@ -135,6 +136,11 @@ const NON_MARKETING_PREFIXES = ["/store/", "/api/", "/dashboard", "/admin", "/on
 function withAttribution(request: NextRequest, response: NextResponse) {
   const { pathname } = request.nextUrl;
   if (request.method !== "GET" || NON_MARKETING_PREFIXES.some((p) => pathname.startsWith(p))) {
+    return response;
+  }
+  // Visitor declined tracking cookies: forget any source we recorded.
+  if (request.cookies.get(CONSENT_COOKIE)?.value === "denied") {
+    if (request.cookies.has(ATTRIBUTION_COOKIE)) response.cookies.delete(ATTRIBUTION_COOKIE);
     return response;
   }
   const attribution = attributionFromRequest(

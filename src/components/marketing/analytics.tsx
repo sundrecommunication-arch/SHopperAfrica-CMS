@@ -3,10 +3,13 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Script from "next/script";
+import { CookieConsentBanner, useConsent } from "./cookie-consent";
 
 // Google Analytics 4 + Meta Pixel for Shopper's OWN marketing and signup
 // pages only (never merchants' storefronts or the dashboard). Both are off
-// unless their ID is set at build time:
+// unless their ID is set at build time, and neither loads until the visitor
+// accepts the cookie banner (rendered here so every page that has analytics
+// also has the banner):
 //   NEXT_PUBLIC_GA_MEASUREMENT_ID  e.g. G-XXXXXXXXXX
 //   NEXT_PUBLIC_META_PIXEL_ID      e.g. 1234567890
 const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
@@ -29,6 +32,8 @@ export function trackSignUp() {
 
 export function MarketingAnalytics() {
   const pathname = usePathname();
+  const consent = useConsent();
+  const allowed = consent === "granted";
   const firstLoad = useRef(true);
 
   // The Pixel's init snippet records the first PageView; record the rest on
@@ -43,7 +48,8 @@ export function MarketingAnalytics() {
 
   return (
     <>
-      {GA_ID && (
+      <CookieConsentBanner />
+      {allowed && GA_ID && (
         <>
           <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
           <Script id="ga4-init" strategy="afterInteractive">
@@ -51,7 +57,7 @@ export function MarketingAnalytics() {
           </Script>
         </>
       )}
-      {PIXEL_ID && (
+      {allowed && PIXEL_ID && (
         <Script id="meta-pixel" strategy="afterInteractive">
           {`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${PIXEL_ID}');fbq('track','PageView');`}
         </Script>

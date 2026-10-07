@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { CookieSettingsLink } from "./cookie-consent";
 
 const PRODUCT_LINKS = [
   { href: "/", label: "Home" },
@@ -99,6 +100,7 @@ export function MarketingFooter() {
             >
               sundrecommunication@gmail.com
             </a>
+            <CookieSettingsLink className="w-fit text-left text-sm text-foreground/80 hover:text-foreground" />
           </div>
         </div>
 
