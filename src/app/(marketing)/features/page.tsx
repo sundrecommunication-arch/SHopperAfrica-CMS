@@ -67,7 +67,7 @@ export default function FeaturesPage() {
         </h1>
         <p className="mt-4 text-muted-foreground">
           Shopper isn&apos;t just a storefront — it&apos;s the website, the checkout, and the
-          visibility a growing business needs, in one free platform.
+          visibility a growing business needs, in one platform you can start using for free.
         </p>
       </Reveal>
 
@@ -93,10 +93,11 @@ export default function FeaturesPage() {
           className="text-3xl font-semibold tracking-tight sm:text-4xl"
           style={{ fontFamily: "var(--font-marketing-display)" }}
         >
-          All of this, for free.
+          Start free. Upgrade when you grow.
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-          See exactly what&apos;s included on the free plan.
+          Open your store and take WhatsApp orders on the Free plan, then add card payments,
+          your own domain and a team when you&apos;re ready.
         </p>
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
           <Button asChild size="lg">

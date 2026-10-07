@@ -21,7 +21,7 @@ import { Reveal } from "@/components/marketing/reveal";
 import { HeroCarousel } from "@/components/marketing/hero-carousel";
 
 export const metadata: Metadata = {
-  title: "A free e-commerce website builder for every African business",
+  title: "A free-to-start e-commerce website builder for every African business",
 };
 
 const AD_PLATFORMS = [
@@ -97,8 +97,8 @@ export default function WelcomePage() {
             className="animate-fade-up max-w-2xl text-lg text-white/85 sm:text-xl"
             style={{ animationDelay: "0.2s" }}
           >
-            Shopper is a free e-commerce website — a real alternative to every other online store
-            builder in Africa — with a storefront, checkout, and a website Google can actually find,
+            Shopper is an e-commerce website you can start for free — a real alternative to every
+            other online store builder in Africa — with a storefront, checkout, and a website Google can actually find,
             so your business shows up everywhere your customers already are.
           </p>
           <div className="animate-fade-up flex flex-col gap-3 sm:flex-row" style={{ animationDelay: "0.3s" }}>
@@ -224,26 +224,27 @@ export default function WelcomePage() {
               />
             </div>
             <div>
-              <span className="text-sm font-semibold uppercase tracking-wide text-primary">No cost, no catch</span>
+              <span className="text-sm font-semibold uppercase tracking-wide text-primary">Free to start</span>
               <h2
                 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl"
                 style={{ fontFamily: "var(--font-marketing-display)" }}
               >
-                A free e-commerce website for business owners across Africa.
+                Start free. Pay only when your business is ready to grow.
               </h2>
               <p className="mt-4 text-muted-foreground">
-                Other e-commerce website builders charge monthly fees most small businesses can&apos;t
-                spare, and still need a developer every time something changes. Shopper gives you
-                the online store, the checkout, and the visibility a paid platform would charge
-                you for — at no cost to start. No card required.
+                Other e-commerce website builders charge monthly fees from day one, and still need a
+                developer every time something changes. With Shopper you open your store, list up to
+                25 products and take WhatsApp, bank transfer and cash-on-delivery orders for free —
+                no card required. When you want card payments, your own domain or a team, plans
+                start at ₦10,000 a month.
               </p>
               <p className="mt-3 text-sm text-muted-foreground">
                 Already selling on WordPress, Wix, Bumpa, Shopify, or any other e-commerce website
-                builder? Shopper is a free alternative to all of them — moving over costs nothing,
-                and you keep the same storefront basics without the monthly subscription or plugin fees.
+                builder? Shopper is a simpler alternative to all of them — moving over costs nothing,
+                and you only pay for a plan when you need the extras. No plugins, no developer.
               </p>
               <ul className="mt-6 space-y-2">
-                {["No setup fees", "No monthly charge to start", "No developer needed"].map((item) => (
+                {["No setup fees", "Free plan, no card required", "No developer needed"].map((item) => (
                   <li key={item} className="flex items-center gap-2 text-sm font-medium">
                     <CheckCircle2 className="h-4 w-4 text-primary" />
                     {item}

@@ -6,10 +6,10 @@ import { MarketingFooter } from "@/components/marketing/marketing-footer";
 export const metadata: Metadata = {
   title: {
     template: "%s | Shopper",
-    default: "Shopper — The free e-commerce website builder for Africa",
+    default: "Shopper — The free-to-start e-commerce website builder for Africa",
   },
   description:
-    "Shopper is a free e-commerce website builder for African business owners who sell online — a real alternative to WordPress, Wix, Bumpa, Shopify, and every other e-commerce platform used in Africa. Built to be found on Google, AI search, and every ad platform.",
+    "Shopper is a free-to-start e-commerce website builder for African business owners who sell online — a real alternative to WordPress, Wix, Bumpa, Shopify, and every other e-commerce platform used in Africa. Built to be found on Google, AI search, and every ad platform.",
 };
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
