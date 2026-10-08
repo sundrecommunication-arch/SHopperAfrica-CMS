@@ -6,11 +6,13 @@ import Link from "next/link";
 import { X, Plus, Minus, Trash2, ShoppingBag, ArrowRight, MessageSquareQuote } from "lucide-react";
 
 import { useCart } from "./cart-context";
+import { useT } from "@/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { buildCartWhatsAppUrl } from "@/modules/storefront/utils/whatsapp";
 
 export function CartDrawer() {
+  const t = useT();
   const {
     items,
     isOpen,
@@ -66,7 +68,7 @@ export function CartDrawer() {
         <div className="flex items-center justify-between border-b px-6 py-4">
           <div className="flex items-center gap-2">
             <ShoppingBag className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold">Your Cart</h2>
+            <h2 className="text-lg font-semibold">{t("cart.title")}</h2>
             <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">
               {itemCount}
             </span>
@@ -77,7 +79,7 @@ export function CartDrawer() {
             className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
             <X className="h-5 w-5" />
-            <span className="sr-only">Close cart</span>
+            <span className="sr-only">{t("cart.close")}</span>
           </button>
         </div>
 
@@ -87,12 +89,10 @@ export function CartDrawer() {
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-muted-foreground mb-4">
               <ShoppingBag className="h-8 w-8" />
             </div>
-            <p className="text-base font-medium">Your cart is empty</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Explore our catalog and find items you love!
-            </p>
+            <p className="text-base font-medium">{t("cart.empty")}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t("cart.emptyBody")}</p>
             <Button onClick={closeCart} className="mt-6" variant="outline">
-              Continue Shopping
+              {t("common.continueShopping")}
             </Button>
           </div>
         ) : (
@@ -112,7 +112,7 @@ export function CartDrawer() {
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                        No image
+                        {t("common.noImage")}
                       </div>
                     )}
                   </div>
@@ -166,7 +166,7 @@ export function CartDrawer() {
                         className="text-muted-foreground hover:text-destructive transition-colors p-1"
                       >
                         <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Remove item</span>
+                        <span className="sr-only">{t("cart.remove")}</span>
                       </button>
                     </div>
                   </div>
@@ -177,7 +177,7 @@ export function CartDrawer() {
             {/* Footer Summary & Order Actions */}
             <div className="border-t bg-muted/30 p-6 space-y-4">
               <div className="flex items-center justify-between text-base font-semibold">
-                <span>Subtotal</span>
+                <span>{t("common.subtotal")}</span>
                 <span>
                   {currencySymbol}
                   {subtotal.toLocaleString()}
@@ -192,18 +192,18 @@ export function CartDrawer() {
                     onClick={() => setShowAddressField((prev) => !prev)}
                     className="text-xs text-primary underline underline-offset-2 hover:opacity-80"
                   >
-                    {showAddressField ? "Hide delivery notes" : "+ Add customer name / delivery address"}
+                    {showAddressField ? t("cart.hideNotes") : t("cart.addNotes")}
                   </button>
                   {showAddressField && (
                     <div className="space-y-2 pt-1">
                       <Input
-                        placeholder="Your Name (optional)"
+                        placeholder={t("cart.namePlaceholder")}
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
                         className="h-9 text-xs"
                       />
                       <Input
-                        placeholder="Delivery Address / City (optional)"
+                        placeholder={t("cart.addressPlaceholder")}
                         value={deliveryAddress}
                         onChange={(e) => setDeliveryAddress(e.target.value)}
                         className="h-9 text-xs"
@@ -217,7 +217,7 @@ export function CartDrawer() {
               <div className="space-y-2 pt-2">
                 <Link href={`/store/${storeSlug}/checkout`} onClick={closeCart} className="block w-full">
                   <Button className="w-full py-5 font-semibold text-base shadow-sm">
-                    Proceed to Checkout
+                    {t("cart.checkout")}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
@@ -229,19 +229,19 @@ export function CartDrawer() {
                     className="w-full border-[var(--store-primary)]/40 text-[var(--store-primary)] hover:bg-[var(--store-primary)]/10 font-medium py-5 gap-2"
                   >
                     <MessageSquareQuote className="h-5 w-5" />
-                    Order via WhatsApp
+                    {t("cart.orderViaWhatsapp")}
                   </Button>
                 ) : null}
               </div>
 
               <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
-                <span>Taxes & shipping calculated at checkout</span>
+                <span>{t("cart.calculatedAtCheckout")}</span>
                 <button
                   type="button"
                   onClick={clearCart}
                   className="text-muted-foreground hover:text-destructive underline"
                 >
-                  Clear Cart
+                  {t("cart.clear")}
                 </button>
               </div>
             </div>

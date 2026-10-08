@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/i18n/client";
 
 interface AccountAuthFormsProps {
   storeSlug: string;
@@ -19,6 +20,7 @@ export function AccountAuthForms({ storeSlug, defaultPhone = "" }: AccountAuthFo
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "signup">(defaultPhone ? "signup" : "login");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const t = useT();
 
   const [name, setName] = useState("");
   const [signupPhone, setSignupPhone] = useState(defaultPhone);
@@ -44,11 +46,11 @@ export function AccountAuthForms({ storeSlug, defaultPhone = "" }: AccountAuthFo
         }),
       });
       const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.error ?? "Could not create your account");
-      toast.success("Account created");
+      if (!res.ok) throw new Error(data?.error ?? t("account.errCreate"));
+      toast.success(t("account.created"));
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Error creating account");
+      toast.error(error instanceof Error ? error.message : t("account.errCreate"));
     } finally {
       setIsSubmitting(false);
     }
@@ -64,11 +66,11 @@ export function AccountAuthForms({ storeSlug, defaultPhone = "" }: AccountAuthFo
         body: JSON.stringify({ storeSlug, identifier, password: loginPassword }),
       });
       const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.error ?? "Could not sign you in");
-      toast.success("Signed in");
+      if (!res.ok) throw new Error(data?.error ?? t("account.errSignIn"));
+      toast.success(t("account.signedIn"));
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Error signing in");
+      toast.error(error instanceof Error ? error.message : t("account.errSignIn"));
     } finally {
       setIsSubmitting(false);
     }
@@ -86,7 +88,7 @@ export function AccountAuthForms({ storeSlug, defaultPhone = "" }: AccountAuthFo
               : "px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
           }
         >
-          Sign in
+          {t("account.signIn")}
         </button>
         <button
           type="button"
@@ -97,14 +99,14 @@ export function AccountAuthForms({ storeSlug, defaultPhone = "" }: AccountAuthFo
               : "px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
           }
         >
-          Create account
+          {t("account.createAccount")}
         </button>
       </div>
 
       {mode === "login" ? (
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="identifier">Phone number or email</Label>
+            <Label htmlFor="identifier">{t("account.phoneOrEmail")}</Label>
             <Input
               id="identifier"
               value={identifier}
@@ -113,7 +115,7 @@ export function AccountAuthForms({ storeSlug, defaultPhone = "" }: AccountAuthFo
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="loginPassword">Password</Label>
+            <Label htmlFor="loginPassword">{t("account.password")}</Label>
             <Input
               id="loginPassword"
               type="password"
@@ -124,17 +126,17 @@ export function AccountAuthForms({ storeSlug, defaultPhone = "" }: AccountAuthFo
           </div>
           <Button type="submit" disabled={isSubmitting} className="w-full gap-2">
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            Sign in
+            {t("account.signIn")}
           </Button>
         </form>
       ) : (
         <form onSubmit={handleSignup} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Full name</Label>
+            <Label htmlFor="name">{t("account.fullName")}</Label>
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="signupPhone">Phone number</Label>
+            <Label htmlFor="signupPhone">{t("account.phone")}</Label>
             <Input
               id="signupPhone"
               value={signupPhone}
@@ -143,7 +145,7 @@ export function AccountAuthForms({ storeSlug, defaultPhone = "" }: AccountAuthFo
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="signupEmail">Email (optional)</Label>
+            <Label htmlFor="signupEmail">{t("account.emailOptional")}</Label>
             <Input
               id="signupEmail"
               type="email"
@@ -152,7 +154,7 @@ export function AccountAuthForms({ storeSlug, defaultPhone = "" }: AccountAuthFo
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="signupPassword">Password</Label>
+            <Label htmlFor="signupPassword">{t("account.password")}</Label>
             <Input
               id="signupPassword"
               type="password"
@@ -164,11 +166,10 @@ export function AccountAuthForms({ storeSlug, defaultPhone = "" }: AccountAuthFo
           </div>
           <Button type="submit" disabled={isSubmitting} className="w-full gap-2">
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            Create account
+            {t("account.createAccount")}
           </Button>
           <p className="text-xs text-muted-foreground">
-            Already ordered with us before? Use the same phone number and your past orders will
-            show up here automatically.
+            {t("account.pastOrdersHint")}
           </p>
         </form>
       )}

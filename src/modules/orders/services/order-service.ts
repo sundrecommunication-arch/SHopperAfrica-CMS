@@ -436,6 +436,7 @@ export async function getPublicOrderReceipt(storeSlug: string, orderNumber: stri
       currencySymbol: stores.currencySymbol,
       whatsappNumber: stores.whatsappNumber,
       whatsappEnabled: stores.whatsappEnabled,
+      locale: stores.locale,
     })
     .from(stores)
     .where(eq(stores.slug, storeSlug))

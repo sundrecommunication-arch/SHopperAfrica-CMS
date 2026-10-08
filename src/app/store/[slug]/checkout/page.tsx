@@ -1,5 +1,6 @@
 import React from "react";
 import { notFound } from "next/navigation";
+import { getStorefrontI18n } from "@/i18n/server";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ChevronRight } from "lucide-react";
@@ -37,6 +38,7 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
     notFound();
   }
 
+  const { t } = await getStorefrontI18n(store.locale);
   const [paymentProviders, deliveryOptions] = await Promise.all([
     getPublicStorePaymentProviders(store.id),
     listDeliveryOptions(store.id),
@@ -53,18 +55,18 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Link href={`/store/${store.slug}`} className="hover:text-foreground transition-colors">
-          Home
+          {t("common.home")}
         </Link>
         <ChevronRight className="h-3.5 w-3.5" />
-        <span className="text-foreground font-medium">Checkout</span>
+        <span className="text-foreground font-medium">{t("checkout.pageTitle")}</span>
       </nav>
 
       <div>
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-          Checkout
+          {t("checkout.pageTitle")}
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-          Complete your order with {store.name}.
+          {t("checkout.pageSubtitle", { store: store.name })}
         </p>
       </div>
 

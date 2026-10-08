@@ -7,6 +7,7 @@ import Image from "next/image";
 import { Plus, ShoppingBag } from "lucide-react";
 
 import { useCart } from "./cart/cart-context";
+import { useT } from "@/i18n/client";
 import { Badge } from "@/components/ui/badge";
 
 export interface StorefrontProductItem {
@@ -36,6 +37,7 @@ interface ProductCardProps {
 export function ProductCard({ product, storeSlug, currencySymbol }: ProductCardProps) {
   const { addItem } = useCart();
   const router = useRouter();
+  const t = useT();
 
   const numPrice = parseFloat(product.price);
   const numCompareAt = product.compareAtPrice ? parseFloat(product.compareAtPrice) : null;
@@ -101,11 +103,11 @@ export function ProductCard({ product, storeSlug, currencySymbol }: ProductCardP
           )}
           {isOutOfStock ? (
             <Badge variant="secondary" className="bg-background/90 text-foreground text-[11px] font-semibold">
-              Out of Stock
+              {t("common.outOfStock")}
             </Badge>
           ) : isLowStock ? (
             <Badge variant="outline" className="bg-background/90 text-warning border-warning/30 text-[11px] font-medium">
-              Only {product.inventoryQuantity} left
+              {t("product.onlyLeft", { count: product.inventoryQuantity })}
             </Badge>
           ) : null}
         </div>
@@ -119,7 +121,7 @@ export function ProductCard({ product, storeSlug, currencySymbol }: ProductCardP
               className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-background/95 py-2 text-xs font-semibold shadow-md backdrop-blur-xs hover:bg-primary hover:text-primary-foreground transition-colors"
             >
               <Plus className="h-3.5 w-3.5" />
-              Quick Add
+              {t("product.quickAdd")}
             </button>
           </div>
         )}
@@ -163,7 +165,7 @@ export function ProductCard({ product, storeSlug, currencySymbol }: ProductCardP
               className="sm:hidden rounded-full p-1.5 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
             >
               <Plus className="h-4 w-4" />
-              <span className="sr-only">Add to Cart</span>
+              <span className="sr-only">{t("common.addToCart")}</span>
             </button>
           )}
         </div>

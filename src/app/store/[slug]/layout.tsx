@@ -16,6 +16,8 @@ import { StorefrontFooter } from "@/components/storefront/footer";
 import { JsonLd } from "@/components/seo/json-ld";
 import { buildStoreSchema } from "@/lib/structured-data";
 import { getStorePlan } from "@/modules/subscriptions/services/subscription-service";
+import { getStorefrontI18n } from "@/i18n/server";
+import { I18nProvider } from "@/i18n/client";
 
 interface StoreLayoutProps {
   children: React.ReactNode;
@@ -55,16 +57,16 @@ export default async function StorefrontLayout({
     notFound();
   }
 
+  const { locale, dir, messages, t } = await getStorefrontI18n(store.locale);
+
   // Suspended by a platform admin: nothing is deleted, the store just
   // isn't browsable or orderable until it's reinstated.
   if (store.suspendedAt) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-2 bg-background px-4 text-center">
+      <div lang={locale} dir={dir} className="flex min-h-screen flex-col items-center justify-center gap-2 bg-background px-4 text-center">
         <AlertCircle className="h-8 w-8 text-muted-foreground" />
-        <h1 className="text-xl font-semibold">{store.name} is temporarily unavailable</h1>
-        <p className="max-w-sm text-sm text-muted-foreground">
-          This store isn&apos;t taking orders right now. Please check back later.
-        </p>
+        <h1 className="text-xl font-semibold">{t("store.unavailableTitle", { store: store.name })}</h1>
+        <p className="max-w-sm text-sm text-muted-foreground">{t("store.unavailableBody")}</p>
       </div>
     );
   }
@@ -80,6 +82,8 @@ export default async function StorefrontLayout({
 
   return (
     <div
+      lang={locale}
+      dir={dir}
       className="min-flex flex-col min-h-screen bg-background text-foreground antialiased"
       style={
         {
@@ -89,6 +93,7 @@ export default async function StorefrontLayout({
       }
     >
       <JsonLd data={buildStoreSchema(store)} />
+      <I18nProvider locale={locale} messages={messages}>
       <CartProvider
         storeSlug={store.slug}
         storeName={store.name}
@@ -100,7 +105,7 @@ export default async function StorefrontLayout({
         {!store.isPublished && (
           <div className="bg-warning/15 border-b border-warning/30 px-4 py-2 text-center text-xs font-medium text-amber-600 dark:text-amber-400 flex items-center justify-center gap-1.5">
             <AlertCircle className="h-4 w-4" />
-            <span>This store is currently in draft preview mode and not yet published.</span>
+            <span>{t("store.draftNotice")}</span>
           </div>
         )}
 
@@ -110,8 +115,9 @@ export default async function StorefrontLayout({
 
         <CartDrawer />
 
-        <StorefrontFooter store={footerStore} policies={policies} navItems={navItems} />
+        <StorefrontFooter store={footerStore} policies={policies} navItems={navItems} t={t} />
       </CartProvider>
+      </I18nProvider>
     </div>
   );
 }

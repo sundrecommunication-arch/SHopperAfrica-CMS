@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Loader2, CreditCard } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useT } from "@/i18n/client";
 
 /**
  * Both Paystack and PayDunya redirect back to this receipt page (via the
@@ -31,6 +32,7 @@ export function PaystackPaymentVerifier({
   isPending: boolean;
 }) {
   const router = useRouter();
+  const t = useT();
   const [isVerifying, setIsVerifying] = useState(false);
   const attempted = useRef(false);
 
@@ -47,19 +49,19 @@ export function PaystackPaymentVerifier({
       .then((res) => res.json().catch(() => null))
       .then((data) => {
         if (data?.success) {
-          toast.success("Payment confirmed!");
+          toast.success(t("receipt.paymentConfirmed"));
         }
         router.refresh();
       })
       .finally(() => setIsVerifying(false));
-  }, [isPending, storeSlug, orderNumber, router]);
+  }, [isPending, storeSlug, orderNumber, router, t]);
 
   if (!isVerifying) return null;
 
   return (
     <div className="flex items-center justify-center gap-2 rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
       <Loader2 className="h-4 w-4 animate-spin" />
-      Confirming your payment…
+      {t("receipt.confirmingPayment")}
     </div>
   );
 }
@@ -77,6 +79,7 @@ export function PaystackRetryButton({
   orderNumber: string;
 }) {
   const [isLoading, setIsLoading] = useState(false);
+  const t = useT();
 
   async function handleClick() {
     setIsLoading(true);
@@ -88,13 +91,13 @@ export function PaystackRetryButton({
       });
       const data = await res.json().catch(() => null);
       if (!res.ok || !data?.authorizationUrl) {
-        toast.error(data?.error ?? "Could not start payment");
+        toast.error(data?.error ?? t("receipt.couldNotStartPayment"));
         setIsLoading(false);
         return;
       }
       window.location.href = data.authorizationUrl;
     } catch {
-      toast.error("Could not start payment");
+      toast.error(t("receipt.couldNotStartPayment"));
       setIsLoading(false);
     }
   }
@@ -111,7 +114,7 @@ export function PaystackRetryButton({
       ) : (
         <CreditCard className="h-4 w-4" />
       )}
-      Complete Card Payment
+      {t("receipt.completeCardPayment")}
     </Button>
   );
 }

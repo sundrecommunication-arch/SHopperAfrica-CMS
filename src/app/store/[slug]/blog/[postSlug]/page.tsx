@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { getStorefrontI18n } from "@/i18n/server";
 import type { Metadata } from "next";
 import { ArrowLeft } from "lucide-react";
 
@@ -50,6 +51,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     notFound();
   }
 
+  const { t } = await getStorefrontI18n(store.locale);
   const paragraphs = post.content.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
 
   return (
@@ -58,12 +60,12 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         href={`/store/${slug}/blog`}
         className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="size-4" /> Back to blog
+        <ArrowLeft className="size-4" /> {t("blog.back")}
       </Link>
 
       {post.publishedAt && (
         <p className="mb-2 text-sm text-muted-foreground">
-          {new Date(post.publishedAt).toLocaleDateString(undefined, {
+          {new Date(post.publishedAt).toLocaleDateString(t.locale, {
             year: "numeric",
             month: "long",
             day: "numeric",

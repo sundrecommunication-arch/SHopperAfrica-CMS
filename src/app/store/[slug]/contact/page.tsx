@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getStorefrontI18n } from "@/i18n/server";
 import type { Metadata } from "next";
 import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 
@@ -23,9 +24,10 @@ export async function generateMetadata({
   const { slug } = await params;
   const store = await getPublicStoreBySlug(slug);
   if (!store) return { title: "Store Not Found" };
+  const { t } = await getStorefrontI18n(store.locale);
   return {
-    title: "Contact Us",
-    description: `Get in touch with ${store.name}`,
+    title: t("contact.title"),
+    description: t("contact.metaDescription", { store: store.name }),
   };
 }
 
@@ -36,17 +38,18 @@ export default async function ContactPage({ params }: ContactPageProps) {
     notFound();
   }
 
-  const policies = await getPublicStorePolicies(store.id);
+  const [policies, { t }] = await Promise.all([
+    getPublicStorePolicies(store.id),
+    getStorefrontI18n(store.locale),
+  ]);
   const whatsappPhone = store.whatsappNumber ? formatWhatsAppPhone(store.whatsappNumber) : null;
 
   const hasContactInfo = store.contactEmail || store.contactPhone || store.addressText;
 
   return (
     <div className="container mx-auto max-w-3xl px-4 py-10 sm:px-6">
-      <h1 className="mb-2 text-3xl font-bold tracking-tight">Contact Us</h1>
-      <p className="mb-8 text-muted-foreground">
-        Questions about an order, a product, or anything else? Here is how to reach {store.name}.
-      </p>
+      <h1 className="mb-2 text-3xl font-bold tracking-tight">{t("contact.title")}</h1>
+      <p className="mb-8 text-muted-foreground">{t("contact.intro", { store: store.name })}</p>
 
       {hasContactInfo ? (
         <div className="mb-10 flex flex-col gap-4 rounded-lg border p-6">
@@ -82,20 +85,20 @@ export default async function ContactPage({ params }: ContactPageProps) {
               className="inline-flex w-fit items-center gap-2 rounded-full bg-[var(--store-primary)] px-4 py-2 text-sm font-semibold text-white shadow-xs hover:brightness-90 transition-all"
             >
               <MessageCircle className="size-4" />
-              Chat on WhatsApp
+              {t("contact.chat")}
             </a>
           )}
         </div>
       ) : (
         <p className="mb-10 text-sm text-muted-foreground">
-          Contact details for this store have not been added yet.
+          {t("contact.noDetails")}
         </p>
       )}
 
       {policies.length > 0 && (
         <div className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            Policies
+            {t("contact.policies")}
           </h2>
           <ul className="flex flex-col gap-2">
             {policies.map((policy) => (

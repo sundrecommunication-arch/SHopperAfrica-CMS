@@ -1,6 +1,7 @@
 import React from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getStorefrontI18n } from "@/i18n/server";
 import { MessageCircle } from "lucide-react";
 import { HeroSlider } from "@/components/storefront/hero-slider";
 import { buildStoreMetadata } from "@/components/seo/StoreSeo";
@@ -62,6 +63,7 @@ export default async function StorefrontPage({
     getPublicStoreDefaultFaqs(store.id),
   ]);
 
+  const { t } = await getStorefrontI18n(store.locale);
   const whatsappPhone = store.whatsappNumber ? formatWhatsAppPhone(store.whatsappNumber) : null;
   const heroTextPosition = store.heroTextPosition ?? "bottom-center";
 
@@ -105,13 +107,13 @@ export default async function StorefrontPage({
 
               {store.whatsappEnabled && whatsappPhone && (
                 <a
-                  href={`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(`Hello ${store.name}, I would like to make an inquiry!`)}`}
+                  href={`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(t("store.whatsappInquiry", { store: store.name }))}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 rounded-xl bg-[var(--store-primary)] hover:brightness-90 text-white px-5 py-2.5 text-xs sm:text-sm font-semibold transition-all shadow-xs pointer-events-auto"
                 >
                   <MessageCircle className="h-4 w-4" />
-                  Chat with us on WhatsApp
+                  {t("header.chatOnWhatsapp")}
                 </a>
               )}
             </div>
@@ -124,10 +126,10 @@ export default async function StorefrontPage({
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold tracking-tight text-foreground">
-              {searchQuery ? `Search results for "${searchQuery}"` : "All Products"}
+              {searchQuery ? t("store.searchResultsFor", { query: searchQuery }) : t("common.allProducts")}
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Browse our complete catalog with direct WhatsApp ordering
+              {t("store.catalogSubtitle")}
             </p>
           </div>
         </div>

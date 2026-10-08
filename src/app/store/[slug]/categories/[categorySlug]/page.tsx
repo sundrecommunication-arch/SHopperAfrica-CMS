@@ -1,5 +1,6 @@
 import React from "react";
 import { notFound } from "next/navigation";
+import { getStorefrontI18n } from "@/i18n/server";
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
@@ -61,13 +62,14 @@ export default async function CategoryDetailPage({
   if (!currentCategory) {
     notFound();
   }
+  const { t } = await getStorefrontI18n(store.locale);
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-8 sm:px-6 space-y-8">
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Link href={`/store/${store.slug}`} className="hover:text-foreground transition-colors">
-          Home
+          {t("common.home")}
         </Link>
         <ChevronRight className="h-3.5 w-3.5" />
         <span className="text-foreground font-medium">{currentCategory.name}</span>
@@ -79,7 +81,7 @@ export default async function CategoryDetailPage({
           <div className="flex items-center gap-2">
             <Folder className="h-5 w-5 text-primary" />
             <span className="text-xs font-semibold uppercase tracking-wider text-primary">
-              Category
+              {t("store.category")}
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">

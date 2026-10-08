@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useT } from "@/i18n/client";
 import { ChevronDown, HelpCircle } from "lucide-react";
 
 interface FaqItem {
@@ -11,14 +12,15 @@ interface FaqItem {
 
 interface FaqSectionProps {
   faqs: FaqItem[];
-  /** Defaults to "Frequently Asked Questions". */
+  /** Defaults to the translated "Frequently Asked Questions". */
   title?: string;
 }
 
 // A plain accordion, not a component library — this project has no
 // @radix-ui/react-accordion dependency, so a small piece of local state per
 // row keeps this to zero new packages.
-export function FaqSection({ faqs, title = "Frequently Asked Questions" }: FaqSectionProps) {
+export function FaqSection({ faqs, title }: FaqSectionProps) {
+  const t = useT();
   const [openId, setOpenId] = useState<string | null>(faqs[0]?.id ?? null);
 
   if (faqs.length === 0) return null;
@@ -27,7 +29,7 @@ export function FaqSection({ faqs, title = "Frequently Asked Questions" }: FaqSe
     <section className="space-y-6">
       <div className="flex items-center gap-2">
         <HelpCircle className="h-5 w-5 text-primary" />
-        <h2 className="text-xl font-bold tracking-tight text-foreground">{title}</h2>
+        <h2 className="text-xl font-bold tracking-tight text-foreground">{title ?? t("store.faqTitle")}</h2>
       </div>
 
       <div className="divide-y rounded-xl border bg-background">

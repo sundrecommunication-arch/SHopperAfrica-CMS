@@ -6,6 +6,8 @@ import { formatWhatsAppPhone } from "@/modules/storefront/utils/whatsapp";
 import { POLICY_TYPE_TO_SLUG } from "@/modules/storefront/utils/policy-slugs";
 import type { PolicyType } from "@/modules/policies/validation/schemas";
 import type { NavItemKind } from "@/modules/nav/validation/schemas";
+import type { Translator } from "@/i18n/translate";
+import { navLabel } from "@/i18n/nav-label";
 
 interface StorefrontFooterProps {
   store: {
@@ -22,6 +24,7 @@ interface StorefrontFooterProps {
   policies?: { type: PolicyType; title: string }[];
   /** Same merchant-configured, already-visible-filtered menu as the header. */
   navItems?: { kind: NavItemKind; label: string; url: string | null }[];
+  t: Translator;
 }
 
 function footerHref(item: { kind: NavItemKind; url: string | null }, storeSlug: string): string {
@@ -43,7 +46,7 @@ function footerHref(item: { kind: NavItemKind; url: string | null }, storeSlug: 
 // categories). They now live entirely under the header's "Products" menu,
 // which nests every category with no slicing needed — so this footer no
 // longer takes a `categories` prop at all.
-export function StorefrontFooter({ store, policies = [], navItems = [] }: StorefrontFooterProps) {
+export function StorefrontFooter({ store, policies = [], navItems = [], t }: StorefrontFooterProps) {
   const currentYear = new Date().getFullYear();
   const whatsappPhone = store.whatsappNumber ? formatWhatsAppPhone(store.whatsappNumber) : null;
 
@@ -68,7 +71,7 @@ export function StorefrontFooter({ store, policies = [], navItems = [] }: Storef
                   className="inline-flex items-center gap-2 rounded-full bg-[var(--store-primary)] text-white px-4 py-2 text-xs font-semibold hover:brightness-90 transition-all shadow-xs"
                 >
                   <MessageCircle className="h-4 w-4" />
-                  Order / Chat on WhatsApp
+                  {t("footer.orderOnWhatsapp")}
                 </a>
               </div>
             )}
@@ -78,7 +81,7 @@ export function StorefrontFooter({ store, policies = [], navItems = [] }: Storef
           {navItems.length > 0 && (
             <div className="space-y-3">
               <h4 className="text-sm font-semibold uppercase tracking-wider text-foreground">
-                Company
+                {t("footer.company")}
               </h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 {navItems.map((item) => (
@@ -90,14 +93,14 @@ export function StorefrontFooter({ store, policies = [], navItems = [] }: Storef
                         rel="noopener noreferrer"
                         className="hover:text-foreground transition-colors"
                       >
-                        {item.label}
+                        {navLabel(item, t)}
                       </a>
                     ) : (
                       <Link
                         href={footerHref(item, store.slug)}
                         className="hover:text-foreground transition-colors"
                       >
-                        {item.label}
+                        {navLabel(item, t)}
                       </Link>
                     )}
                   </li>
@@ -110,7 +113,7 @@ export function StorefrontFooter({ store, policies = [], navItems = [] }: Storef
           {policies.length > 0 && (
             <div className="space-y-3">
               <h4 className="text-sm font-semibold uppercase tracking-wider text-foreground">
-                Legal
+                {t("footer.legal")}
               </h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 {policies.map((policy) => (
@@ -130,7 +133,7 @@ export function StorefrontFooter({ store, policies = [], navItems = [] }: Storef
           {/* Col 4: Contact & Info */}
           <div className="space-y-3">
             <h4 className="text-sm font-semibold uppercase tracking-wider text-foreground">
-              Contact
+              {t("footer.contact")}
             </h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               {store.contactEmail && (
@@ -162,10 +165,10 @@ export function StorefrontFooter({ store, policies = [], navItems = [] }: Storef
 
         {/* Bottom bar */}
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t pt-6 text-xs text-muted-foreground sm:flex-row">
-          <p>© {currentYear} {store.name}. All rights reserved.</p>
+          <p>{t("footer.rights", { year: currentYear, store: store.name })}</p>
           {!store.poweredByHidden && (
             <p className="flex items-center gap-1">
-              <span>Powered by</span>
+              <span>{t("footer.poweredBy")}</span>
               <span className="font-semibold text-foreground">Shopper</span>
             </p>
           )}

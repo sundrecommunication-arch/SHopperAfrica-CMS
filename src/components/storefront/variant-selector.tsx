@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
+import { useT } from "@/i18n/client";
 
 export interface VariantItem {
   id: string;
@@ -28,6 +29,7 @@ export function VariantSelector({
   currencySymbol,
   basePrice,
 }: VariantSelectorProps) {
+  const t = useT();
   // Extract distinct option keys (e.g., "Size", "Color") — computed before
   // any early return so hooks always run in the same order (Rules of Hooks).
   const optionKeys = useMemo(() => {
@@ -101,7 +103,7 @@ export function VariantSelector({
   // Fallback if variants are just listed by name (e.g. "Small", "Medium", "Large")
   return (
     <div className="space-y-2">
-      <span className="text-xs font-semibold text-foreground">Options / Variants</span>
+      <span className="text-xs font-semibold text-foreground">{t("product.options")}</span>
       <div className="flex flex-wrap gap-2">
         {variants.map((v) => {
           const isSelected = selectedVariant?.id === v.id;

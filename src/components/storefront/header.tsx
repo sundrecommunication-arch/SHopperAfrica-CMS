@@ -12,6 +12,9 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { NavItemKind } from "@/modules/nav/validation/schemas";
+import { useT } from "@/i18n/client";
+import { navLabel } from "@/i18n/nav-label";
+import { LanguageSwitcher } from "./language-switcher";
 
 interface StorefrontHeaderProps {
   store: {
@@ -58,6 +61,7 @@ function isExternalUrl(url: string) {
 
 export function StorefrontHeader({ store, categories = [], navItems }: StorefrontHeaderProps) {
   const router = useRouter();
+  const t = useT();
   const { openCart, itemCount } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileProductsOpen, setIsMobileProductsOpen] = useState(false);
@@ -89,7 +93,7 @@ export function StorefrontHeader({ store, categories = [], navItems }: Storefron
             onClick={() => setIsMobileMenuOpen((prev) => !prev)}
           >
             {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            <span className="sr-only">Toggle Menu</span>
+            <span className="sr-only">{t("header.toggleMenu")}</span>
           </button>
 
           <Link href={`/store/${store.slug}`} className="flex items-center gap-3 group">
@@ -132,7 +136,7 @@ export function StorefrontHeader({ store, categories = [], navItems }: Storefron
                   onClick={() => setIsProductsMenuOpen((v) => !v)}
                   className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {item.label}
+                  {navLabel(item, t)}
                   <ChevronDown
                     className={cn(
                       "h-3.5 w-3.5 transition-transform",
@@ -149,7 +153,7 @@ export function StorefrontHeader({ store, categories = [], navItems }: Storefron
                         onClick={() => setIsProductsMenuOpen(false)}
                         className="block rounded-md px-3 py-2 text-sm font-semibold hover:bg-muted"
                       >
-                        All Products
+                        {t("common.allProducts")}
                       </Link>
                       {categories.length > 0 && <div className="my-1 border-t" />}
                       {categories.map((category) => (
@@ -174,7 +178,7 @@ export function StorefrontHeader({ store, categories = [], navItems }: Storefron
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-foreground transition-colors"
               >
-                {item.label}
+                {navLabel(item, t)}
               </a>
             ) : (
               <Link
@@ -182,7 +186,7 @@ export function StorefrontHeader({ store, categories = [], navItems }: Storefron
                 href={resolveHref(item, store.slug)}
                 className="text-muted-foreground hover:text-foreground transition-colors"
               >
-                {item.label}
+                {navLabel(item, t)}
               </Link>
             )
           )}
@@ -197,13 +201,13 @@ export function StorefrontHeader({ store, categories = [], navItems }: Storefron
             className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
             <Search className="h-5 w-5" />
-            <span className="sr-only">Search</span>
+            <span className="sr-only">{t("common.search")}</span>
           </button>
 
           {/* WhatsApp Direct Chat */}
           {store.whatsappEnabled && whatsappPhone && (
             <a
-              href={`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(`Hi ${store.name}, I have a question about your products!`)}`}
+              href={`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(t("header.whatsappGreeting", { store: store.name }))}`}
               target="_blank"
               rel="noopener noreferrer"
               className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-[var(--store-primary)]/10 text-[var(--store-primary)] px-3 py-1.5 text-xs font-semibold hover:bg-[var(--store-primary)]/20 transition-colors"
@@ -213,11 +217,13 @@ export function StorefrontHeader({ store, categories = [], navItems }: Storefron
             </a>
           )}
 
+          <LanguageSwitcher />
+
           {/* My Account */}
           <Link
             href={`/store/${store.slug}/account`}
             className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            aria-label="My Account"
+            aria-label={t("common.myAccount")}
           >
             <User className="h-5 w-5" />
           </Link>
@@ -234,7 +240,7 @@ export function StorefrontHeader({ store, categories = [], navItems }: Storefron
                 {itemCount}
               </span>
             )}
-            <span className="sr-only">Open Cart</span>
+            <span className="sr-only">{t("header.openCart")}</span>
           </button>
         </div>
       </div>
@@ -250,7 +256,7 @@ export function StorefrontHeader({ store, categories = [], navItems }: Storefron
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search products, brands, tags..."
+                placeholder={t("header.searchPlaceholder")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 bg-background h-10"
@@ -258,7 +264,7 @@ export function StorefrontHeader({ store, categories = [], navItems }: Storefron
               />
             </div>
             <Button type="submit" size="sm">
-              Search
+              {t("common.search")}
             </Button>
             <button
               type="button"
@@ -282,7 +288,7 @@ export function StorefrontHeader({ store, categories = [], navItems }: Storefron
                   onClick={() => setIsMobileProductsOpen((v) => !v)}
                   className="flex w-full items-center justify-between text-sm font-medium hover:text-primary transition-colors py-2"
                 >
-                  {item.label}
+                  {navLabel(item, t)}
                   <ChevronDown
                     className={cn(
                       "h-4 w-4 transition-transform",
@@ -297,7 +303,7 @@ export function StorefrontHeader({ store, categories = [], navItems }: Storefron
                       onClick={closeMobileMenu}
                       className="text-sm font-medium hover:text-primary transition-colors py-1"
                     >
-                      All Products
+                      {t("common.allProducts")}
                     </Link>
                     {categories.map((category) => (
                       <Link
@@ -321,7 +327,7 @@ export function StorefrontHeader({ store, categories = [], navItems }: Storefron
                 onClick={closeMobileMenu}
                 className="block text-sm font-medium hover:text-primary transition-colors py-2"
               >
-                {item.label}
+                {navLabel(item, t)}
               </a>
             ) : (
               <Link
@@ -330,7 +336,7 @@ export function StorefrontHeader({ store, categories = [], navItems }: Storefron
                 onClick={closeMobileMenu}
                 className="block text-sm font-medium hover:text-primary transition-colors py-2"
               >
-                {item.label}
+                {navLabel(item, t)}
               </Link>
             )
           )}
@@ -340,7 +346,7 @@ export function StorefrontHeader({ store, categories = [], navItems }: Storefron
             onClick={closeMobileMenu}
             className="block text-sm font-medium hover:text-primary transition-colors py-2"
           >
-            My Account
+            {t("common.myAccount")}
           </Link>
 
           {store.whatsappEnabled && whatsappPhone && (
@@ -352,7 +358,7 @@ export function StorefrontHeader({ store, categories = [], navItems }: Storefron
                 className="flex items-center gap-2 text-sm font-medium text-[var(--store-primary)] py-1"
               >
                 <MessageCircle className="h-4 w-4" />
-                Chat with us on WhatsApp
+                {t("header.chatOnWhatsapp")}
               </a>
             </div>
           )}

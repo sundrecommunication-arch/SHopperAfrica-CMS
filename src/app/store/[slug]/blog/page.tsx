@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { getStorefrontI18n } from "@/i18n/server";
 import type { Metadata } from "next";
 import { Newspaper } from "lucide-react";
 
@@ -35,16 +36,19 @@ export default async function BlogListPage({ params }: BlogListPageProps) {
     notFound();
   }
 
-  const posts = await getPublicBlogPosts(store.id);
+  const [posts, { t }] = await Promise.all([
+    getPublicBlogPosts(store.id),
+    getStorefrontI18n(store.locale),
+  ]);
 
   return (
     <div className="container mx-auto max-w-5xl px-4 py-10 sm:px-6">
-      <h1 className="mb-8 text-3xl font-bold tracking-tight">Blog</h1>
+      <h1 className="mb-8 text-3xl font-bold tracking-tight">{t("blog.title")}</h1>
 
       {posts.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed py-16 text-center">
           <Newspaper className="size-8 text-muted-foreground" />
-          <p className="text-muted-foreground">No posts yet — check back soon.</p>
+          <p className="text-muted-foreground">{t("blog.empty")}</p>
         </div>
       ) : (
         <div className="grid gap-8 sm:grid-cols-2">
@@ -72,7 +76,7 @@ export default async function BlogListPage({ params }: BlogListPageProps) {
               <div className="flex flex-col gap-1.5">
                 {post.publishedAt && (
                   <span className="text-xs text-muted-foreground">
-                    {new Date(post.publishedAt).toLocaleDateString(undefined, {
+                    {new Date(post.publishedAt).toLocaleDateString(t.locale, {
                       year: "numeric",
                       month: "long",
                       day: "numeric",

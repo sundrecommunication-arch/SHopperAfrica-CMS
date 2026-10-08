@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 
 import { getPublicOrderReceipt } from "@/modules/orders/services/order-service";
+import { getPublicStoreBySlug } from "@/modules/storefront/services/storefront-service";
+import { getStorefrontI18n } from "@/i18n/server";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -28,9 +30,11 @@ export async function generateMetadata({
 }: {
   params: Promise<{ slug: string; orderNumber: string }>;
 }): Promise<Metadata> {
-  const { orderNumber } = await params;
+  const { slug, orderNumber } = await params;
+  const store = await getPublicStoreBySlug(slug);
+  const { t } = await getStorefrontI18n(store?.locale);
   return {
-    title: `Order ${orderNumber} Confirmation`,
+    title: t("receipt.metaTitle", { number: orderNumber }),
   };
 }
 
@@ -43,6 +47,7 @@ export default async function OrderReceiptPage({ params }: OrderReceiptPageProps
   }
 
   const { store, order, customer, items, bankDetails } = receipt;
+  const { t } = await getStorefrontI18n(store.locale);
   const subtotalNum = parseFloat(order.subtotal);
   const totalNum = parseFloat(order.total);
 
@@ -71,14 +76,13 @@ export default async function OrderReceiptPage({ params }: OrderReceiptPageProps
           <CheckCircle2 className="h-10 w-10" />
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-          Thank you for your order!
+          {t("receipt.thanks")}
         </h1>
         <p className="text-sm text-muted-foreground max-w-md">
-          Your order has been received and is being processed by{" "}
-          <span className="font-semibold text-foreground">{store.name}</span>.
+          {t("receipt.received", { store: store.name })}
         </p>
         <div className="flex items-center gap-2 pt-1">
-          <span className="text-xs text-muted-foreground">Order Reference:</span>
+          <span className="text-xs text-muted-foreground">{t("receipt.reference")}</span>
           <span className="font-mono text-sm font-bold bg-muted px-2.5 py-1 rounded-md border">
             {order.orderNumber}
           </span>
@@ -95,30 +99,28 @@ export default async function OrderReceiptPage({ params }: OrderReceiptPageProps
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2 text-primary font-semibold text-base">
                   <Building2 className="h-5 w-5" />
-                  <h3>Bank Transfer Details</h3>
+                  <h3>{t("receipt.bankDetails")}</h3>
                 </div>
-                <CardDescription>
-                  Please transfer the total amount to the account below to confirm your order.
-                </CardDescription>
+                <CardDescription>{t("receipt.bankHint")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="rounded-lg bg-background p-4 border space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-muted-foreground">Bank Name:</span>
+                    <span className="text-xs text-muted-foreground">{t("receipt.bankName")}</span>
                     <span className="font-bold">{bankDetails.bankName}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-muted-foreground">Account Number:</span>
+                    <span className="text-xs text-muted-foreground">{t("receipt.accountNumber")}</span>
                     <span className="font-mono text-base font-extrabold text-primary">
                       {bankDetails.accountNumber}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-muted-foreground">Account Name:</span>
+                    <span className="text-xs text-muted-foreground">{t("receipt.accountName")}</span>
                     <span className="font-semibold">{bankDetails.accountName}</span>
                   </div>
                   <div className="flex justify-between items-center border-t pt-2">
-                    <span className="text-xs text-muted-foreground">Amount to Pay:</span>
+                    <span className="text-xs text-muted-foreground">{t("receipt.amountToPay")}</span>
                     <span className="font-bold text-base">
                       {store.currencySymbol}
                       {totalNum.toLocaleString()}
@@ -128,7 +130,7 @@ export default async function OrderReceiptPage({ params }: OrderReceiptPageProps
 
                 {bankDetails.instructions && (
                   <p className="text-xs text-muted-foreground leading-relaxed pt-1">
-                    <span className="font-semibold text-foreground">Note:</span> {bankDetails.instructions}
+                    <span className="font-semibold text-foreground">{t("receipt.note")}</span> {bankDetails.instructions}
                   </p>
                 )}
               </CardContent>
@@ -139,9 +141,9 @@ export default async function OrderReceiptPage({ params }: OrderReceiptPageProps
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center justify-between">
-                <span>Items Ordered</span>
+                <span>{t("receipt.itemsOrdered")}</span>
                 <Badge variant="outline" className="text-xs font-normal">
-                  {items.length} {items.length === 1 ? "item" : "items"}
+                  {t.plural("receipt.items", items.length)}
                 </Badge>
               </CardTitle>
             </CardHeader>
@@ -170,7 +172,7 @@ export default async function OrderReceiptPage({ params }: OrderReceiptPageProps
               {/* Totals Breakdown */}
               <div className="border-t pt-4 space-y-1.5 text-sm">
                 <div className="flex justify-between text-muted-foreground text-xs">
-                  <span>Subtotal</span>
+                  <span>{t("common.subtotal")}</span>
                   <span>
                     {store.currencySymbol}
                     {subtotalNum.toLocaleString()}
@@ -178,7 +180,7 @@ export default async function OrderReceiptPage({ params }: OrderReceiptPageProps
                 </div>
                 {parseFloat(order.discountAmount) > 0 && (
                   <div className="flex justify-between text-emerald-600 dark:text-emerald-400 text-xs">
-                    <span>Discount</span>
+                    <span>{t("common.discount")}</span>
                     <span>
                       -{store.currencySymbol}
                       {parseFloat(order.discountAmount).toLocaleString()}
@@ -186,17 +188,17 @@ export default async function OrderReceiptPage({ params }: OrderReceiptPageProps
                   </div>
                 )}
                 <div className="flex justify-between text-muted-foreground text-xs">
-                  <span>Delivery{order.deliveryMethod ? ` (${order.deliveryMethod})` : ""}</span>
+                  <span>{t("common.delivery")}{order.deliveryMethod ? ` (${order.deliveryMethod})` : ""}</span>
                   <span>
                     {!order.deliveryMethod
-                      ? "Arranged with seller"
+                      ? t("checkout.arrangedWithSeller")
                       : parseFloat(order.shippingAmount) === 0
-                      ? "Free"
+                      ? t("common.free")
                       : `${store.currencySymbol}${parseFloat(order.shippingAmount).toLocaleString()}`}
                   </span>
                 </div>
                 <div className="border-t pt-2 flex justify-between font-extrabold text-base text-foreground">
-                  <span>Total</span>
+                  <span>{t("common.total")}</span>
                   <span>
                     {store.currencySymbol}
                     {totalNum.toLocaleString()}
@@ -213,17 +215,14 @@ export default async function OrderReceiptPage({ params }: OrderReceiptPageProps
           {!customer.passwordHash && (
             <Card className="border-dashed">
               <CardContent className="space-y-2 py-4">
-                <p className="text-sm font-medium">Track this order next time</p>
-                <p className="text-xs text-muted-foreground">
-                  Create a free account with your phone number and your orders
-                  (including this one) will show up in one place.
-                </p>
+                <p className="text-sm font-medium">{t("receipt.trackTitle")}</p>
+                <p className="text-xs text-muted-foreground">{t("receipt.trackBody")}</p>
                 <Link
                   href={`/store/${store.slug}/account?phone=${encodeURIComponent(customer.phone)}`}
                   className="block"
                 >
                   <Button variant="outline" size="sm" className="w-full mt-1">
-                    Create account
+                    {t("receipt.createAccount")}
                   </Button>
                 </Link>
               </CardContent>
@@ -233,30 +232,32 @@ export default async function OrderReceiptPage({ params }: OrderReceiptPageProps
           {/* Order Status & Delivery Info */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Order Status</CardTitle>
+              <CardTitle className="text-base">{t("receipt.orderStatus")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Order Status</span>
+                <span className="text-muted-foreground">{t("receipt.orderStatus")}</span>
                 <Badge className="bg-primary/10 text-primary hover:bg-primary/15 font-semibold">
-                  {order.fulfillmentStatus}
+                  {t.maybe(`status.${order.fulfillmentStatus}`, order.fulfillmentStatus)}
                 </Badge>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Payment Status</span>
+                <span className="text-muted-foreground">{t("receipt.paymentStatus")}</span>
                 <Badge variant="outline" className="font-semibold">
-                  {order.paymentStatus}
+                  {t.maybe(`status.${order.paymentStatus}`, order.paymentStatus)}
                 </Badge>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Payment Method</span>
-                <span className="font-medium text-foreground">{order.paymentMethod}</span>
+                <span className="text-muted-foreground">{t("receipt.paymentMethod")}</span>
+                <span className="font-medium text-foreground">
+                  {order.paymentMethod ? t.maybe(`paymentMethods.${order.paymentMethod}`, order.paymentMethod) : ""}
+                </span>
               </div>
 
               <div className="border-t pt-3 space-y-2">
-                <span className="font-semibold text-foreground">Delivery To:</span>
+                <span className="font-semibold text-foreground">{t("receipt.deliverTo")}</span>
                 <p className="font-medium">{customer.name}</p>
                 <p className="text-muted-foreground flex items-center gap-1.5">
                   <Phone className="h-3.5 w-3.5" />
@@ -291,13 +292,13 @@ export default async function OrderReceiptPage({ params }: OrderReceiptPageProps
                 className="w-full flex items-center justify-center gap-2 rounded-xl bg-[var(--store-primary)] hover:brightness-90 text-white py-4 text-sm font-semibold transition-all shadow-xs"
               >
                 <MessageSquareQuote className="h-5 w-5" />
-                <span>Send Order on WhatsApp</span>
+                <span>{t("receipt.sendOnWhatsapp")}</span>
               </a>
             )}
 
             <Link href={`/store/${store.slug}`} className="block">
               <Button variant="outline" className="w-full py-5 text-sm font-medium">
-                Continue Shopping
+                {t("common.continueShopping")}
               </Button>
             </Link>
           </div>

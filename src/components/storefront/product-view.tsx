@@ -8,6 +8,7 @@ import { useCart } from "./cart/cart-context";
 import { ProductGallery } from "./product-gallery";
 import { VariantSelector, type VariantItem } from "./variant-selector";
 import { ProductCard, type StorefrontProductItem } from "./product-card";
+import { useT } from "@/i18n/client";
 import { FaqSection } from "./faq-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,7 @@ export function ProductView({
   currencySymbol,
 }: ProductViewProps) {
   const { addItem } = useCart();
+  const t = useT();
 
   // Start on the first option that can actually be bought, so one sold-out
   // size doesn't make the whole product look out of stock.
@@ -160,7 +162,7 @@ export function ProductView({
           {product.categories.length > 0 && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Link href={`/store/${store.slug}`} className="hover:underline">
-                Home
+                {t("common.home")}
               </Link>
               <span>/</span>
               <Link
@@ -197,7 +199,7 @@ export function ProductView({
                   {activeComparePrice.toLocaleString()}
                 </span>
                 <Badge className="bg-destructive text-destructive-foreground text-xs font-bold px-2 py-0.5">
-                  -{discountPercent}% OFF
+                  {t("product.percentOff", { percent: discountPercent })}
                 </Badge>
               </>
             )}
@@ -207,16 +209,16 @@ export function ProductView({
           <div>
             {isOutOfStock ? (
               <Badge variant="secondary" className="text-xs font-semibold py-1">
-                Out of Stock
+                {t("common.outOfStock")}
               </Badge>
             ) : isLowStock ? (
               <Badge variant="outline" className="text-xs font-medium text-warning border-warning/30 py-1">
-                Only {currentStock} left in stock — order soon
+                {t("product.onlyLeftOrderSoon", { count: currentStock })}
               </Badge>
             ) : (
               <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
                 <Check className="h-4 w-4" />
-                <span>In Stock & Ready to Ship</span>
+                <span>{t("product.inStock")}</span>
               </div>
             )}
           </div>
@@ -241,7 +243,7 @@ export function ProductView({
           <div className="border-t pt-6 space-y-4">
             {!isOutOfStock && (
               <div className="flex items-center gap-4">
-                <span className="text-xs font-semibold text-foreground">Quantity</span>
+                <span className="text-xs font-semibold text-foreground">{t("product.quantity")}</span>
                 <div className="flex items-center rounded-lg border bg-background">
                   <button
                     type="button"
@@ -274,10 +276,10 @@ export function ProductView({
               >
                 <ShoppingBag className="mr-2 h-5 w-5" />
                 {isAddedRecently
-                  ? "Added to Cart! ✓"
+                  ? t("product.addedToCart")
                   : isOutOfStock
-                  ? "Out of Stock"
-                  : "Add to Cart"}
+                  ? t("common.outOfStock")
+                  : t("common.addToCart")}
               </Button>
 
               {store.whatsappEnabled && store.whatsappNumber && (
@@ -287,7 +289,7 @@ export function ProductView({
                   className="w-full bg-[var(--store-primary)] hover:brightness-90 transition-all text-white py-6 text-base font-semibold shadow-xs"
                 >
                   <MessageSquareQuote className="mr-2 h-5 w-5" />
-                  Order on WhatsApp
+                  {t("product.orderOnWhatsapp")}
                 </Button>
               )}
             </div>
@@ -297,18 +299,18 @@ export function ProductView({
           <div className="grid grid-cols-2 gap-3 border-t pt-6 text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-primary" />
-              <span>Verified merchant</span>
+              <span>{t("product.verifiedMerchant")}</span>
             </div>
             <div className="flex items-center gap-2">
               <Truck className="h-4 w-4 text-primary" />
-              <span>Direct delivery</span>
+              <span>{t("product.directDelivery")}</span>
             </div>
           </div>
 
           {/* Description */}
           {product.description && (
             <div className="border-t pt-6 space-y-2">
-              <h3 className="text-sm font-semibold text-foreground">Product Description</h3>
+              <h3 className="text-sm font-semibold text-foreground">{t("product.description")}</h3>
               <div className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
                 {product.description}
               </div>
@@ -328,12 +330,12 @@ export function ProductView({
       {relatedProducts.length > 0 && (
         <div className="border-t pt-12 space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold tracking-tight">You might also like</h2>
+            <h2 className="text-xl font-bold tracking-tight">{t("product.youMightAlsoLike")}</h2>
             <Link
               href={`/store/${store.slug}`}
               className="text-xs font-semibold text-primary hover:underline"
             >
-              View all products →
+              {t("product.viewAll")}
             </Link>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-4">

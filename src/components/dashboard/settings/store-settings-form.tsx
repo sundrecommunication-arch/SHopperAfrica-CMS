@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LOCALES, LOCALE_ENGLISH_NAMES, LOCALE_NAMES } from "@/i18n/config";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageUploader, type UploadedImage } from "@/components/dashboard/products/image-uploader";
 
@@ -666,17 +667,25 @@ export function StoreSettingsForm({ store }: StoreSettingsFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="locale">Locale</Label>
+            <Label htmlFor="locale">Store language</Label>
             <Select value={locale} onValueChange={setLocale}>
               <SelectTrigger className="w-full sm:w-64">
-                <SelectValue placeholder="Select locale" />
+                <SelectValue placeholder="Select language" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="en">English (en)</SelectItem>
-                <SelectItem value="fr">French (fr)</SelectItem>
-                <SelectItem value="es">Spanish (es)</SelectItem>
+                {LOCALES.map((code) => (
+                  <SelectItem key={code} value={code}>
+                    {LOCALE_ENGLISH_NAMES[code]}
+                    {LOCALE_NAMES[code] !== LOCALE_ENGLISH_NAMES[code] ? ` — ${LOCALE_NAMES[code]}` : ""}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              Customers see your store in their phone&apos;s language when we support it, otherwise in
+              this one. They can always switch with the 🌐 button. Your product names and descriptions
+              stay as you wrote them.
+            </p>
           </div>
         </CardContent>
       </Card>

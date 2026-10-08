@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Search, PackageX } from "lucide-react";
 
 import { ProductCard, type StorefrontProductItem } from "./product-card";
+import { useT } from "@/i18n/client";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -29,6 +30,7 @@ export function ProductGrid({
     initialCategorySlug ?? null
   );
   const [search, setSearch] = useState(initialSearchQuery);
+  const t = useT();
   const [sortBy, setSortBy] = useState<"newest" | "price_asc" | "price_desc" | "name">("newest");
 
   // Client-side filtering & sorting
@@ -72,7 +74,7 @@ export function ProductGrid({
                   : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
               }`}
             >
-              All Items ({products.length})
+              {t("grid.allItems", { count: products.length })}
             </button>
             {categories.map((cat) => (
               <Link
@@ -95,7 +97,7 @@ export function ProductGrid({
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search in store..."
+              placeholder={t("grid.searchPlaceholder")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 h-9 text-xs"
@@ -104,20 +106,20 @@ export function ProductGrid({
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <span className="text-xs text-muted-foreground whitespace-nowrap">
-              {filteredProducts.length} {filteredProducts.length === 1 ? "product" : "products"}
+              {t.plural("grid.products", filteredProducts.length)}
             </span>
             <Select
               value={sortBy}
               onValueChange={(val) => setSortBy(val as typeof sortBy)}
             >
               <SelectTrigger className="h-9 text-xs w-[150px]">
-                <SelectValue placeholder="Sort by" />
+                <SelectValue placeholder={t("grid.sortBy")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="newest">Newest</SelectItem>
-                <SelectItem value="price_asc">Price: Low to High</SelectItem>
-                <SelectItem value="price_desc">Price: High to Low</SelectItem>
-                <SelectItem value="name">Name A-Z</SelectItem>
+                <SelectItem value="newest">{t("grid.newest")}</SelectItem>
+                <SelectItem value="price_asc">{t("grid.priceLowHigh")}</SelectItem>
+                <SelectItem value="price_desc">{t("grid.priceHighLow")}</SelectItem>
+                <SelectItem value="name">{t("grid.nameAZ")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -128,9 +130,9 @@ export function ProductGrid({
       {filteredProducts.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 px-4 text-center">
           <PackageX className="h-12 w-12 text-muted-foreground/60 mb-3" />
-          <h3 className="text-base font-semibold">No products found</h3>
+          <h3 className="text-base font-semibold">{t("grid.noProducts")}</h3>
           <p className="mt-1 text-xs text-muted-foreground max-w-sm">
-            {search ? `No products matched "${search}". Try searching for something else.` : "No active products are available in this catalog yet."}
+            {search ? t("grid.noMatch", { query: search }) : t("grid.emptyCatalog")}
           </p>
           {search && (
             <button
@@ -138,7 +140,7 @@ export function ProductGrid({
               onClick={() => setSearch("")}
               className="mt-4 text-xs font-semibold text-primary underline"
             >
-              Clear search
+              {t("grid.clearSearch")}
             </button>
           )}
         </div>

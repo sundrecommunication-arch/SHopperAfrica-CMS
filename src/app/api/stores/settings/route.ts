@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { stores } from "@/db/schema";
 import { getCurrentStore, requireRole, TenantError } from "@/lib/tenant";
 import { generateDomainVerificationToken, isValidDomain } from "@/lib/domain-verification";
+import { LOCALES } from "@/i18n/config";
 import { assertFeature, SubscriptionServiceError } from "@/modules/subscriptions/services/subscription-service";
 
 const updateStoreSettingsSchema = z.object({
@@ -22,7 +23,7 @@ const updateStoreSettingsSchema = z.object({
     .refine((value) => !value || isValidDomain(value), {
       message: "Enter a valid domain, e.g. shop.example.com",
     }),
-  locale: z.enum(["en", "fr", "es"]).optional(),
+  locale: z.enum(LOCALES).optional(),
   metaTitle: z.string().max(70).nullable().optional(),
   metaDescription: z.string().max(300).nullable().optional(),
   searchConsoleVerification: z.string().max(200).nullable().optional(),
