@@ -11,6 +11,7 @@ import {
   subscriptionPayments,
   auditLogs,
 } from "@/db/schema";
+import { getLifecycleHistory } from "@/modules/lifecycle/services/lifecycle-service";
 import { setStorePlan } from "@/modules/subscriptions/services/subscription-service";
 import { PLAN_ORDER, type PlanKey } from "@/modules/subscriptions/plans";
 
@@ -153,6 +154,7 @@ export async function listStoresForAdmin(opts: { search?: string; storeId?: stri
       suspendedAt: stores.suspendedAt,
       suspendedReason: stores.suspendedReason,
       createdAt: stores.createdAt,
+      ownerId: stores.ownerId,
       ownerEmail: users.email,
       ownerName: users.name,
       ownerSource: sql<string | null>`${users.signupAttribution}->>'source'`,
@@ -190,7 +192,7 @@ export async function getStoreForAdmin(storeId: string) {
   const [store] = await listStoresForAdmin({ storeId });
   if (!store) return null;
 
-  const [recentOrders, payments, log] = await Promise.all([
+  const [recentOrders, payments, log, emails] = await Promise.all([
     db
       .select({
         id: orders.id,
@@ -222,9 +224,10 @@ export async function getStoreForAdmin(storeId: string) {
       .where(and(eq(auditLogs.storeId, storeId), sql`${auditLogs.action} like 'admin.%'`))
       .orderBy(desc(auditLogs.createdAt))
       .limit(20),
+    getLifecycleHistory(store.ownerId),
   ]);
 
-  return { store, recentOrders, payments, log };
+  return { store, recentOrders, payments, log, emails };
 }
 
 /** Admin override of a store's plan, e.g. a comp, a refund, or a manual bank payment. */

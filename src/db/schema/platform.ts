@@ -156,3 +156,33 @@ export const subscriptionPayments = pgTable("subscription_payments", {
   paidAt: timestamp("paid_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }).enableRLS();
+
+// Automated emails to merchants after they sign up (welcome, onboarding tips,
+// "need help?" nudges, trial ending). One row per (user, kind) so the hourly
+// cron in src/app/api/cron/lifecycle can never send the same email twice.
+export const lifecycleEmails = pgTable(
+  "lifecycle_emails",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: text("kind")
+      .$type<"WELCOME" | "ONBOARDING" | "NEED_HELP" | "NO_ORDERS" | "TRIAL_ENDING">()
+      .notNull(),
+    sentAt: timestamp("sent_at").notNull().defaultNow(),
+  },
+  (t) => [unique("lifecycle_emails_user_kind_unique").on(t.userId, t.kind)]
+).enableRLS();
+
+// Merchants who clicked "unsubscribe" in a tips/nudge email. Kept in its own
+// table (not a users column) so these emails stop without touching the hot
+// users row. Welcome and trial-ending emails are account notices and still go.
+export const emailOptOuts = pgTable("email_opt_outs", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}).enableRLS();

@@ -309,3 +309,187 @@ export async function sendOrderUpdateEmail(
     throw new Error(`Failed to send order update email: ${error.message}`);
   }
 }
+
+// --- Merchant lifecycle emails ---------------------------------------------
+// Sent to new merchants after signup (src/modules/lifecycle). Replies go to
+// SUPPORT_EMAIL (default admin@shopperafrica.com) so a merchant can just hit
+// "reply" for help. SUPPORT_WHATSAPP_NUMBER (international format, digits
+// only, e.g. 2348012345678) adds a "chat with us on WhatsApp" button; leave
+// it unset to hide the button.
+
+export type LifecycleEmailKind = "WELCOME" | "ONBOARDING" | "NEED_HELP" | "NO_ORDERS" | "TRIAL_ENDING";
+
+export interface LifecycleEmailDetails {
+  name: string | null;
+  appUrl: string;
+  /** Present once the merchant has created a store. */
+  storeName?: string | null;
+  storeUrl?: string | null;
+  trialEndsAt?: Date | null;
+  /** Omitted for account notices (welcome, trial ending). */
+  unsubscribeUrl?: string | null;
+  /** RFC 8058 one-click target (POST) for the List-Unsubscribe header. */
+  oneClickUnsubscribeUrl?: string | null;
+}
+
+function getSupportEmail(): string {
+  return process.env.SUPPORT_EMAIL ?? "admin@shopperafrica.com";
+}
+
+function whatsappSupportUrl(text: string): string | null {
+  const number = (process.env.SUPPORT_WHATSAPP_NUMBER ?? "").replace(/\D/g, "");
+  return number ? `https://wa.me/${number}?text=${encodeURIComponent(text)}` : null;
+}
+
+function ctaButton(href: string, label: string, color = "#111"): string {
+  return `<a href="${esc(href)}" style="display: inline-block; background: ${color}; color: #fff; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 4px 8px 4px 0;">${label}</a>`;
+}
+
+function lifecycleLayout(body: string, d: LifecycleEmailDetails): string {
+  const footer = d.unsubscribeUrl
+    ? `You're getting this because you created a Shopper account.
+       <a href="${esc(d.unsubscribeUrl)}" style="color: #888;">Unsubscribe from tips</a>.`
+    : `You're getting this because you created a Shopper account.`;
+  return `
+    <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; color: #111;">
+      ${body}
+      <p style="color: #555; line-height: 1.5; margin-top: 24px;">
+        Questions? Just reply to this email — a real person reads every message.
+      </p>
+      <p style="color: #555; line-height: 1.5;">— The Shopper team</p>
+      <p style="color: #888; font-size: 12px; line-height: 1.5; margin-top: 32px; border-top: 1px solid #eee; padding-top: 16px;">
+        ${footer}
+      </p>
+    </div>
+  `;
+}
+
+function greeting(name: string | null): string {
+  const first = (name ?? "").trim().split(/\s+/)[0];
+  return first ? `Hi ${esc(first)},` : "Hi there,";
+}
+
+function lifecycleContent(kind: LifecycleEmailKind, d: LifecycleEmailDetails): { subject: string; body: string } {
+  const p = (html: string) => `<p style="color: #333; line-height: 1.6;">${html}</p>`;
+  const dashboard = `${d.appUrl}/dashboard`;
+  const storeName = d.storeName ? esc(d.storeName) : "your store";
+
+  switch (kind) {
+    case "WELCOME":
+      return {
+        subject: "Welcome to Shopper 🎉",
+        body: `
+          <h2 style="margin-bottom: 8px;">Welcome to Shopper!</h2>
+          ${p(greeting(d.name))}
+          ${p("Thanks for signing up. Shopper gives your business its own online store — customers browse your products, order, and pay online or straight through WhatsApp.")}
+          ${p("Setting up takes about 10 minutes:")}
+          <ol style="color: #333; line-height: 1.8; padding-left: 20px;">
+            <li>Name your store and pick a look</li>
+            <li>Add your first products with photos and prices</li>
+            <li>Share your store link with customers</li>
+          </ol>
+          <p style="margin: 24px 0;">${ctaButton(dashboard, "Set up my store")}</p>
+        `,
+      };
+
+    case "ONBOARDING":
+      return {
+        subject: "4 steps to your first sale on Shopper",
+        body: `
+          <h2 style="margin-bottom: 8px;">Get ${storeName} ready for customers</h2>
+          ${p(greeting(d.name))}
+          ${p("Here's what the most successful Shopper stores do in their first week:")}
+          <ol style="color: #333; line-height: 1.7; padding-left: 20px;">
+            <li><strong>Add your first products.</strong> Go to <em>Products → Add product</em>. Clear photos and a short description sell best. Products with sizes or colours can have options, each with its own stock.</li>
+            <li><strong>Set your delivery fees.</strong> Under <em>Delivery</em>, add delivery zones (e.g. "Lagos Mainland", "Outside Lagos") with a fee for each — customers see it at checkout.</li>
+            <li><strong>Connect WhatsApp and payments.</strong> Add your WhatsApp number under <em>Store</em> so orders reach your phone, and connect Paystack under <em>Payments</em> to accept card and bank transfer payments.</li>
+            <li><strong>Share your store link.</strong> Put it in your WhatsApp status, Instagram bio and TikTok profile${d.storeUrl ? `: <a href="${esc(d.storeUrl)}">${esc(d.storeUrl)}</a>` : ""}.</li>
+          </ol>
+          <p style="margin: 24px 0;">${ctaButton(dashboard, "Go to my dashboard")}</p>
+        `,
+      };
+
+    case "NEED_HELP": {
+      const wa = whatsappSupportUrl("Hi Shopper, I need help setting up my store.");
+      return {
+        subject: "Need help getting started?",
+        body: `
+          <h2 style="margin-bottom: 8px;">Need a hand getting started?</h2>
+          ${p(greeting(d.name))}
+          ${p(`We noticed ${storeName} doesn't have any products yet. That's completely normal — lots of people get stuck on the first step, and we're happy to help.`)}
+          ${p("Tell us what you sell and we'll walk you through adding your first product, setting prices and sharing your link. It only takes a few minutes.")}
+          <p style="margin: 24px 0;">
+            ${wa ? ctaButton(wa, "Chat with us on WhatsApp", "#16a34a") : ""}
+            ${ctaButton(`${dashboard}/products/new`, "Add my first product")}
+          </p>
+          ${p(`Prefer email? Reply to this message or write to <a href="mailto:${esc(getSupportEmail())}">${esc(getSupportEmail())}</a>.`)}
+        `,
+      };
+    }
+
+    case "NO_ORDERS": {
+      const wa = whatsappSupportUrl("Hi Shopper, I'd like tips on getting my first order.");
+      return {
+        subject: "Tips to get your first order",
+        body: `
+          <h2 style="margin-bottom: 8px;">Let's get ${storeName} its first order</h2>
+          ${p(greeting(d.name))}
+          ${p("Your products are live — great work! Now it's about getting people to see them. A few things that work well:")}
+          <ul style="color: #333; line-height: 1.7; padding-left: 20px;">
+            <li><strong>Post your store link on your WhatsApp status</strong> every few days, with a photo of one product.</li>
+            <li><strong>Add the link to your Instagram and TikTok bios.</strong></li>
+            <li><strong>Message 10 past customers</strong> directly and tell them they can now order online.</li>
+            <li><strong>Create a discount code</strong> (<em>Discounts</em> in your dashboard) for your first customers.</li>
+          </ul>
+          <p style="margin: 24px 0;">
+            ${d.storeUrl ? ctaButton(d.storeUrl, "View my store") : ctaButton(dashboard, "Go to my dashboard")}
+            ${wa ? ctaButton(wa, "Ask us on WhatsApp", "#16a34a") : ""}
+          </p>
+        `,
+      };
+    }
+
+    case "TRIAL_ENDING": {
+      const date = d.trialEndsAt
+        ? d.trialEndsAt.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+        : "soon";
+      return {
+        subject: "Your Shopper trial ends soon",
+        body: `
+          <h2 style="margin-bottom: 8px;">Your free trial ends ${esc(date)}</h2>
+          ${p(greeting(d.name))}
+          ${p(`The free trial on ${storeName} ends on <strong>${esc(date)}</strong>. After that, your store moves to the Free plan — it stays online, but paid-plan features and higher limits switch off.`)}
+          ${p("To keep everything you're using, choose a plan before the trial ends.")}
+          <p style="margin: 24px 0;">${ctaButton(`${dashboard}/billing`, "Choose a plan")}</p>
+        `,
+      };
+    }
+  }
+}
+
+/** Sends one lifecycle email. Throws on Resend errors so the caller can retry later. */
+export async function sendLifecycleEmail(
+  to: string,
+  kind: LifecycleEmailKind,
+  d: LifecycleEmailDetails
+): Promise<void> {
+  const resend = getClient();
+  const { subject, body } = lifecycleContent(kind, d);
+  const { error } = await resend.emails.send({
+    from: getFromAddress(),
+    to,
+    replyTo: getSupportEmail(),
+    subject,
+    html: lifecycleLayout(body, d),
+    headers: d.oneClickUnsubscribeUrl
+      ? {
+          "List-Unsubscribe": `<${d.oneClickUnsubscribeUrl}>`,
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        }
+      : undefined,
+  });
+
+  if (error) {
+    throw new Error(`Failed to send ${kind} email: ${error.message}`);
+  }
+}

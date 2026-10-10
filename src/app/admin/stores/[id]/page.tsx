@@ -7,6 +7,14 @@ import { AdminStoreActions } from "@/components/admin/admin-store-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
+const EMAIL_LABEL: Record<string, string> = {
+  WELCOME: "Welcome",
+  ONBOARDING: "Day 1 — setup tips",
+  NEED_HELP: "Day 3 — need help? (no products)",
+  NO_ORDERS: "Day 7 — first-order tips",
+  TRIAL_ENDING: "Trial ending",
+};
+
 const ACTION_LABEL: Record<string, string> = {
   "admin.plan_changed": "Plan changed",
   "admin.store_suspended": "Suspended",
@@ -17,7 +25,7 @@ export default async function AdminStorePage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const data = await getStoreForAdmin(id);
   if (!data) notFound();
-  const { store, recentOrders, payments, log } = data;
+  const { store, recentOrders, payments, log, emails } = data;
 
   return (
     <div className="flex flex-col gap-6">
@@ -80,6 +88,26 @@ export default async function AdminStorePage({ params }: { params: Promise<{ id:
               <div key={p.id} className="flex justify-between py-2">
                 <span>{PLANS[p.plan].name} · {p.status.toLowerCase()} · {p.createdAt.toLocaleDateString("en-GB")}</span>
                 <span>{formatNaira(parseFloat(p.amount))}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">Automated emails to owner</CardTitle>
+            {emails.optedOutAt && (
+              <p className="text-xs text-muted-foreground">
+                Unsubscribed from tips on {emails.optedOutAt.toLocaleDateString("en-GB")}
+              </p>
+            )}
+          </CardHeader>
+          <CardContent className="divide-y text-sm">
+            {emails.history.length === 0 && <p className="text-muted-foreground">None sent yet.</p>}
+            {emails.history.map((e) => (
+              <div key={e.kind} className="flex justify-between py-2">
+                <span>{EMAIL_LABEL[e.kind] ?? e.kind}</span>
+                <span className="text-xs text-muted-foreground">{e.sentAt.toLocaleString("en-GB")}</span>
               </div>
             ))}
           </CardContent>

@@ -1,0 +1,30 @@
+# Hourly trigger for merchant lifecycle emails (welcome retries, day-1 tips,
+# day-3 "need help", day-7 first-order tips, trial ending).
+#
+# Setup (GitHub repo -> Settings -> Secrets and variables -> Actions):
+#   CRON_SECRET  same value as CRON_SECRET on Railway
+#   APP_URL      e.g. https://www.shopperafrica.com
+name: Lifecycle emails
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call lifecycle cron endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: ${{ secrets.APP_URL }}
+        run: |
+          if [ -z "$CRON_SECRET" ] || [ -z "$APP_URL" ]; then
+            echo "CRON_SECRET / APP_URL secrets not set yet - skipping."
+            exit 0
+          fi
+          curl --fail-with-body -sS -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            --max-time 600 \
+            "$APP_URL/api/cron/lifecycle"
