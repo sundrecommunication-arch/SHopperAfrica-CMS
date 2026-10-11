@@ -10,6 +10,7 @@ import {
   subscriptions,
   subscriptionPayments,
   auditLogs,
+  storeMembers,
 } from "@/db/schema";
 import { getLifecycleHistory } from "@/modules/lifecycle/services/lifecycle-service";
 import { isPlatformAdmin } from "@/lib/platform-admin";
@@ -344,6 +345,55 @@ export async function adminDeleteStore(params: {
   );
 
   await deleteAllStoreImages(storeId);
+}
+
+/**
+ * Accounts that signed up but never created a store (abandoned signups,
+ * test accounts). Staff invited onto someone else's store also show here,
+ * flagged with teamStores, since they don't own a store either.
+ */
+export async function listUsersWithoutStore(opts: { search?: string } = {}) {
+  const term = opts.search?.trim();
+  const rows = await db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      createdAt: users.createdAt,
+      source: sql<string | null>`${users.signupAttribution}->>'source'`,
+      teamStores: sql<string | null>`(select string_agg(s.name, ', ') from ${storeMembers} m join ${stores} s on s.id = m.store_id where m.user_id = ${users}.id)`, // spelled out: drizzle leaves select-list columns unqualified
+    })
+    .from(users)
+    .where(
+      and(
+        sql`not exists (select 1 from ${stores} where ${stores.ownerId} = ${users.id})`,
+        term ? or(ilike(users.email, `%${term}%`), ilike(users.name, `%${term}%`)) : undefined
+      )
+    )
+    .orderBy(desc(users.createdAt));
+
+  return rows.map((r) => ({ ...r, isAdmin: isPlatformAdmin(r.email) }));
+}
+
+/** Deletes a login account that owns no store (name, email, password, sessions, team memberships). */
+export async function adminDeleteUser(params: { userId: string; adminUserId: string }) {
+  const { userId, adminUserId } = params;
+  const [user] = await db
+    .select({ id: users.id, email: users.email })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  if (!user) throw new AdminServiceError("Account not found");
+  if (user.id === adminUserId || isPlatformAdmin(user.email)) {
+    throw new AdminServiceError("Platform admin accounts can't be deleted here.");
+  }
+  const [{ n }] = await db.select({ n: count() }).from(stores).where(eq(stores.ownerId, userId));
+  if (n > 0) {
+    throw new AdminServiceError("This account owns a store — delete it from the store's admin page instead.");
+  }
+  // Cascades to sessions, login accounts, team memberships, reset tokens and lifecycle emails.
+  await db.delete(users).where(eq(users.id, userId));
+  console.info(`admin ${adminUserId} deleted account ${user.email} (${userId})`);
 }
 
 async function assertStoreExists(storeId: string) {
