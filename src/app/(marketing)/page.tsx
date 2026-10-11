@@ -80,32 +80,39 @@ export default function WelcomePage() {
   return (
     <div className="flex flex-col">
       {/* Hero */}
-      <section className="relative isolate flex min-h-[640px] items-center overflow-hidden py-20 sm:min-h-[720px] sm:py-28">
+      <section className="relative isolate flex min-h-[560px] items-center overflow-hidden pb-16 pt-12 sm:min-h-[720px] sm:py-28">
         <HeroCarousel />
-        <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center gap-6 px-4 text-center sm:px-6">
+        <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center gap-5 px-5 text-center sm:gap-6 sm:px-6">
           <span className="animate-fade-up inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/90 px-3 py-1 text-xs font-medium text-neutral-800 backdrop-blur-sm">
             <Sparkles className="h-3.5 w-3.5 text-primary" />
             Free e-commerce website builder for Africa
           </span>
           <h1
-            className="animate-fade-up text-4xl font-semibold leading-[1.1] tracking-tight text-white sm:text-6xl"
+            className="animate-fade-up text-[2.15rem] font-semibold leading-[1.1] tracking-tight text-white min-[400px]:text-4xl sm:text-6xl"
             style={{ fontFamily: "var(--font-marketing-display)", animationDelay: "0.1s" }}
           >
             The free way for African businesses to sell online.
           </h1>
           <p
-            className="animate-fade-up max-w-2xl text-lg text-white/85 sm:text-xl"
+            className="animate-fade-up max-w-2xl text-base text-white/85 sm:text-xl"
             style={{ animationDelay: "0.2s" }}
           >
-            Shopper is an e-commerce website you can start for free — a real alternative to every
-            other online store builder in Africa — with a storefront, checkout, and a website Google can actually find,
-            so your business shows up everywhere your customers already are.
+            {/* Shorter on phones so the sign-up button stays on the first screen. */}
+            Shopper is an e-commerce website you can start for free
+            <span className="hidden sm:inline">
+              {" "}— a real alternative to every other online store builder in Africa —
+            </span>{" "}
+            with a storefront, checkout, and a website Google can actually find
+            <span className="hidden sm:inline">, so your business shows up everywhere your customers already are</span>.
           </p>
-          <div className="animate-fade-up flex flex-col gap-3 sm:flex-row" style={{ animationDelay: "0.3s" }}>
-            <Button asChild size="lg" className="text-base">
+          <div
+            className="animate-fade-up flex w-full max-w-xs flex-col gap-3 sm:w-auto sm:max-w-none sm:flex-row"
+            style={{ animationDelay: "0.3s" }}
+          >
+            <Button asChild size="lg" className="h-12 text-base sm:h-10">
               <Link href="/signup">Create your free store</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="text-base">
+            <Button asChild size="lg" variant="outline" className="h-12 text-base sm:h-10">
               <Link href="/login">Sign in</Link>
             </Button>
           </div>

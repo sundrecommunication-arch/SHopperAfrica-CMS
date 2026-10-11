@@ -23,12 +23,13 @@ interface StorefrontPageProps {
 // Maps a store's chosen hero text position to the flexbox alignment classes
 // that place the overlay card within the hero — "bottom-*" options keep the
 // text clear of the middle of the image, where the product photography
-// usually matters most.
+// usually matters most. sm: and up only: on phones the card sits below the
+// banner instead, since overlaid it would cover almost the whole image.
 const heroOverlayAlignClasses: Record<string, string> = {
-  center: "items-center justify-center",
-  "bottom-left": "items-end justify-start",
-  "bottom-center": "items-end justify-center",
-  "bottom-right": "items-end justify-end",
+  center: "sm:items-center sm:justify-center",
+  "bottom-left": "sm:items-end sm:justify-start",
+  "bottom-center": "sm:items-end sm:justify-center",
+  "bottom-right": "sm:items-end sm:justify-end",
 };
 
 export async function generateMetadata({
@@ -68,39 +69,50 @@ export default async function StorefrontPage({
   const heroTextPosition = store.heroTextPosition ?? "bottom-center";
 
   return (
-    <div className="container mx-auto max-w-7xl px-4 py-8 sm:px-6 space-y-10">
+    <div className="container mx-auto max-w-7xl space-y-8 px-4 py-4 sm:space-y-10 sm:px-6 sm:py-8">
       {/* Storefront Hero / Slider */}
       <div className="relative">
-        {/* Import HeroSlider component */}
-        <section className="relative w-full h-64 md:h-96 overflow-hidden rounded-2xl">
-          <HeroSlider
-            images={
-              store.heroImages && store.heroImages.length > 0
-                ? store.heroImages
-                : ["/placeholder-hero1.jpg", "/placeholder-hero2.jpg", "/placeholder-hero3.jpg"]
-            }
-          />
+        <section className="relative h-48 w-full overflow-hidden rounded-2xl min-[400px]:h-56 sm:h-72 md:h-96">
+          {store.heroImages && store.heroImages.length > 0 ? (
+            <HeroSlider images={store.heroImages} label={store.name} />
+          ) : (
+            // No banner uploaded yet: a panel in the store's own colour
+            // rather than an empty/broken image.
+            <div
+              className="flex h-full w-full items-center justify-center px-6 text-center"
+              style={{
+                background:
+                  "linear-gradient(135deg, var(--store-primary), color-mix(in srgb, var(--store-primary) 55%, black))",
+              }}
+            >
+              {!store.heroShowText && (
+                <p className="text-2xl font-extrabold tracking-tight text-white drop-shadow sm:text-4xl">
+                  {store.name}
+                </p>
+              )}
+            </div>
+          )}
         </section>
-        {/* Optional overlay content (store name, description, WhatsApp) — off
-            by default (see store.heroShowText) since a merchant's hero
-            images often already carry their own text/branding. When it's on,
-            it's anchored per store.heroTextPosition rather than dead-center,
-            so it never sits on top of the middle of the image. */}
+        {/* Optional store name, description and WhatsApp button — off by
+            default (see store.heroShowText) since a merchant's hero images
+            often already carry their own text/branding. From sm: up it's
+            overlaid, anchored per store.heroTextPosition rather than
+            dead-center; on phones it's a card under the banner. */}
         {store.heroShowText && (
           <section
-            className={`pointer-events-none absolute inset-0 flex p-4 sm:p-8 ${heroOverlayAlignClasses[heroTextPosition]}`}
+            className={`mt-3 sm:pointer-events-none sm:absolute sm:inset-0 sm:mt-0 sm:flex sm:p-8 ${heroOverlayAlignClasses[heroTextPosition]}`}
           >
             <div
-              className={`space-y-3 rounded-2xl bg-background/85 px-5 py-4 backdrop-blur-sm sm:space-y-4 sm:px-6 sm:py-5 ${
-                heroTextPosition === "center" ? "max-w-3xl text-center" : "max-w-md text-left"
+              className={`space-y-2.5 rounded-2xl border bg-card px-4 py-4 sm:space-y-4 sm:border-0 sm:bg-background/85 sm:px-6 sm:py-5 sm:backdrop-blur-sm ${
+                heroTextPosition === "center" ? "text-center sm:max-w-3xl" : "text-left sm:max-w-md"
               }`}
             >
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground">
+              <h1 className="text-xl font-extrabold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
                 {store.name}
               </h1>
 
               {store.description && (
-                <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+                <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground sm:line-clamp-none sm:text-base">
                   {store.description}
                 </p>
               )}
@@ -110,7 +122,7 @@ export default async function StorefrontPage({
                   href={`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(t("store.whatsappInquiry", { store: store.name }))}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl bg-[var(--store-primary)] hover:brightness-90 text-white px-5 py-2.5 text-xs sm:text-sm font-semibold transition-all shadow-xs pointer-events-auto"
+                  className="pointer-events-auto flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--store-primary)] px-5 py-3 text-sm font-semibold text-white shadow-xs transition-all hover:brightness-90 sm:inline-flex sm:w-auto sm:py-2.5"
                 >
                   <MessageCircle className="h-4 w-4" />
                   {t("header.chatOnWhatsapp")}

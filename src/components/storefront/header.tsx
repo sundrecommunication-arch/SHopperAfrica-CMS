@@ -86,7 +86,7 @@ export function StorefrontHeader({ store, categories = [], navItems }: Storefron
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-md">
       <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         {/* Left: Mobile Menu Toggle & Store Logo/Name */}
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <button
             type="button"
             className="md:hidden rounded-lg p-2 text-muted-foreground hover:bg-muted"
@@ -96,7 +96,7 @@ export function StorefrontHeader({ store, categories = [], navItems }: Storefron
             <span className="sr-only">{t("header.toggleMenu")}</span>
           </button>
 
-          <Link href={`/store/${store.slug}`} className="flex items-center gap-3 group">
+          <Link href={`/store/${store.slug}`} className="flex min-w-0 items-center gap-2 sm:gap-3 group">
             {store.logoUrl ? (
               <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-md border bg-background">
                 {/* object-contain (not cover) so non-square logos are never
@@ -111,18 +111,22 @@ export function StorefrontHeader({ store, categories = [], navItems }: Storefron
                 />
               </div>
             ) : (
-              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold text-sm">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold text-sm">
                 {store.name.slice(0, 2).toUpperCase()}
               </div>
             )}
-            <span className="text-lg font-bold tracking-tight group-hover:opacity-90 transition-opacity">
+            {/* One line on phones: long names truncate instead of wrapping the header to 3 lines. */}
+            <span
+              title={store.name}
+              className="truncate text-base font-bold tracking-tight transition-opacity group-hover:opacity-90 sm:text-lg"
+            >
               {store.name}
             </span>
           </Link>
         </div>
 
         {/* Center: Desktop Navigation — merchant-configured, in order */}
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+        <nav className="hidden md:flex items-center gap-4 whitespace-nowrap text-sm font-medium lg:gap-6">
           {navItems.map((item) =>
             item.kind === "PRODUCTS" ? (
               <div

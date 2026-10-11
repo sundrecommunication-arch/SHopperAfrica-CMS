@@ -17,6 +17,11 @@ const SLIDES = [
   },
 ];
 
+// Phones download a ~640-960px version instead of the full 1920px one.
+const WIDTHS = [640, 960, 1280, 1920];
+const srcSetFor = (src: string) =>
+  WIDTHS.map((w) => `${src.replace(/([?&])w=\d+/, `$1w=${w}`)} ${w}w`).join(", ");
+
 export function HeroCarousel() {
   const [active, setActive] = useState(0);
 
@@ -33,10 +38,13 @@ export function HeroCarousel() {
         <img
           key={slide.src}
           src={slide.src}
+          srcSet={srcSetFor(slide.src)}
+          sizes="100vw"
           alt={slide.alt}
           width={1920}
           height={1080}
           loading={i === 0 ? "eager" : "lazy"}
+          fetchPriority={i === 0 ? "high" : "low"}
           className="absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ease-in-out"
           style={{ opacity: active === i ? 1 : 0 }}
         />
