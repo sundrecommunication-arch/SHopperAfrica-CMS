@@ -1,11 +1,15 @@
 import "server-only";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, count } from "drizzle-orm";
+import { z } from "zod";
 
 import { db } from "@/db";
-import { products, productImages, productVariants, productCategories } from "@/db/schema";
-import { productSchema, type ProductInput } from "../validation/schemas";
+import { products, productImages, productVariants, productCategories, categories } from "@/db/schema";
+import { productSchema, slugify, type ProductInput } from "../validation/schemas";
+import { importRowSchema, MAX_IMPORT_ROWS } from "../import/csv";
+import { PLANS } from "@/modules/subscriptions/plans";
 import {
   assertCanAddProduct,
+  getStorePlan,
   SubscriptionServiceError,
 } from "@/modules/subscriptions/services/subscription-service";
 
@@ -270,4 +274,107 @@ export async function getProductForEdit(storeId: string, productId: string) {
   ]);
 
   return { product, images, variants, categoryIds: categoryLinks.map((c) => c.categoryId) };
+}
+
+// --- Bulk import (spreadsheet) -------------------------------------------------
+
+function uniqueSlug(base: string, taken: Set<string>, fallback: string) {
+  const root = (slugify(base) || fallback).slice(0, 110).replace(/-+$/, "") || fallback;
+  let slug = root;
+  for (let n = 2; taken.has(slug); n++) slug = `${root}-${n}`;
+  taken.add(slug);
+  return slug;
+}
+
+/**
+ * Creates many products at once from a checked spreadsheet (see
+ * modules/products/import/csv.ts). All-or-nothing: either every row is saved
+ * or none are. Categories named in the file are matched to existing ones by
+ * name (ignoring case) and created if missing. Product URLs are generated
+ * from names and made unique ("ankara-dress", "ankara-dress-2", ...).
+ */
+export async function importProducts(storeId: string, input: unknown, publish: boolean) {
+  const parsed = z.array(importRowSchema).min(1).max(MAX_IMPORT_ROWS).safeParse(input);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    throw new ProductServiceError(
+      issue ? `Row problem: ${issue.message}` : "Nothing to import"
+    );
+  }
+  const rows = parsed.data;
+
+  const { limits, plan } = await getStorePlan(storeId);
+  if (limits.maxProducts !== null) {
+    const [{ value: existing }] = await db
+      .select({ value: count() })
+      .from(products)
+      .where(eq(products.storeId, storeId));
+    const room = Math.max(0, limits.maxProducts - existing);
+    if (rows.length > room) {
+      throw new ProductServiceError(
+        `The ${PLANS[plan].name} plan allows up to ${limits.maxProducts} products and you have ${existing}, ` +
+          `so you can import ${room} more. Remove ${rows.length - room} row(s) from the file, or upgrade under Billing.`
+      );
+    }
+  }
+
+  return db.transaction(async (tx) => {
+    const takenProductSlugs = new Set(
+      (await tx.select({ slug: products.slug }).from(products).where(eq(products.storeId, storeId))).map((r) => r.slug)
+    );
+
+    // Categories: match by name, create the missing ones.
+    const existingCategories = await tx
+      .select({ id: categories.id, name: categories.name, slug: categories.slug })
+      .from(categories)
+      .where(eq(categories.storeId, storeId));
+    const categoryByName = new Map(existingCategories.map((c) => [c.name.trim().toLowerCase(), c.id]));
+    const takenCategorySlugs = new Set(existingCategories.map((c) => c.slug));
+    let createdCategories = 0;
+    for (const name of new Set(rows.flatMap((r) => r.categories))) {
+      const key = name.toLowerCase();
+      if (categoryByName.has(key)) continue;
+      const [created] = await tx
+        .insert(categories)
+        .values({ storeId, name, slug: uniqueSlug(name, takenCategorySlugs, "category") })
+        .returning({ id: categories.id });
+      categoryByName.set(key, created.id);
+      createdCategories++;
+    }
+
+    const created = await tx
+      .insert(products)
+      .values(
+        rows.map((r) => ({
+          storeId,
+          name: r.name,
+          slug: uniqueSlug(r.name, takenProductSlugs, "product"),
+          description: r.description || null,
+          status: r.status ?? (publish ? ("ACTIVE" as const) : ("DRAFT" as const)),
+          brand: r.brand || null,
+          tags: r.tags,
+          price: String(r.price),
+          compareAtPrice: toNumericString(r.compareAtPrice),
+          sku: r.sku || null,
+          trackInventory: true,
+          inventoryQuantity: r.stock,
+        }))
+      )
+      .returning({ id: products.id, name: products.name, status: products.status });
+
+    const links = rows.flatMap((r, i) =>
+      [...new Set(r.categories.map((c) => categoryByName.get(c.toLowerCase())!))].map((categoryId) => ({
+        productId: created[i].id,
+        categoryId,
+      }))
+    );
+    if (links.length > 0) await tx.insert(productCategories).values(links);
+
+    return { products: created, createdCategories };
+  });
+}
+
+export async function countProducts(storeId: string) {
+  const [{ value }] = await db.select({ value: count() }).from(products).where(eq(products.storeId, storeId));
+  return value;
 }
