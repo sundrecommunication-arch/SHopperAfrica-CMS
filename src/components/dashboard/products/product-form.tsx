@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { ChevronDown, ChevronUp, Plus } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
 import type { z } from "zod";
 
 import {
@@ -23,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ImageUploader, type UploadedImage } from "./image-uploader";
 import { VariantEditor } from "./variant-editor";
 import { CategoryFormDialog } from "../categories/category-form-dialog";
+import { useUnsavedChangesGuard } from "../use-unsaved-changes-guard";
 
 export interface ProductCategoryOption {
   id: string;
@@ -62,10 +64,13 @@ export function ProductForm({
   categories,
   initial,
   productId,
+  justCreated = false,
 }: {
   categories: ProductCategoryOption[];
   initial?: ProductInput;
   productId?: string;
+  /** Arrived here straight after creating this product: show "what next?" options. */
+  justCreated?: boolean;
 }) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -79,12 +84,23 @@ export function ProductForm({
     control,
     setValue,
     reset,
+    getValues,
     formState: { errors },
   } = useForm<ProductFormInput, unknown, ProductFormOutput>({
     resolver: zodResolver(productSchema),
     defaultValues: (initial ?? emptyDefaults) as ProductFormInput,
   });
   const [formKey, setFormKey] = useState(0);
+  const [showCreated, setShowCreated] = useState(justCreated);
+
+  // Last-saved state, to tell whether there's unsaved work. Compared as a
+  // whole (not react-hook-form's isDirty) because setValue-driven fields --
+  // status, categories, tags, options -- don't mark the form dirty.
+  const [savedValues, setSavedValues] = useState(() => JSON.stringify(initial ?? emptyDefaults));
+  const [savedImages, setSavedImages] = useState(() => JSON.stringify(initial?.images ?? []));
+  const allValues = useWatch({ control });
+  const dirty = JSON.stringify(allValues) !== savedValues || JSON.stringify(images) !== savedImages;
+  useUnsavedChangesGuard(dirty && !isSubmitting);
 
   const name = useWatch({ control, name: "name" });
   const status = useWatch({ control, name: "status" }) ?? "DRAFT";
@@ -112,17 +128,25 @@ export function ProductForm({
           toast.success("Product created. Add another below.");
           reset(emptyDefaults as ProductFormInput);
           setImages([]);
+          setSavedValues(JSON.stringify(getValues()));
+          setSavedImages("[]");
           setShowAdvanced(false);
           setFormKey((k) => k + 1);
           window.scrollTo({ top: 0, behavior: "smooth" });
+          router.refresh();
         } else {
-          toast.success("Product created.");
-          router.push("/dashboard/products");
+          // Stay with the product just saved (now as an edit page, so saving
+          // again updates rather than duplicates) and offer what to do next.
+          setSavedValues(JSON.stringify(getValues()));
+          setSavedImages(JSON.stringify(images));
+          router.replace(`/dashboard/products/${data.product.id}?created=1`);
         }
       } else {
         toast.success("Product updated.");
+        setSavedValues(JSON.stringify(getValues()));
+        setSavedImages(JSON.stringify(images));
+        router.refresh();
       }
-      router.refresh();
     } finally {
       setIsSubmitting(false);
     }
@@ -135,6 +159,43 @@ export function ProductForm({
 
   return (
     <form onSubmit={handleSubmit((values) => onSubmit(values))} className="flex flex-col gap-6 pb-12">
+      <Link
+        href="/dashboard/products"
+        className="-mb-3 flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="size-4" /> All products
+      </Link>
+
+      {showCreated && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-green-600/30 bg-green-50 p-4 text-green-900 dark:bg-green-950/40 dark:text-green-100">
+          <CheckCircle2 className="size-5 shrink-0 text-green-600" />
+          <p className="flex-1 text-sm font-medium">
+            {name ? `"${name}" has been saved.` : "Product saved."} What would you like to do next?
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild size="sm">
+              <Link href="/dashboard/products/new">
+                <Plus className="size-4" /> Add another product
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/dashboard/products">View all products</Link>
+            </Button>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setShowCreated(false);
+              router.replace(`/dashboard/products/${productId}`, { scroll: false });
+            }}
+            className="text-green-700 hover:text-green-900"
+            aria-label="Dismiss"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">{productId ? "Edit product" : "Add product"}</h1>
         <div className="flex items-center gap-2">
@@ -156,6 +217,13 @@ export function ProductForm({
               onClick={handleSubmit((values) => onSubmit(values, { addAnother: true }))}
             >
               {isSubmitting ? "Saving…" : "Save & add another"}
+            </Button>
+          )}
+          {productId && (
+            <Button asChild variant="outline">
+              <Link href="/dashboard/products/new">
+                <Plus className="size-4" /> Add new product
+              </Link>
             </Button>
           )}
           <Button type="submit" disabled={isSubmitting}>

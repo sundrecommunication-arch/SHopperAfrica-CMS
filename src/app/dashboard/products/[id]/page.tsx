@@ -5,8 +5,15 @@ import { listCategories } from "@/modules/categories/services/category-service";
 import { ProductForm } from "@/components/dashboard/products/product-form";
 import type { ProductInput } from "@/modules/products/validation/schemas";
 
-export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditProductPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ created?: string }>;
+}) {
   const { id } = await params;
+  const { created } = await searchParams;
   const { store } = await getCurrentStore();
   const [result, categories] = await Promise.all([
     getProductForEdit(store.id, id),
@@ -56,6 +63,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
       categories={categories.map((c) => ({ id: c.id, name: c.name }))}
       initial={initial}
       productId={id}
+      justCreated={created === "1"}
     />
   );
 }
