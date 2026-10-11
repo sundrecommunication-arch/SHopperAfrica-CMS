@@ -71,3 +71,28 @@ export async function deleteStoreImage(publicUrl: string) {
     // Best-effort cleanup — not worth failing the request over.
   }
 }
+
+/**
+ * Deletes every file a store uploaded (stores/{storeId}/**). Used when a
+ * platform admin deletes a store. Best-effort: a storage hiccup must not
+ * undo or block the database deletion.
+ */
+export async function deleteAllStoreImages(storeId: string) {
+  try {
+    const client = getClient();
+    const bucket = client.storage.from(BUCKET);
+    const folders = ["products", "categories", "branding", "blog"];
+    for (const folder of folders) {
+      const prefix = `stores/${storeId}/${folder}`;
+      // list() pages at 100 by default; keep removing until the folder is empty.
+      for (;;) {
+        const { data, error } = await bucket.list(prefix, { limit: 100 });
+        if (error || !data?.length) break;
+        const { error: removeError } = await bucket.remove(data.map((f) => `${prefix}/${f.name}`));
+        if (removeError) break;
+      }
+    }
+  } catch (error) {
+    console.error(`failed to delete images for store ${storeId}`, error);
+  }
+}

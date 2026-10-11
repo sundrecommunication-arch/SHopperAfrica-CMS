@@ -4,6 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { getStoreForAdmin } from "@/modules/admin/services/admin-service";
 import { PLANS, formatNaira } from "@/modules/subscriptions/plans";
 import { AdminStoreActions } from "@/components/admin/admin-store-actions";
+import { AdminDeleteStore } from "@/components/admin/admin-delete-store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -25,7 +26,7 @@ export default async function AdminStorePage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const data = await getStoreForAdmin(id);
   if (!data) notFound();
-  const { store, recentOrders, payments, log, emails } = data;
+  const { store, recentOrders, payments, log, emails, ownerOtherStores } = data;
 
   return (
     <div className="flex flex-col gap-6">
@@ -133,6 +134,13 @@ export default async function AdminStorePage({ params }: { params: Promise<{ id:
           </CardContent>
         </Card>
       </div>
+
+      <AdminDeleteStore
+        storeId={store.id}
+        slug={store.slug}
+        ownerEmail={store.ownerEmail}
+        ownerHasOtherStores={ownerOtherStores > 0}
+      />
     </div>
   );
 }

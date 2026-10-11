@@ -12,6 +12,8 @@ import {
   auditLogs,
 } from "@/db/schema";
 import { getLifecycleHistory } from "@/modules/lifecycle/services/lifecycle-service";
+import { isPlatformAdmin } from "@/lib/platform-admin";
+import { deleteAllStoreImages } from "@/lib/storage";
 import { setStorePlan } from "@/modules/subscriptions/services/subscription-service";
 import { PLAN_ORDER, type PlanKey } from "@/modules/subscriptions/plans";
 
@@ -192,7 +194,7 @@ export async function getStoreForAdmin(storeId: string) {
   const [store] = await listStoresForAdmin({ storeId });
   if (!store) return null;
 
-  const [recentOrders, payments, log, emails] = await Promise.all([
+  const [recentOrders, payments, log, emails, [{ ownerOtherStores }]] = await Promise.all([
     db
       .select({
         id: orders.id,
@@ -225,9 +227,13 @@ export async function getStoreForAdmin(storeId: string) {
       .orderBy(desc(auditLogs.createdAt))
       .limit(20),
     getLifecycleHistory(store.ownerId),
+    db
+      .select({ ownerOtherStores: count() })
+      .from(stores)
+      .where(and(eq(stores.ownerId, store.ownerId), ne(stores.id, storeId))),
   ]);
 
-  return { store, recentOrders, payments, log, emails };
+  return { store, recentOrders, payments, log, emails, ownerOtherStores };
 }
 
 /** Admin override of a store's plan, e.g. a comp, a refund, or a manual bank payment. */
@@ -277,6 +283,67 @@ export async function adminSetSuspended(params: {
     entityId: storeId,
     metadata: suspended ? { reason: reason?.trim() || null } : {},
   });
+}
+
+/**
+ * Permanently deletes a store and everything in it (products, orders,
+ * customers, settings, uploaded images). With deleteOwnerAccount, also
+ * deletes the owner's login (email, password, sessions) so the email can
+ * sign up again from scratch -- only allowed when they own no other store.
+ * For test stores and spam; real merchants should be suspended instead.
+ */
+export async function adminDeleteStore(params: {
+  storeId: string;
+  adminUserId: string;
+  confirmSlug: string;
+  deleteOwnerAccount: boolean;
+}) {
+  const { storeId, adminUserId, confirmSlug, deleteOwnerAccount } = params;
+  const [store] = await db
+    .select({ id: stores.id, slug: stores.slug, ownerId: stores.ownerId, ownerEmail: users.email })
+    .from(stores)
+    .innerJoin(users, eq(users.id, stores.ownerId))
+    .where(eq(stores.id, storeId))
+    .limit(1);
+  if (!store) throw new AdminServiceError("Store not found");
+  if (confirmSlug.trim() !== store.slug) {
+    throw new AdminServiceError(`Type the store's link name "${store.slug}" to confirm.`);
+  }
+
+  if (deleteOwnerAccount) {
+    if (store.ownerId === adminUserId || isPlatformAdmin(store.ownerEmail)) {
+      throw new AdminServiceError("That's a platform admin's account — delete the store only, not the account.");
+    }
+    const [{ n }] = await db
+      .select({ n: count() })
+      .from(stores)
+      .where(and(eq(stores.ownerId, store.ownerId), ne(stores.id, storeId)));
+    if (n > 0) {
+      throw new AdminServiceError(
+        `${store.ownerEmail} owns ${n} other store(s). Delete those first, or delete this store only.`
+      );
+    }
+  }
+
+  await db.transaction(async (tx) => {
+    // Orders first: orders -> customers is ON DELETE RESTRICT, so letting the
+    // store cascade remove customers before their orders would fail.
+    await tx.delete(orders).where(eq(orders.storeId, storeId));
+    await tx.delete(stores).where(eq(stores.id, storeId));
+    if (deleteOwnerAccount) {
+      // Cascades to their sessions, login accounts, team memberships,
+      // password-reset tokens and lifecycle email history.
+      await tx.delete(users).where(eq(users.id, store.ownerId));
+    }
+  });
+
+  // The store's audit log went with it, so leave a trace in the server logs.
+  console.info(
+    `admin ${adminUserId} deleted store ${store.slug} (${storeId})` +
+      (deleteOwnerAccount ? ` and owner account ${store.ownerEmail}` : "")
+  );
+
+  await deleteAllStoreImages(storeId);
 }
 
 async function assertStoreExists(storeId: string) {
