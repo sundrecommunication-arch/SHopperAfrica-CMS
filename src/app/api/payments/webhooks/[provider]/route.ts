@@ -11,6 +11,7 @@ import {
   confirmPlanPayment,
   getPlatformPaystackKey,
 } from "@/modules/subscriptions/services/subscription-service";
+import { markDropshipOrderPaid } from "@/modules/dropship/services/fulfilment-service";
 
 /**
  * Verifies that a webhook payload was actually signed by Paystack using the
@@ -49,6 +50,29 @@ export async function POST(
         return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
       }
       await confirmPlanPayment(event.data.reference as string);
+      return NextResponse.json({ received: true });
+    }
+
+    // Dropship orders are paid through Shopper's own Paystack account too
+    // (split to supplier + store); tagged metadata.kind = "dropship".
+    if (
+      provider === "paystack" &&
+      event.event === "charge.success" &&
+      event.data?.metadata?.kind === "dropship"
+    ) {
+      const platformKey = getPlatformPaystackKey();
+      const signature = request.headers.get("x-paystack-signature");
+      if (!platformKey || !isValidPaystackSignature(bodyText, signature, platformKey)) {
+        return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+      }
+      const orderId = event.data.metadata.orderId as string | undefined;
+      const [paymentRecord] = orderId
+        ? await db.select().from(payments).where(eq(payments.orderId, orderId)).limit(1)
+        : [];
+      // Only for the attempt we started: the reference must match ours.
+      if (paymentRecord && paymentRecord.transactionReference === event.data.reference) {
+        await markDropshipOrderPaid(paymentRecord.orderId, paymentRecord.storeId, event.data, getPublicOrigin(request));
+      }
       return NextResponse.json({ received: true });
     }
 

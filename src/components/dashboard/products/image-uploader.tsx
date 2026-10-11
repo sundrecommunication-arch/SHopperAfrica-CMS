@@ -5,6 +5,7 @@ import Image from "next/image";
 import { ChevronLeft, ChevronRight, ImagePlus, Loader2, Star, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { compressImage } from "@/lib/compress-image";
 
 export interface UploadedImage {
   id?: string;
@@ -18,12 +19,15 @@ export function ImageUploader({
   folder,
   multiple = true,
   label = "Add images",
+  endpoint = "/api/uploads",
 }: {
   images: UploadedImage[];
   onChange: (images: UploadedImage[]) => void;
   folder: "products" | "categories" | "branding" | "blog";
   multiple?: boolean;
   label?: string;
+  /** Upload route; the supplier portal uses its own. */
+  endpoint?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -36,9 +40,10 @@ export function ImageUploader({
       const uploaded: UploadedImage[] = [];
       for (const file of files) {
         const formData = new FormData();
-        formData.append("file", file);
+        // Big phone photos are shrunk first (they'd otherwise hit the 5MB limit).
+        formData.append("file", await compressImage(file));
         formData.append("folder", folder);
-        const res = await fetch("/api/uploads", { method: "POST", body: formData });
+        const res = await fetch(endpoint, { method: "POST", body: formData });
         const data = await res.json().catch(() => null);
         if (!res.ok) {
           toast.error(data?.error ?? `Could not upload ${file.name}`);

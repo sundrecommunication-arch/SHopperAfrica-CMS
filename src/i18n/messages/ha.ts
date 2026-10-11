@@ -128,6 +128,7 @@ export const ha: Messages = {
     paymentMethodHint: "Zaɓi yadda kake so ka biya",
     paystackTitle: "Kati / Biya ta yanar gizo (Paystack)",
     paystackBody: "Biya nan take da kati, tura kuɗi ta banki, USSD ko Apple Pay.",
+    dropshipOnlineOnly: "Wasu kayan da ke cikin kwandonka suna fitowa kai tsaye daga abokin samar da kayanmu, don haka ana biyan wannan oda ta intanet cikin aminci.",
     paydunyaTitle: "Biya ta yanar gizo (PayDunya)",
     paydunyaBody: "Biya nan take da Mobile Money, kati ko tura kuɗi ta banki ta PayDunya.",
     bankTitle: "Tura kuɗi ta banki",

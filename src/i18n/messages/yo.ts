@@ -128,6 +128,7 @@ export const yo: Messages = {
     paymentMethodHint: "Yan bí o ṣe fẹ́ sanwó",
     paystackTitle: "Káàdì / Ìsanwó lórí ayélujára (Paystack)",
     paystackBody: "San lẹ́sẹ̀kẹsẹ̀ pẹ̀lú káàdì, ìfiránṣẹ́ owó báńkì, USSD tàbí Apple Pay.",
+    dropshipOnlineOnly: "Àwọn ọjà kan nínú àpò rẹ ń wá tààrà láti ọ̀dọ̀ olùpèsè alábàáṣiṣẹ́pọ̀ wa, nítorí náà a ń san owó ìbéèrè yìí lórí ayélujára láìléwu.",
     paydunyaTitle: "Ìsanwó lórí ayélujára (PayDunya)",
     paydunyaBody: "San lẹ́sẹ̀kẹsẹ̀ pẹ̀lú Mobile Money, káàdì tàbí ìfiránṣẹ́ owó báńkì nípasẹ̀ PayDunya.",
     bankTitle: "Ìfiránṣẹ́ owó sí báńkì",

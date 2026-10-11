@@ -65,6 +65,8 @@ interface CheckoutFormProps {
   deliveryOptions?: DeliveryOption[];
   customer?: CheckoutCustomer | null;
   addresses?: SavedAddress[];
+  /** Products that ship from a Shopper supplier: those can only be paid online. */
+  dropshipProductIds?: string[];
 }
 
 export function CheckoutForm({
@@ -73,10 +75,12 @@ export function CheckoutForm({
   deliveryOptions = [],
   customer = null,
   addresses = [],
+  dropshipProductIds = [],
 }: CheckoutFormProps) {
   const router = useRouter();
   const t = useT();
   const { items, subtotal, clearCart } = useCart();
+  const cartHasDropship = items.some((i) => dropshipProductIds.includes(i.productId));
 
   // Customer State -- prefilled from the logged-in customer's account, if any.
   const [customerName, setCustomerName] = useState(customer?.name ?? "");
@@ -115,9 +119,11 @@ export function CheckoutForm({
     paymentProviders.length > 0
       ? (paymentProviders[0].type as "MANUAL" | "CASH_ON_DELIVERY" | "WHATSAPP" | "PAYSTACK" | "PAYDUNYA")
       : "MANUAL";
-  const [selectedMethod, setSelectedMethod] = useState<
+  const [chosenMethod, setSelectedMethod] = useState<
     "MANUAL" | "CASH_ON_DELIVERY" | "WHATSAPP" | "PAYSTACK" | "PAYDUNYA"
   >(defaultMethod);
+  // Supplier items are paid online through Shopper (split to the supplier).
+  const selectedMethod = cartHasDropship ? "PAYSTACK" : chosenMethod;
 
   // Coupon State
   const [couponCode, setCouponCode] = useState("");
@@ -573,7 +579,7 @@ export function CheckoutForm({
             </CardHeader>
             <CardContent className="space-y-3">
               {/* Paystack Online Payment */}
-              {paymentProviders.some((p) => p.type === "PAYSTACK") && (
+              {(cartHasDropship || paymentProviders.some((p) => p.type === "PAYSTACK")) && (
                 <label
                   className={`flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-all ${
                     selectedMethod === "PAYSTACK"
@@ -599,6 +605,12 @@ export function CheckoutForm({
                 </label>
               )}
 
+              {cartHasDropship ? (
+                <p className="rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                  {t("checkout.dropshipOnlineOnly")}
+                </p>
+              ) : (
+                <>
               {/* PayDunya Online Payment */}
               {paymentProviders.some((p) => p.type === "PAYDUNYA") && (
                 <label
@@ -711,6 +723,8 @@ export function CheckoutForm({
                     <p className="text-xs text-muted-foreground">{t("checkout.whatsappBody")}</p>
                   </div>
                 </label>
+              )}
+                </>
               )}
             </CardContent>
           </Card>

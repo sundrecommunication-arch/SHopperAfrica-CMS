@@ -16,6 +16,8 @@ import {
   discountUsages,
   fulfillmentStatusEnum,
   paymentStatusEnum,
+  supplierProducts,
+  suppliers,
 } from "@/db/schema";
 
 type FulfillmentStatus = (typeof fulfillmentStatusEnum.enumValues)[number];
@@ -29,6 +31,8 @@ import {
 } from "../validation/schemas";
 import { buildCartWhatsAppUrl } from "@/modules/storefront/utils/whatsapp";
 import { getStorePlan } from "@/modules/subscriptions/services/subscription-service";
+import { planDropshipSplit, FulfilmentError } from "@/modules/dropship/services/fulfilment-service";
+import { syncLinkedProducts } from "@/modules/dropship/services/supplier-service";
 import {
   listDeliveryOptions,
   calculateDeliveryFee,
@@ -63,13 +67,6 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
   if (store.suspendedAt) {
     throw new OrderServiceError("This store isn't taking orders right now.");
   }
-  if (
-    (data.paymentMethodType === "PAYSTACK" || data.paymentMethodType === "PAYDUNYA") &&
-    !(await getStorePlan(store.id)).limits.onlinePayments
-  ) {
-    throw new OrderServiceError("Online payment isn't available for this store. Please choose another payment method.");
-  }
-
   // 2. Fetch authoritative products and variants from DB
   const productIds = data.items.map((i) => i.productId);
   const dbProducts = await db
@@ -78,6 +75,40 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
     .where(and(eq(products.storeId, store.id), inArray(products.id, productIds)));
 
   const productMap = new Map(dbProducts.map((p) => [p.id, p]));
+
+  // Dropship items (from a Shopper supplier): the supplier's stock and price
+  // are authoritative, and they're paid online through Shopper's account
+  // with an automatic split -- so they work on every plan, but only online.
+  const supplierProductIds = dbProducts
+    .map((p) => p.supplierProductId)
+    .filter((id): id is string => Boolean(id));
+  const supplierRows =
+    supplierProductIds.length > 0
+      ? await db
+          .select({
+            id: supplierProducts.id,
+            supplierId: supplierProducts.supplierId,
+            wholesalePrice: supplierProducts.wholesalePrice,
+            stock: supplierProducts.stock,
+            available: sql<boolean>`${supplierProducts.isActive} and ${suppliers.status} = 'APPROVED'`,
+          })
+          .from(supplierProducts)
+          .innerJoin(suppliers, eq(suppliers.id, supplierProducts.supplierId))
+          .where(inArray(supplierProducts.id, supplierProductIds))
+      : [];
+  const supplierProductMap = new Map(supplierRows.map((r) => [r.id, r]));
+  const isDropship = supplierRows.length > 0;
+
+  if (isDropship && data.paymentMethodType !== "PAYSTACK") {
+    throw new OrderServiceError("Some items in your cart ship from our partner supplier and need to be paid online. Please choose online payment.");
+  }
+  if (
+    !isDropship &&
+    (data.paymentMethodType === "PAYSTACK" || data.paymentMethodType === "PAYDUNYA") &&
+    !(await getStorePlan(store.id)).limits.onlinePayments
+  ) {
+    throw new OrderServiceError("Online payment isn't available for this store. Please choose another payment method.");
+  }
 
   const variantIds = data.items
     .map((i) => i.variantId)
@@ -106,6 +137,9 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
     trackInventory: boolean;
     allowBackorder: boolean;
     inventoryQuantity: number;
+    supplierProductId: string | null;
+    supplierId: string | null;
+    supplierUnitCost: number | null;
   }[] = [];
 
   let calculatedSubtotal = 0;
@@ -132,6 +166,16 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
       availableStock = variant.inventoryQuantity;
     }
 
+    const supplierProduct = product.supplierProductId
+      ? supplierProductMap.get(product.supplierProductId)
+      : undefined;
+    if (product.supplierProductId) {
+      if (!supplierProduct || !supplierProduct.available) {
+        throw new OrderServiceError(`Sorry, "${product.name}" isn't available any more. Please remove it from your cart.`);
+      }
+      availableStock = Math.min(availableStock, supplierProduct.stock);
+    }
+
     // Check inventory
     if (product.trackInventory && !product.allowBackorder) {
       if (availableStock < item.quantity) {
@@ -156,6 +200,9 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
       trackInventory: product.trackInventory,
       allowBackorder: product.allowBackorder,
       inventoryQuantity: availableStock,
+      supplierProductId: supplierProduct ? product.supplierProductId : null,
+      supplierId: supplierProduct?.supplierId ?? null,
+      supplierUnitCost: supplierProduct ? Number(supplierProduct.wholesalePrice) : null,
     });
   }
 
@@ -217,6 +264,28 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
   const shippingStr = String(deliveryFee);
   const finalTotalNum = afterDiscount + deliveryFee;
   const totalStr = String(finalTotalNum);
+
+  // Fail now (not at the payment step) if the split can't work: missing
+  // payout accounts, or a discount that eats into the supplier's price.
+  if (isDropship) {
+    try {
+      await planDropshipSplit({
+        storeId: store.id,
+        total: finalTotalNum,
+        lines: validatedItems
+          .filter((v) => v.supplierId)
+          .map((v) => ({
+            supplierId: v.supplierId!,
+            unitCost: v.supplierUnitCost!,
+            quantity: v.quantity,
+            lineTotal: Number(v.lineTotal),
+          })),
+      });
+    } catch (error) {
+      if (error instanceof FulfilmentError) throw new OrderServiceError(error.message);
+      throw error;
+    }
+  }
 
   // 4. Execute atomic transaction
   return db.transaction(async (tx) => {
@@ -327,6 +396,7 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
         deliveryAddressText: fullDeliveryAddress,
         customerNotes: data.customerNotes?.trim() || null,
         whatsappMessage: whatsappOrderMsg,
+        isDropship,
       })
       .returning();
 
@@ -358,6 +428,8 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
         unitPrice: item.unitPrice,
         quantity: item.quantity,
         lineTotal: item.lineTotal,
+        supplierId: item.supplierId,
+        supplierUnitCost: item.supplierUnitCost === null ? null : String(item.supplierUnitCost),
       }))
     );
 
@@ -402,6 +474,21 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
           .where(eq(products.id, item.productId));
       }
     }
+
+    // Dropship lines also come out of the supplier's stock (shared by every
+    // store selling the product); then every store's copy is re-synced.
+    const soldFromSuppliers = validatedItems.filter((v) => v.supplierProductId);
+    for (const item of soldFromSuppliers) {
+      const updated = await tx
+        .update(supplierProducts)
+        .set({ stock: sql`${supplierProducts.stock} - ${item.quantity}`, updatedAt: new Date() })
+        .where(and(eq(supplierProducts.id, item.supplierProductId!), gte(supplierProducts.stock, item.quantity)))
+        .returning({ id: supplierProducts.id });
+      if (updated.length === 0) {
+        throw new OrderServiceError(`Sorry, "${item.productName}" just sold out. Please update your cart.`);
+      }
+    }
+    await syncLinkedProducts(soldFromSuppliers.map((v) => v.supplierProductId!), tx);
 
     // 4g. Create payment transaction record
     await tx.insert(payments).values({
@@ -590,6 +677,7 @@ export async function updateOrderStatus(
     .select({
       fulfillmentStatus: orders.fulfillmentStatus,
       paymentStatus: orders.paymentStatus,
+      isDropship: orders.isDropship,
     })
     .from(orders)
     .where(and(eq(orders.id, orderId), eq(orders.storeId, storeId)))
@@ -597,6 +685,19 @@ export async function updateOrderStatus(
 
   if (!existing) {
     throw new OrderServiceError("Order not found");
+  }
+
+  // A paid dropship order has already been split to the supplier, who is
+  // delivering it: cancelling needs a refund from Shopper, not a click here.
+  if (
+    existing.isDropship &&
+    existing.paymentStatus === "PAID" &&
+    parsed.data.fulfillmentStatus === "CANCELLED" &&
+    existing.fulfillmentStatus !== "CANCELLED"
+  ) {
+    throw new OrderServiceError(
+      "This order includes supplier items that are already paid for. To cancel and refund it, contact Shopper support."
+    );
   }
 
   const changes: { fulfillmentStatus?: FulfillmentStatus; paymentStatus?: PaymentStatus } = {};
@@ -683,12 +784,27 @@ async function adjustOrderInventory(tx: Tx, orderId: string, direction: "restock
       variantId: orderItems.variantId,
       quantity: orderItems.quantity,
       trackInventory: products.trackInventory,
+      supplierProductId: products.supplierProductId,
+      fromSupplier: orderItems.supplierId,
     })
     .from(orderItems)
     .innerJoin(products, eq(products.id, orderItems.productId))
     .where(and(eq(orderItems.orderId, orderId), isNotNull(orderItems.productId)));
 
+  // Dropship lines: the stock lives with the supplier; put it back (or take
+  // it out) there and re-sync every store's copy.
+  const supplierLines = items.filter((i) => i.fromSupplier && i.supplierProductId);
+  for (const item of supplierLines) {
+    const delta = direction === "restock" ? item.quantity : -item.quantity;
+    await tx
+      .update(supplierProducts)
+      .set({ stock: sql`greatest(0, ${supplierProducts.stock} + ${delta})`, updatedAt: new Date() })
+      .where(eq(supplierProducts.id, item.supplierProductId!));
+  }
+  await syncLinkedProducts(supplierLines.map((i) => i.supplierProductId!), tx);
+
   for (const item of items) {
+    if (item.fromSupplier && item.supplierProductId) continue;
     if (!item.trackInventory) continue;
     const delta = direction === "restock" ? item.quantity : -item.quantity;
 

@@ -12,6 +12,7 @@ import { signUpSchema, type SignUpInput } from "@/modules/auth/validation/schema
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getSafeCallbackPath } from "@/lib/safe-callback";
 
 export function SignupForm() {
   const router = useRouter();
@@ -50,7 +51,8 @@ export function SignupForm() {
       }
 
       trackSignUp();
-      router.push("/onboarding");
+      // e.g. suppliers signing up from /supplier/apply go back there, not to store setup
+      router.push(getSafeCallbackPath() ?? "/onboarding");
       router.refresh();
     } finally {
       setIsSubmitting(false);

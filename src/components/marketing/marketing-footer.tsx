@@ -20,6 +20,7 @@ const RESOURCE_LINKS = [
 const ACCOUNT_LINKS = [
   { href: "/signup", label: "Create your store" },
   { href: "/login", label: "Sign in" },
+  { href: "/suppliers", label: "Become a supplier" },
 ];
 
 export function MarketingFooter() {

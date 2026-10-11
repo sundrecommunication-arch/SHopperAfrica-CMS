@@ -125,6 +125,7 @@ export const ar: Messages = {
     paymentMethodHint: "اختر طريقة الدفع",
     paystackTitle: "بطاقة / دفع إلكتروني (Paystack)",
     paystackBody: "ادفع فورًا بالبطاقة أو التحويل البنكي أو USSD أو Apple Pay.",
+    dropshipOnlineOnly: "تُشحن بعض المنتجات في سلتك مباشرةً من المورّد الشريك، لذا يُدفع هذا الطلب عبر الإنترنت بأمان.",
     paydunyaTitle: "دفع إلكتروني (PayDunya)",
     paydunyaBody: "ادفع فورًا عبر المحفظة الإلكترونية أو البطاقة أو التحويل البنكي من خلال PayDunya.",
     bankTitle: "تحويل بنكي مباشر",

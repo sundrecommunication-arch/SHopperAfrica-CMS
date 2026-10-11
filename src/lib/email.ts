@@ -493,3 +493,72 @@ export async function sendLifecycleEmail(
     throw new Error(`Failed to send ${kind} email: ${error.message}`);
   }
 }
+
+// --- Dropshipping suppliers ---------------------------------------------------
+
+/** A paid order for a supplier to deliver (modules/dropship/services/fulfilment-service.ts). */
+export async function sendSupplierNewOrderEmail(
+  to: string,
+  d: { supplierName: string; storeName: string; orderNumber: string; amountDue: number; orderUrl: string }
+): Promise<void> {
+  const resend = getClient();
+  const { error } = await resend.emails.send({
+    from: getFromAddress(),
+    to,
+    replyTo: getSupportEmail(),
+    subject: `New order to deliver: ${d.orderNumber} (₦${d.amountDue.toLocaleString()})`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; color: #111;">
+        <h2 style="margin-bottom: 8px;">You have a new order to deliver</h2>
+        <p style="color: #333; line-height: 1.6;">Hi ${esc(d.supplierName)},</p>
+        <p style="color: #333; line-height: 1.6;">
+          <strong>${esc(d.storeName)}</strong> sold your product. The customer has paid, and
+          <strong>₦${d.amountDue.toLocaleString()}</strong> is being sent to your bank account automatically.
+        </p>
+        <p style="color: #333; line-height: 1.6;">Open the order to see the customer's address and phone number, then mark it as shipped when it's on its way.</p>
+        <p style="margin: 24px 0;">${ctaButton(d.orderUrl, "View order " + esc(d.orderNumber))}</p>
+        <p style="color: #888; font-size: 13px;">Please deliver within the time shown on your supplier profile.</p>
+      </div>
+    `,
+  });
+  if (error) throw new Error(`Failed to send supplier order email: ${error.message}`);
+}
+
+export async function sendSupplierStatusEmail(
+  to: string,
+  d: { supplierName: string; status: "APPROVED" | "REJECTED" | "SUSPENDED"; note?: string | null; portalUrl: string }
+): Promise<void> {
+  const resend = getClient();
+  const copy = {
+    APPROVED: {
+      subject: "You're approved as a Shopper supplier 🎉",
+      body: `Your supplier account is approved. Add your products and bank account, and online stores across Shopper can start selling them — you deliver, and you're paid automatically for every order.`,
+      cta: "Add your products",
+    },
+    REJECTED: {
+      subject: "About your Shopper supplier application",
+      body: `Thanks for applying. We can't approve your supplier account right now.`,
+      cta: "Update your application",
+    },
+    SUSPENDED: {
+      subject: "Your Shopper supplier account is paused",
+      body: `Your supplier account has been paused, so your products aren't available to stores for now.`,
+      cta: "Open supplier portal",
+    },
+  }[d.status];
+  const { error } = await resend.emails.send({
+    from: getFromAddress(),
+    to,
+    replyTo: getSupportEmail(),
+    subject: copy.subject,
+    html: lifecycleLayout(
+      `<h2 style="margin-bottom: 8px;">${copy.subject}</h2>
+       <p style="color: #333; line-height: 1.6;">${greeting(d.supplierName)}</p>
+       <p style="color: #333; line-height: 1.6;">${copy.body}</p>
+       ${d.note ? `<p style="color: #333; line-height: 1.6;"><strong>Note from Shopper:</strong> ${esc(d.note)}</p>` : ""}
+       <p style="margin: 24px 0;">${ctaButton(d.portalUrl, copy.cta)}</p>`,
+      { name: d.supplierName, appUrl: d.portalUrl }
+    ),
+  });
+  if (error) throw new Error(`Failed to send supplier status email: ${error.message}`);
+}

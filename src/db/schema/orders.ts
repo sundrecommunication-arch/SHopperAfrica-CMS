@@ -5,6 +5,7 @@ import {
   integer,
   numeric,
   pgEnum,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { stores } from "./tenant";
 import { customers } from "./customers";
@@ -62,6 +63,9 @@ export const orders = pgTable("orders", {
   deliveryAddressText: text("delivery_address_text"),
   customerNotes: text("customer_notes"),
   whatsappMessage: text("whatsapp_message"), // the generated order message, if applicable
+  // Has items from a dropshipping supplier: paid through Shopper's platform
+  // Paystack account with an automatic split (modules/dropship).
+  isDropship: boolean("is_dropship").notNull().default(false),
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -83,6 +87,11 @@ export const orderItems = pgTable("order_items", {
   unitPrice: numeric("unit_price", { precision: 12, scale: 2 }).notNull(),
   quantity: integer("quantity").notNull(),
   lineTotal: numeric("line_total", { precision: 12, scale: 2 }).notNull(),
+  // Dropship lines only: which supplier ships it and their wholesale price
+  // at order time (what the split paid them). Plain ids, no foreign keys,
+  // like the other snapshot columns.
+  supplierId: text("supplier_id"),
+  supplierUnitCost: numeric("supplier_unit_cost", { precision: 12, scale: 2 }),
 }).enableRLS();
 
 // Logs each time a merchant taps "Nudge on WhatsApp" on an abandoned

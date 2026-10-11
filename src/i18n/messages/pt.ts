@@ -125,6 +125,7 @@ export const pt: Messages = {
     paymentMethodHint: "Escolha como quer pagar",
     paystackTitle: "Cartão / Pagamento online (Paystack)",
     paystackBody: "Pague na hora com cartão, transferência, USSD ou Apple Pay.",
+    dropshipOnlineOnly: "Alguns itens do seu carrinho são enviados diretamente pelo nosso fornecedor parceiro, por isso este pedido é pago online com segurança.",
     paydunyaTitle: "Pagamento online (PayDunya)",
     paydunyaBody: "Pague na hora com Mobile Money, cartão ou transferência via PayDunya.",
     bankTitle: "Transferência bancária",

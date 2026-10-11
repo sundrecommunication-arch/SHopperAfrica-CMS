@@ -65,12 +65,15 @@ export function ProductForm({
   initial,
   productId,
   justCreated = false,
+  supplierInfo = null,
 }: {
   categories: ProductCategoryOption[];
   initial?: ProductInput;
   productId?: string;
   /** Arrived here straight after creating this product: show "what next?" options. */
   justCreated?: boolean;
+  /** Set for dropship products: the supplier ships it and manages stock. */
+  supplierInfo?: { supplierName: string; wholesalePrice: number; deliveryDays: string } | null;
 }) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -194,6 +197,15 @@ export function ProductForm({
             <X className="size-4" />
           </button>
         </div>
+      )}
+
+      {supplierInfo && (
+        <p className="rounded-xl border bg-muted/40 p-3 text-sm">
+          <strong>Dropship product</strong> — supplied by {supplierInfo.supplierName} at ₦
+          {supplierInfo.wholesalePrice.toLocaleString()} (incl. delivery, {supplierInfo.deliveryDays}). They deliver every
+          order, and stock updates automatically from the supplier, so changes to stock here are replaced. You can change
+          the name, description, photos and your price.
+        </p>
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3">

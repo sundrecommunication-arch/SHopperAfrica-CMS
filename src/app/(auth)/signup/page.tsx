@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AuthSwitchLink } from "@/components/auth/auth-switch-link";
 import { SignupForm } from "@/components/auth/signup-form";
 
 export default function SignupPage() {
@@ -11,9 +11,9 @@ export default function SignupPage() {
       <SignupForm />
       <p className="text-center text-sm text-muted-foreground">
         Already have an account?{" "}
-        <Link href="/login" className="text-primary underline-offset-4 hover:underline">
+        <AuthSwitchLink href="/login">
           Sign in
-        </Link>
+        </AuthSwitchLink>
       </p>
     </div>
   );

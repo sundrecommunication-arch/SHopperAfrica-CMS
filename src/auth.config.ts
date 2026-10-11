@@ -31,8 +31,10 @@ export const authConfig = {
       // /admin only needs a login here; the admin check itself happens
       // server-side in src/lib/platform-admin.ts.
       const isOnAdmin = request.nextUrl.pathname.startsWith("/admin");
+      // Supplier portal (dropshipping). Not /suppliers: that's the public landing page.
+      const isOnSupplier = /^\/supplier(\/|$)/.test(request.nextUrl.pathname);
 
-      if (isOnDashboard || isOnOnboarding || isOnAdmin) {
+      if (isOnDashboard || isOnOnboarding || isOnAdmin || isOnSupplier) {
         return isLoggedIn;
       }
       return true;

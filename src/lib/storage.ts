@@ -58,6 +58,24 @@ export async function uploadStoreImage(
   return data.publicUrl;
 }
 
+/**
+ * Dropship supplier photos: suppliers/{supplierId}/products/. Kept outside
+ * stores/ because many stores' products point at the same supplier photos --
+ * deleting one store must never delete them.
+ */
+export async function uploadSupplierImage(supplierId: string, file: File) {
+  await ensureBucket();
+  const client = getClient();
+  const ext = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
+  const path = `suppliers/${supplierId}/products/${crypto.randomUUID()}.${ext}`;
+  const { error } = await client.storage.from(BUCKET).upload(path, await file.arrayBuffer(), {
+    contentType: file.type || "application/octet-stream",
+    upsert: false,
+  });
+  if (error) throw new Error(`Upload failed: ${error.message}`);
+  return client.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
 /** Deletes a previously uploaded image, given its public URL. Best-effort. */
 export async function deleteStoreImage(publicUrl: string) {
   try {

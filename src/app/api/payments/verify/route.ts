@@ -7,6 +7,8 @@ import { verifyPaystackTransaction } from "@/modules/payments/adapters/paystack-
 import { confirmPaydunyaTransaction } from "@/modules/payments/adapters/paydunya-adapter";
 import { getPublicOrigin } from "@/lib/request-origin";
 import { notifyOrderPlaced } from "@/modules/notifications/services/order-notifications";
+import { getPlatformPaystackKey } from "@/modules/subscriptions/services/subscription-service";
+import { markDropshipOrderPaid } from "@/modules/dropship/services/fulfilment-service";
 
 export async function POST(request: Request) {
   try {
@@ -52,6 +54,20 @@ export async function POST(request: Request) {
       .from(payments)
       .where(and(eq(payments.orderId, order.id), eq(payments.storeId, store.id)))
       .limit(1);
+
+    if (order.isDropship) {
+      // Paid through Shopper's own Paystack account (see initialize).
+      const secretKey = getPlatformPaystackKey();
+      if (!paymentRecord?.transactionReference || !secretKey) {
+        return NextResponse.json({ error: "No online payment attempt found for this order yet" }, { status: 400 });
+      }
+      const verification = await verifyPaystackTransaction(secretKey, paymentRecord.transactionReference);
+      if (!(verification.status && verification.data?.status === "success")) {
+        return NextResponse.json({ error: verification.message || "Payment verification failed" }, { status: 400 });
+      }
+      await markDropshipOrderPaid(order.id, store.id, (verification.data as Record<string, unknown>) ?? {}, getPublicOrigin(request));
+      return NextResponse.json({ success: true, message: "Payment verified successfully" });
+    }
 
     if (!paymentRecord?.transactionReference || !paymentRecord.providerId) {
       return NextResponse.json(
@@ -153,3 +169,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

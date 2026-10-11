@@ -11,6 +11,7 @@ import {
   AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { stores } from "./tenant";
+import { supplierProducts } from "./dropship";
 
 export const productStatusEnum = pgEnum("product_status", ["DRAFT", "ACTIVE", "ARCHIVED"]);
 
@@ -57,6 +58,13 @@ export const products = pgTable("products", {
   inventoryQuantity: integer("inventory_quantity").notNull().default(0),
   allowBackorder: boolean("allow_backorder").notNull().default(false),
   lowStockThreshold: integer("low_stock_threshold").notNull().default(3),
+
+  // Set when this product was added from a dropshipping supplier's catalog:
+  // the supplier ships it and is paid their wholesale price automatically.
+  // Stock is kept in step with the supplier's (modules/dropship).
+  supplierProductId: text("supplier_product_id").references(() => supplierProducts.id, {
+    onDelete: "set null",
+  }),
 
   seoTitle: text("seo_title"),
   seoDescription: text("seo_description"),

@@ -128,6 +128,7 @@ export const ig: Messages = {
     paymentMethodHint: "Họrọ ka ị chọrọ isi kwụọ ụgwọ",
     paystackTitle: "Kaadị / Ịkwụ ụgwọ n'ịntanetị (Paystack)",
     paystackBody: "Kwụọ ozugbo site na kaadị, nnyefe ego n'ụlọ akụ, USSD ma ọ bụ Apple Pay.",
+    dropshipOnlineOnly: "Ụfọdụ ihe dị n'ụgbọ gị na-esi n'aka onye na-ebunye anyị ngwa ahịa ozugbo, ya mere a na-akwụ ụgwọ maka iwu a n'ịntanetị n'enweghị nsogbu.",
     paydunyaTitle: "Ịkwụ ụgwọ n'ịntanetị (PayDunya)",
     paydunyaBody: "Kwụọ ozugbo site na Mobile Money, kaadị ma ọ bụ nnyefe ego n'ụlọ akụ site na PayDunya.",
     bankTitle: "Nnyefe ego n'ụlọ akụ",

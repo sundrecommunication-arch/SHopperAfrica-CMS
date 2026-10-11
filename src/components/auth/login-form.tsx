@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getSafeCallbackPath } from "@/lib/safe-callback";
 
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -36,7 +37,7 @@ export function LoginForm() {
         toast.error("Incorrect email or password");
         return;
       }
-      router.push("/dashboard");
+      router.push(getSafeCallbackPath() ?? "/dashboard");
       router.refresh();
     } finally {
       setIsSubmitting(false);

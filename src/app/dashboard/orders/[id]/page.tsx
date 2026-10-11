@@ -14,6 +14,8 @@ import {
 
 import { getCurrentStore } from "@/lib/tenant";
 import { getOrderById } from "@/modules/orders/services/order-service";
+import { listSupplierOrdersForOrder } from "@/modules/dropship/services/fulfilment-service";
+import { SupplierOrderStatusBadge } from "@/components/dropship/supplier-order-status";
 import { formatWhatsAppPhone } from "@/modules/storefront/utils/whatsapp";
 import { OrderStatusActions } from "@/components/dashboard/orders/order-status-actions";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +43,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
   }
 
   const { order, customer, items } = orderData;
+  const supplierDeliveries = order.isDropship ? await listSupplierOrdersForOrder(store.id, order.id) : [];
   const dateFormatted = new Date(order.createdAt).toLocaleString(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
@@ -168,6 +171,36 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 
         {/* Right Column: Customer & Delivery Info (4 Cols) */}
         <div className="space-y-6 lg:col-span-4">
+          {order.isDropship && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Delivered by supplier</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-xs">
+                {supplierDeliveries.length === 0 ? (
+                  <p className="text-muted-foreground">
+                    {order.paymentStatus === "PAID"
+                      ? "Sending to the supplier…"
+                      : "Sent to the supplier as soon as the customer has paid. You don't need to do anything."}
+                  </p>
+                ) : (
+                  supplierDeliveries.map((d) => (
+                    <div key={d.id} className="space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-foreground">{d.supplierName}</span>
+                        <SupplierOrderStatusBadge status={d.status} />
+                      </div>
+                      {d.trackingNote && <p className="text-muted-foreground">{d.trackingNote}</p>}
+                      <p className="text-muted-foreground">Supplier phone: {d.supplierPhone}</p>
+                    </div>
+                  ))
+                )}
+                <p className="text-muted-foreground">
+                  The customer is emailed automatically when it ships. Your profit is paid to your bank by Paystack.
+                </p>
+              </CardContent>
+            </Card>
+          )}
           {/* Customer Card */}
           <Card>
             <CardHeader className="pb-3">

@@ -115,7 +115,8 @@ export function proxy(request: NextRequest) {
   if (
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/onboarding") ||
-    pathname.startsWith("/admin")
+    pathname.startsWith("/admin") ||
+    /^\/supplier(\/|$)/.test(pathname)
   ) {
     // @ts-expect-error - next-auth's `auth` wrapper accepts the proxy/middleware request shape
     return auth(request);
@@ -126,7 +127,7 @@ export function proxy(request: NextRequest) {
 
 // Paths that are Shopper's own marketing/auth pages. Merchants' storefronts
 // (/store/...) are deliberately excluded: their shoppers aren't Shopper leads.
-const NON_MARKETING_PREFIXES = ["/store/", "/api/", "/dashboard", "/admin", "/onboarding", "/invite/"];
+const NON_MARKETING_PREFIXES = ["/store/", "/api/", "/dashboard", "/admin", "/onboarding", "/invite/", "/supplier/"];
 
 /**
  * Records the latest campaign touch (utm_*, ad click ids, or an external

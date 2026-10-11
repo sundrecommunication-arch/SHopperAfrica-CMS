@@ -3,7 +3,8 @@ import { eq, and, inArray, count } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { products, productImages, productVariants, productCategories, categories } from "@/db/schema";
+import { products, productImages, productVariants, productCategories, categories, supplierProducts } from "@/db/schema";
+import { estimatePaystackFee } from "@/modules/dropship/fees";
 import { productSchema, slugify, type ProductInput } from "../validation/schemas";
 import { importRowSchema, MAX_IMPORT_ROWS } from "../import/csv";
 import { PLANS } from "@/modules/subscriptions/plans";
@@ -121,6 +122,7 @@ export async function createProduct(storeId: string, input: ProductInput) {
 export async function updateProduct(storeId: string, productId: string, input: ProductInput) {
   const data = parseInput(input);
   await assertUniqueSlug(storeId, data.slug, productId);
+  await assertDropshipPriceCoversCost(productId, data.price);
 
   return db.transaction(async (tx) => {
     const [product] = await tx
@@ -277,6 +279,34 @@ export async function getProductForEdit(storeId: string, productId: string) {
 }
 
 // --- Bulk import (spreadsheet) -------------------------------------------------
+
+/**
+ * A dropship product's price must leave something after the supplier's price
+ * and Paystack's fee, or its orders can't be split (checkout would refuse).
+ */
+async function assertDropshipPriceCoversCost(productId: string, price: number) {
+  const [row] = await db
+    .select({ cost: supplierProducts.wholesalePrice })
+    .from(products)
+    .innerJoin(supplierProducts, eq(supplierProducts.id, products.supplierProductId))
+    .where(eq(products.id, productId))
+    .limit(1);
+  if (!row) return;
+  const cost = Number(row.cost);
+  if (price - cost <= estimatePaystackFee(price)) {
+    throw new ProductServiceError(
+      `This product comes from a supplier at ₦${cost.toLocaleString()}. Set a price above ₦${Math.ceil(cost + estimatePaystackFee(cost) + 1).toLocaleString()} so you still earn after fees.`
+    );
+  }
+}
+
+/** A product URL based on `name` that isn't used yet in this store. */
+export async function availableProductSlug(storeId: string, name: string) {
+  const taken = new Set(
+    (await db.select({ slug: products.slug }).from(products).where(eq(products.storeId, storeId))).map((r) => r.slug)
+  );
+  return uniqueSlug(name, taken, "product");
+}
 
 function uniqueSlug(base: string, taken: Set<string>, fallback: string) {
   const root = (slugify(base) || fallback).slice(0, 110).replace(/-+$/, "") || fallback;

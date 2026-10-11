@@ -125,6 +125,7 @@ export const sw: Messages = {
     paymentMethodHint: "Chagua jinsi unavyotaka kulipa",
     paystackTitle: "Kadi / Malipo ya mtandaoni (Paystack)",
     paystackBody: "Lipa papo hapo kwa kadi, uhamisho wa benki, USSD au Apple Pay.",
+    dropshipOnlineOnly: "Baadhi ya bidhaa kwenye kikapu chako zinatumwa moja kwa moja na msambazaji wetu, kwa hiyo oda hii inalipwa mtandaoni kwa usalama.",
     paydunyaTitle: "Malipo ya mtandaoni (PayDunya)",
     paydunyaBody: "Lipa papo hapo kwa pesa za simu, kadi au uhamisho wa benki kupitia PayDunya.",
     bankTitle: "Uhamisho wa benki",

@@ -4,6 +4,7 @@ import { getProductForEdit } from "@/modules/products/services/product-service";
 import { listCategories } from "@/modules/categories/services/category-service";
 import { ProductForm } from "@/components/dashboard/products/product-form";
 import type { ProductInput } from "@/modules/products/validation/schemas";
+import { getProductSupplierInfo } from "@/modules/dropship/services/catalog-service";
 
 export default async function EditProductPage({
   params,
@@ -15,9 +16,10 @@ export default async function EditProductPage({
   const { id } = await params;
   const { created } = await searchParams;
   const { store } = await getCurrentStore();
-  const [result, categories] = await Promise.all([
+  const [result, categories, supplierInfo] = await Promise.all([
     getProductForEdit(store.id, id),
     listCategories(store.id),
+    getProductSupplierInfo(id),
   ]);
 
   if (!result) {
@@ -64,6 +66,7 @@ export default async function EditProductPage({
       initial={initial}
       productId={id}
       justCreated={created === "1"}
+      supplierInfo={supplierInfo}
     />
   );
 }

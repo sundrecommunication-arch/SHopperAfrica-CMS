@@ -8,3 +8,5 @@ export * from "./marketing";
 export * from "./platform";
 export * from "./ads";
 export * from "./content";
+export * from "./dropship";
+export * from "./dropship-orders";

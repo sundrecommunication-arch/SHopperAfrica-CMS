@@ -10,6 +10,7 @@ import { getPublicStorePaymentProviders } from "@/modules/payments/services/paym
 import { listDeliveryOptions } from "@/modules/shipping/services/shipping-service";
 import { getCurrentCustomer } from "@/modules/customer-auth/services/customer-auth-service";
 import { CheckoutForm } from "@/components/storefront/checkout/checkout-form";
+import { listDropshipProductIds } from "@/modules/dropship/services/catalog-service";
 
 interface CheckoutPageProps {
   params: Promise<{ slug: string }>;
@@ -39,9 +40,10 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
   }
 
   const { t } = await getStorefrontI18n(store.locale);
-  const [paymentProviders, deliveryOptions] = await Promise.all([
+  const [paymentProviders, deliveryOptions, dropshipProductIds] = await Promise.all([
     getPublicStorePaymentProviders(store.id),
     listDeliveryOptions(store.id),
+    listDropshipProductIds(store.id),
   ]);
 
   // Logged-in storefront customers get the checkout form prefilled with their
@@ -76,6 +78,7 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
         deliveryOptions={deliveryOptions}
         customer={customer ? { name: customer.name, phone: customer.phone, email: customer.email } : null}
         addresses={addresses}
+        dropshipProductIds={dropshipProductIds}
       />
     </div>
   );

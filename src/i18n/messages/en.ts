@@ -132,6 +132,7 @@ export const en = {
     paymentMethodHint: "Choose how you want to pay",
     paystackTitle: "Card / Online Payment (Paystack)",
     paystackBody: "Pay instantly with Debit Card, Bank Transfer, USSD, or Apple Pay.",
+    dropshipOnlineOnly: "Some items in your cart ship directly from our partner supplier, so this order is paid securely online.",
     paydunyaTitle: "Online Payment (PayDunya)",
     paydunyaBody: "Pay instantly with Mobile Money, Card, or Bank Transfer via PayDunya.",
     bankTitle: "Direct Bank Transfer",

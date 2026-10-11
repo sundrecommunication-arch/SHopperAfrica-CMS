@@ -125,6 +125,7 @@ export const fr: Messages = {
     paymentMethodHint: "Choisissez comment vous souhaitez payer",
     paystackTitle: "Carte / Paiement en ligne (Paystack)",
     paystackBody: "Payez instantanément par carte, virement, USSD ou Apple Pay.",
+    dropshipOnlineOnly: "Certains articles de votre panier sont expédiés directement par notre fournisseur partenaire : cette commande se paie en ligne, en toute sécurité.",
     paydunyaTitle: "Paiement en ligne (PayDunya)",
     paydunyaBody: "Payez instantanément par Mobile Money, carte ou virement via PayDunya.",
     bankTitle: "Virement bancaire",

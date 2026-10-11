@@ -6,7 +6,11 @@ import { stores, orders, payments, paymentProviders, customers } from "@/db/sche
 import { initializePaystackTransaction } from "@/modules/payments/adapters/paystack-adapter";
 import { initializePaydunyaTransaction } from "@/modules/payments/adapters/paydunya-adapter";
 import { getPublicOrigin } from "@/lib/request-origin";
-import { getStorePlan } from "@/modules/subscriptions/services/subscription-service";
+import {
+  getStorePlan,
+  getPlatformPaystackKey,
+} from "@/modules/subscriptions/services/subscription-service";
+import { computeDropshipSplit, FulfilmentError } from "@/modules/dropship/services/fulfilment-service";
 
 /**
  * Starts an online-payment transaction (Paystack or PayDunya) for an
@@ -42,6 +46,12 @@ export async function POST(request: Request) {
 
     if (order.paymentStatus === "PAID") {
       return NextResponse.json({ error: "This order has already been paid for" }, { status: 400 });
+    }
+
+    // Dropship orders are always paid through Shopper's own Paystack account,
+    // split automatically between the supplier(s) and the store.
+    if (order.isDropship) {
+      return initializeDropshipPayment(request, store, order);
     }
 
     const [paymentRow] = await db
@@ -183,4 +193,47 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+async function initializeDropshipPayment(
+  request: Request,
+  store: typeof stores.$inferSelect,
+  order: typeof orders.$inferSelect
+) {
+  const secretKey = getPlatformPaystackKey();
+  if (!secretKey) {
+    return NextResponse.json({ error: "Online payment isn't available right now. Please try again later." }, { status: 400 });
+  }
+  const [customer] = await db.select().from(customers).where(eq(customers.id, order.customerId)).limit(1);
+  if (!customer?.email) {
+    return NextResponse.json({ error: "An email address is required for online payments" }, { status: 400 });
+  }
+
+  let split;
+  try {
+    split = await computeDropshipSplit(order.id);
+  } catch (error) {
+    if (error instanceof FulfilmentError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    throw error;
+  }
+
+  const origin = getPublicOrigin(request);
+  const result = await initializePaystackTransaction({
+    secretKey,
+    email: customer.email,
+    amount: parseFloat(order.total),
+    reference: `${order.orderNumber}-${store.id.slice(0, 8)}-${Date.now()}`,
+    callbackUrl: `${origin}/store/${store.slug}/orders/${order.orderNumber}`,
+    metadata: { kind: "dropship", orderId: order.id, orderNumber: order.orderNumber, storeId: store.id },
+    split,
+  });
+
+  await db
+    .update(payments)
+    .set({ transactionReference: result.reference, providerId: null, updatedAt: new Date() })
+    .where(and(eq(payments.orderId, order.id), eq(payments.storeId, store.id)));
+
+  return NextResponse.json({ authorizationUrl: result.authorizationUrl });
 }

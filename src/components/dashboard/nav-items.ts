@@ -19,6 +19,7 @@ import {
   UserPlus,
   Truck,
   Crown,
+  Boxes,
 } from "lucide-react";
 
 export interface NavItem {
@@ -36,6 +37,7 @@ export const navItems: NavItem[] = [
   { label: "Orders", href: "/dashboard/orders", icon: ShoppingBag, mobilePrimary: true },
   { label: "Abandoned Carts", href: "/dashboard/abandoned-carts", icon: ShoppingCart },
   { label: "Products", href: "/dashboard/products", icon: Package, mobilePrimary: true },
+  { label: "Dropshipping", href: "/dashboard/dropshipping", icon: Boxes },
   { label: "Categories", href: "/dashboard/categories", icon: FolderTree },
   { label: "Customers", href: "/dashboard/customers", icon: Users },
   { label: "Discounts", href: "/dashboard/discounts", icon: Tag },
