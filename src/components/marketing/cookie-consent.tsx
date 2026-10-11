@@ -45,21 +45,30 @@ export function CookieConsentBanner() {
       role="dialog"
       aria-live="polite"
       aria-label="Cookie preferences"
-      className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-2xl rounded-2xl border border-border bg-background p-4 shadow-lg sm:inset-x-6 sm:bottom-6 sm:p-5"
+      // Compact on phones (short text, buttons side by side) so it covers as
+      // little of the page as possible; full wording from sm: up. Decline and
+      // Accept stay equally easy to tap. The bottom offset keeps it above the
+      // iPhone home indicator.
+      className="fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-50 mx-auto max-w-2xl rounded-xl border border-border bg-background p-3 shadow-lg sm:inset-x-6 sm:bottom-6 sm:rounded-2xl sm:p-5"
     >
-      <p className="text-sm text-foreground">
-        We use cookies to see which posts and ads bring people to Shopper, and to show you relevant
-        Shopper ads on Instagram, Facebook and Google. Essential cookies (like keeping you signed in)
-        are always on.{" "}
+      <p className="text-xs leading-snug text-foreground sm:text-sm">
+        <span className="sm:hidden">
+          We use cookies to measure our ads and show you relevant ones. Essential cookies are always on.
+        </span>
+        <span className="hidden sm:inline">
+          We use cookies to see which posts and ads bring people to Shopper, and to show you relevant
+          Shopper ads on Instagram, Facebook and Google. Essential cookies (like keeping you signed in)
+          are always on.
+        </span>{" "}
         <Link href="/contact" className="underline underline-offset-2">
           Questions?
         </Link>
       </p>
-      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-end">
-        <Button variant="outline" size="sm" onClick={() => setConsent("denied")}>
+      <div className="mt-2.5 grid grid-cols-2 gap-2 sm:mt-3 sm:flex sm:justify-end">
+        <Button variant="outline" size="sm" className="h-9" onClick={() => setConsent("denied")}>
           Decline
         </Button>
-        <Button size="sm" onClick={() => setConsent("granted")}>
+        <Button size="sm" className="h-9" onClick={() => setConsent("granted")}>
           Accept
         </Button>
       </div>
