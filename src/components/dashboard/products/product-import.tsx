@@ -116,7 +116,7 @@ export function ProductImport({
             <CardDescription>
               {result.createdCategories > 0 &&
                 `${result.createdCategories} new categor${result.createdCategories === 1 ? "y was" : "ies were"} created. `}
-              Next, add photos — products with photos sell much better.
+              Next, add photos — products with photos sell much better. Name each photo after its product and upload them all at once, or add them one by one.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -139,6 +139,11 @@ export function ProductImport({
             </div>
             <div className="flex flex-wrap gap-2">
               <Button asChild>
+                <Link href="/dashboard/products/photos">
+                  <ImagePlus className="size-4" /> Upload all photos at once
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
                 <Link href="/dashboard/products">View all products</Link>
               </Button>
               <Button variant="outline" onClick={reset}>

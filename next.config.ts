@@ -15,7 +15,8 @@ const csp = [
   "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: https://*.supabase.co https://images.unsplash.com https://www.facebook.com https://*.google-analytics.com https://www.googletagmanager.com",
+  // blob: = in-browser previews of photos before upload (bulk photo page).
+  "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://www.facebook.com https://*.google-analytics.com https://www.googletagmanager.com",
   "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://connect.facebook.net",
   "frame-src 'self' https://checkout.paystack.com",
   "frame-ancestors 'self'",

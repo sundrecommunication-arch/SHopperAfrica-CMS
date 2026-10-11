@@ -378,3 +378,54 @@ export async function countProducts(storeId: string) {
   const [{ value }] = await db.select({ value: count() }).from(products).where(eq(products.storeId, storeId));
   return value;
 }
+
+// --- Bulk photos ---------------------------------------------------------------
+
+const bulkImagesSchema = z
+  .array(z.object({ productId: z.string().min(1), url: z.string().url() }))
+  .min(1)
+  .max(200);
+
+/**
+ * Appends already-uploaded photos (via /api/uploads) to products, from the
+ * bulk photo page. A product with no photos yet gets its first new one as
+ * the main photo. Only this store's products and this store's uploads are
+ * accepted.
+ */
+export async function addProductImagesBulk(storeId: string, input: unknown) {
+  const parsed = bulkImagesSchema.safeParse(input);
+  if (!parsed.success) throw new ProductServiceError("Nothing to add");
+  const items = parsed.data;
+
+  if (items.some((i) => !i.url.includes(`/stores/${storeId}/products/`))) {
+    throw new ProductServiceError("Photos must be uploaded to this store first");
+  }
+
+  const productIds = [...new Set(items.map((i) => i.productId))];
+  const owned = await db
+    .select({ id: products.id })
+    .from(products)
+    .where(and(eq(products.storeId, storeId), inArray(products.id, productIds)));
+  if (owned.length !== productIds.length) throw new ProductServiceError("Product not found");
+
+  return db.transaction(async (tx) => {
+    const existing = await tx
+      .select({ productId: productImages.productId, position: productImages.position })
+      .from(productImages)
+      .where(inArray(productImages.productId, productIds));
+    const nextPosition = new Map<string, number>();
+    for (const img of existing) {
+      nextPosition.set(img.productId, Math.max(nextPosition.get(img.productId) ?? 0, img.position + 1));
+    }
+
+    const rows = items.map((item) => {
+      const hasImages = nextPosition.has(item.productId);
+      const position = nextPosition.get(item.productId) ?? 0;
+      nextPosition.set(item.productId, position + 1);
+      return { productId: item.productId, url: item.url, position, isPrimary: !hasImages };
+    });
+    await tx.insert(productImages).values(rows);
+    await tx.update(products).set({ updatedAt: new Date() }).where(inArray(products.id, productIds));
+    return { added: rows.length, products: productIds.length };
+  });
+}

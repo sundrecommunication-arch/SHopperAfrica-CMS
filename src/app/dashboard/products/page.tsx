@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileUp, Package, Plus } from "lucide-react";
+import { FileUp, ImagePlus, Package, Plus } from "lucide-react";
 import { getCurrentStore } from "@/lib/tenant";
 import { listProducts } from "@/modules/products/services/product-service";
 import { EmptyState } from "@/components/dashboard/empty-state";
@@ -12,9 +12,16 @@ export default async function ProductsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Products</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
+          {products.length > 0 && (
+            <Button asChild variant="outline">
+              <Link href="/dashboard/products/photos">
+                <ImagePlus className="size-4" /> Bulk photos
+              </Link>
+            </Button>
+          )}
           <Button asChild variant="outline">
             <Link href="/dashboard/products/import">
               <FileUp className="size-4" /> Import
