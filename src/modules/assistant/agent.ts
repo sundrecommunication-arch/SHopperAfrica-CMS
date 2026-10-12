@@ -51,6 +51,13 @@ function isAccountProblem(err: unknown) {
 
 export const isAssistantEnabled = () => Boolean(process.env.ANTHROPIC_API_KEY) && Date.now() >= pause.until;
 
+/** For the admin page: why the assistant is (or isn't) available right now. */
+export function assistantStatus(): { state: "on" } | { state: "no_key" } | { state: "paused"; until: Date } {
+  if (!process.env.ANTHROPIC_API_KEY) return { state: "no_key" };
+  if (Date.now() < pause.until) return { state: "paused", until: new Date(pause.until) };
+  return { state: "on" };
+}
+
 export function dailyTurnLimit() {
   const n = Number(process.env.AI_ASSISTANT_DAILY_LIMIT);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : 40;
