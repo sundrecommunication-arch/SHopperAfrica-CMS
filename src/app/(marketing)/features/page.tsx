@@ -13,6 +13,8 @@ import {
   Users,
   FileText,
   Layers,
+  Boxes,
+  Truck,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -44,6 +46,13 @@ const GROUPS = [
       { icon: Clock, title: "Abandoned cart recovery", body: "See exactly which online checkouts were left unpaid, and follow up on WhatsApp before you lose the sale." },
       { icon: Users, title: "Customer notes", body: "Keep a running note on every customer — preferences, history, anything worth remembering." },
       { icon: Layers, title: "Order & inventory management", body: "Track every order status and manage your product catalog from one dashboard." },
+    ],
+  },
+  {
+    title: "Sell without holding stock",
+    items: [
+      { icon: Boxes, title: "Dropshipping", body: "Add products from approved Nigerian suppliers in one tap, set your own price, and see your profit before you add anything." },
+      { icon: Truck, title: "Suppliers deliver for you", body: "Suppliers ship straight to your customers and update the order, and Paystack pays everyone automatically. Available on every plan." },
     ],
   },
   {

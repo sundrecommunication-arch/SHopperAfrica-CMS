@@ -5,6 +5,7 @@ import { CookieSettingsLink } from "./cookie-consent";
 const PRODUCT_LINKS = [
   { href: "/", label: "Home" },
   { href: "/features", label: "Features" },
+  { href: "/dropshipping", label: "Dropshipping" },
   { href: "/pricing", label: "Pricing" },
   { href: "/contact", label: "Contact us" },
 ];

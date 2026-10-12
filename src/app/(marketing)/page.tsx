@@ -14,6 +14,9 @@ import {
   Globe2,
   ShieldCheck,
   CheckCircle2,
+  Boxes,
+  Truck,
+  Wallet,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -68,6 +71,7 @@ const VISIBILITY = [
 const FEATURES = [
   { icon: ShoppingBag, title: "Your own storefront", body: "A real online store with your name, your products, your brand — live in minutes." },
   { icon: MessageCircle, title: "Sell on WhatsApp or online", body: "Customers order however they prefer — straight to WhatsApp, or pay online with card and bank transfer." },
+  { icon: Boxes, title: "Dropship without stock", body: "Add products from trusted Nigerian suppliers in one tap. They deliver; your profit is paid to you automatically." },
   { icon: Tag, title: "Discounts & promo codes", body: "Run sales and coupon codes whenever you want, no developer required." },
   { icon: Clock, title: "Abandoned cart recovery", body: "Shopper flags carts customers left unpaid so you can follow up on WhatsApp before you lose the sale." },
   { icon: BarChart3, title: "One dashboard for all your ads", body: "Connect Google, Meta, and TikTok Ads and see how every platform is actually performing, in one place." },
@@ -214,6 +218,50 @@ export default function WelcomePage() {
             </Reveal>
           ))}
         </div>
+      </section>
+
+      {/* Dropshipping */}
+      <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 sm:pb-24">
+        <Reveal className="grid items-center gap-8 rounded-3xl border border-border bg-card p-6 sm:p-10 md:grid-cols-2 md:gap-12">
+          <div>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+              <Boxes className="h-3.5 w-3.5" /> New: Dropshipping
+            </span>
+            <h2
+              className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl"
+              style={{ fontFamily: "var(--font-marketing-display)" }}
+            >
+              No stock? Sell anyway.
+            </h2>
+            <p className="mt-4 text-muted-foreground">
+              Pick products from approved Nigerian suppliers, set your price, and share your store. When a customer pays,
+              the supplier delivers and your profit lands in your bank — automatically. Works on the free plan.
+            </p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <Button asChild size="lg" className="h-12 text-base sm:h-10">
+                <Link href="/dropshipping">How dropshipping works</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="h-12 text-base sm:h-10">
+                <Link href="/suppliers">Become a supplier</Link>
+              </Button>
+            </div>
+          </div>
+          <ul className="space-y-4">
+            {[
+              { icon: Boxes, title: "One-tap products", body: "Photos, descriptions and stock are copied into your store for you." },
+              { icon: Truck, title: "Delivered in days", body: "Suppliers ship from within Nigeria — no 4-week waits, no customs." },
+              { icon: Wallet, title: "Paid automatically", body: "Paystack splits every payment: supplier gets their price, you get the rest." },
+            ].map((item) => (
+              <li key={item.title} className="flex gap-3">
+                <item.icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                <div>
+                  <p className="font-semibold">{item.title}</p>
+                  <p className="text-sm text-muted-foreground">{item.body}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Reveal>
       </section>
 
       {/* Free for Africa */}

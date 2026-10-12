@@ -51,6 +51,7 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
       "Bank transfer & cash on delivery",
       "Discounts, delivery fees & order emails",
       "Blog & automatic SEO",
+      "Dropshipping from Shopper suppliers",
     ],
   },
   STARTER: {
