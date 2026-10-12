@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { navItems } from "./nav-items";
+import { SoonBadge } from "@/components/ui/soon-badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import type { StoreRole } from "@/types/next-auth";
 
@@ -13,7 +14,7 @@ import type { StoreRole } from "@/types/next-auth";
 // manages orders and products from their phone as often as from a desktop.
 // A "More" tab opens the full section list so every dashboard page — not
 // just the four pinned here — stays reachable on mobile.
-export function MobileNav({ role }: { role: StoreRole }) {
+export function MobileNav({ role, comingSoon = [] }: { role: StoreRole; comingSoon?: string[] }) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
   const visibleItems = navItems.filter((item) => !item.ownerOnly || role === "OWNER");
@@ -74,6 +75,7 @@ export function MobileNav({ role }: { role: StoreRole }) {
                 >
                   <Icon className="size-4 shrink-0" />
                   {item.label}
+                  {comingSoon.includes(item.href) && <SoonBadge className="ml-auto" />}
                 </Link>
               );
             })}

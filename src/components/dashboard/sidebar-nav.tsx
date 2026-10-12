@@ -4,9 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { navItems } from "./nav-items";
+import { SoonBadge } from "@/components/ui/soon-badge";
 import type { StoreRole } from "@/types/next-auth";
 
-export function SidebarNav({ role }: { role: StoreRole }) {
+export function SidebarNav({ role, comingSoon = [] }: { role: StoreRole; comingSoon?: string[] }) {
   const pathname = usePathname();
   const visibleItems = navItems.filter((item) => !item.ownerOnly || role === "OWNER");
 
@@ -28,6 +29,7 @@ export function SidebarNav({ role }: { role: StoreRole }) {
           >
             <Icon className="size-4 shrink-0" />
             {item.label}
+            {comingSoon.includes(item.href) && <SoonBadge className="ml-auto" />}
           </Link>
         );
       })}

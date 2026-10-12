@@ -9,6 +9,7 @@ import Link from "next/link";
 import { DropshipCatalog } from "@/components/dropship/dropship-catalog";
 import { WorldwideCatalog } from "@/components/dropship/worldwide-catalog";
 import { cjConfigured } from "@/modules/dropship/global/cj-client";
+import { SoonBadge } from "@/components/ui/soon-badge";
 import { PayoutAccountForm } from "@/components/dropship/payout-account-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -96,9 +97,10 @@ export default async function DropshippingPage({
         </Link>
         <Link
           href="/dashboard/dropshipping?tab=worldwide"
-          className={`flex-1 rounded-md px-4 py-1.5 text-center sm:flex-none ${worldwide ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-4 py-1.5 sm:flex-none ${worldwide ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
         >
           Worldwide
+          {!cjConfigured() && <SoonBadge />}
         </Link>
       </div>
 

@@ -9,6 +9,7 @@ import { UserMenu } from "@/components/dashboard/user-menu";
 import type { StoreRole } from "@/types/next-auth";
 import Link from "next/link";
 import { getStorePlan, getPlanBanner } from "@/modules/subscriptions/services/subscription-service";
+import { isAssistantEnabled } from "@/modules/assistant/agent";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -44,6 +45,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   // One plan banner for the whole dashboard: suspended, lapsed, or about to end.
   const banner = getPlanBanner(await getStorePlan(storeId), suspended);
+  // Built but not switched on yet: tagged "Soon" in the menu.
+  const comingSoon = isAssistantEnabled() ? [] : ["/dashboard/assistant"];
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -53,7 +56,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {activeStoreName}
         </div>
         <div className="flex-1 overflow-y-auto">
-          <SidebarNav role={role} />
+          <SidebarNav role={role} comingSoon={comingSoon} />
         </div>
         <div className="border-t p-2">
           <UserMenu name={session.user.name} email={session.user.email} />
@@ -76,7 +79,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
         )}
         <main className="flex-1 p-4 pb-20 md:p-8 md:pb-8">{children}</main>
-        <MobileNav role={role} />
+        <MobileNav role={role} comingSoon={comingSoon} />
       </div>
     </div>
   );

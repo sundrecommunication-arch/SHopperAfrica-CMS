@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { getCurrentStore, TenantError } from "@/lib/tenant";
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
+import { SoonBadge } from "@/components/ui/soon-badge";
 import { CreateStoreForm } from "@/components/onboarding/create-store-form";
 import { isAssistantEnabled } from "@/modules/assistant/agent";
 
@@ -35,7 +36,7 @@ export default async function OnboardingPage() {
           <h1 className="text-xl font-semibold">Let&apos;s set up your store</h1>
           <p className="text-muted-foreground text-sm">Takes less than a minute.</p>
         </div>
-        {isAssistantEnabled() && (
+        {isAssistantEnabled() ? (
           <>
             <Link
               href="/onboarding/assistant"
@@ -51,6 +52,16 @@ export default async function OnboardingPage() {
             </Link>
             <p className="text-muted-foreground mb-4 text-center text-xs">or create your store yourself</p>
           </>
+        ) : (
+          <div className="mb-5 flex items-center gap-3 rounded-lg border border-dashed p-3 text-left">
+            <Sparkles className="text-muted-foreground size-5 shrink-0" />
+            <span className="flex flex-col">
+              <span className="flex items-center gap-1.5 text-sm font-medium">
+                Set up your store by chatting with AI <SoonBadge />
+              </span>
+              <span className="text-muted-foreground text-xs">For now, it only takes a minute with the form below.</span>
+            </span>
+          </div>
         )}
         <CreateStoreForm />
       </div>
