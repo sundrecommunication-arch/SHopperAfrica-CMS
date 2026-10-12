@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
 import { ImageUploader, type UploadedImage } from "@/components/dashboard/products/image-uploader";
+import { VariantEditor } from "@/components/dashboard/products/variant-editor";
+import type { ProductVariantInput } from "@/modules/products/validation/schemas";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,9 +26,10 @@ interface Values {
   stock: number;
   sku: string;
   isActive: boolean;
+  variants: { id?: string; name: string; options: Record<string, string>; inventoryQuantity: number }[];
 }
 
-const EMPTY: Values = { name: "", description: "", images: [], category: "", wholesalePrice: null, suggestedPrice: null, stock: 0, sku: "", isActive: true };
+const EMPTY: Values = { name: "", description: "", images: [], category: "", wholesalePrice: null, suggestedPrice: null, stock: 0, sku: "", isActive: true, variants: [] };
 const CATEGORIES = ["Fashion", "Shoes & Bags", "Beauty & Skincare", "Hair", "Jewellery & Accessories", "Phones & Gadgets", "Home & Kitchen", "Baby & Kids", "Health & Wellness", "Food & Drinks", "Other"];
 
 export function SupplierProductForm({ productId, initial }: { productId?: string; initial?: Values }) {
@@ -39,6 +42,19 @@ export function SupplierProductForm({ productId, initial }: { productId?: string
   const images: UploadedImage[] = v.images.map((url, i) => ({ url, isPrimary: i === 0 }));
   const num = (s: string) => (s === "" ? null : Number(s));
   const margin = v.wholesalePrice && v.suggestedPrice ? v.suggestedPrice - v.wholesalePrice : null;
+  const hasOptions = v.variants.length > 0;
+  const totalOptionStock = v.variants.reduce((n, x) => n + x.inventoryQuantity, 0);
+  // VariantEditor speaks the store's variant shape; suppliers only use name/options/stock.
+  const editorVariants: ProductVariantInput[] = v.variants.map((x) => ({
+    id: x.id,
+    name: x.name,
+    options: x.options,
+    sku: "",
+    price: null,
+    compareAtPrice: null,
+    inventoryQuantity: x.inventoryQuantity,
+    imageUrl: "",
+  }));
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -138,13 +154,39 @@ export function SupplierProductForm({ productId, initial }: { productId?: string
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="stock">How many in stock</Label>
-              <Input id="stock" type="number" min="0" inputMode="numeric" value={v.stock} onChange={(e) => setV({ ...v, stock: Number(e.target.value || 0) })} required />
+              {hasOptions ? (
+                <p className="flex h-9 items-center text-sm text-muted-foreground">{totalOptionStock} (total of sizes/colours below)</p>
+              ) : (
+                <Input id="stock" type="number" min="0" inputMode="numeric" value={v.stock} onChange={(e) => setV({ ...v, stock: Number(e.target.value || 0) })} required />
+              )}
             </div>
           </div>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={v.isActive} onChange={(e) => setV({ ...v, isActive: e.target.checked })} />
             Available to stores
           </label>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="space-y-3 pt-6">
+          <div>
+            <p className="font-medium">Sizes & colours (optional)</p>
+            <p className="text-sm text-muted-foreground">
+              Add options like Size or Colour, then set how many you have of each. Customers pick one at checkout, and
+              stock is tracked per option.
+            </p>
+          </div>
+          <VariantEditor
+            variants={editorVariants}
+            stockOnly
+            onChange={(next) =>
+              setV({
+                ...v,
+                variants: next.map((x) => ({ id: x.id, name: x.name, options: x.options, inventoryQuantity: x.inventoryQuantity })),
+              })
+            }
+          />
         </CardContent>
       </Card>
 

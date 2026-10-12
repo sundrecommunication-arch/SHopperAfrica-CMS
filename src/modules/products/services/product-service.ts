@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { products, productImages, productVariants, productCategories, categories, supplierProducts } from "@/db/schema";
 import { estimatePaystackFee } from "@/modules/dropship/fees";
+import { syncLinkedProducts } from "@/modules/dropship/services/supplier-service";
 import { productSchema, slugify, type ProductInput } from "../validation/schemas";
 import { importRowSchema, MAX_IMPORT_ROWS } from "../import/csv";
 import { PLANS } from "@/modules/subscriptions/plans";
@@ -158,8 +159,11 @@ export async function updateProduct(storeId: string, productId: string, input: P
     // is the simplest correct approach for now (rule 71.4) — it means
     // variant ids are not stable across edits, which is fine until checkout
     // (phase 5) needs to reference a specific variant id long-term.
+    // Dropship products' sizes/colours (and stock) come from the supplier, so
+    // the merchant's save leaves them alone and they're re-synced below.
+    const fromSupplier = Boolean(product.supplierProductId);
     await tx.delete(productImages).where(eq(productImages.productId, productId));
-    await tx.delete(productVariants).where(eq(productVariants.productId, productId));
+    if (!fromSupplier) await tx.delete(productVariants).where(eq(productVariants.productId, productId));
     await tx.delete(productCategories).where(eq(productCategories.productId, productId));
 
     if (data.images.length > 0) {
@@ -172,7 +176,7 @@ export async function updateProduct(storeId: string, productId: string, input: P
         }))
       );
     }
-    if (data.variants.length > 0) {
+    if (!fromSupplier && data.variants.length > 0) {
       await tx.insert(productVariants).values(
         data.variants.map((v) => ({
           productId,
@@ -191,6 +195,7 @@ export async function updateProduct(storeId: string, productId: string, input: P
         .insert(productCategories)
         .values(data.categoryIds.map((categoryId) => ({ productId, categoryId })));
     }
+    if (fromSupplier) await syncLinkedProducts([product.supplierProductId!], tx);
 
     return product;
   });

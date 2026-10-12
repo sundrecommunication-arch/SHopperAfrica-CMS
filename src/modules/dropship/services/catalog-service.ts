@@ -2,13 +2,14 @@ import "server-only";
 import { and, desc, eq, ilike, or, sql, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
-import { products, supplierProducts, suppliers } from "@/db/schema";
+import { products, supplierProducts, supplierProductVariants, suppliers } from "@/db/schema";
 import {
   availableProductSlug,
   createProduct,
   ProductServiceError,
 } from "@/modules/products/services/product-service";
 import { addToStoreSchema } from "../validation/schemas";
+import { syncLinkedProducts } from "./supplier-service";
 import { estimatePaystackFee } from "../fees";
 
 export class CatalogServiceError extends Error {}
@@ -30,6 +31,8 @@ export async function listCatalog(opts: { search?: string; category?: string; st
       supplierState: suppliers.state,
       deliveryAreas: suppliers.deliveryAreas,
       deliveryDays: suppliers.deliveryDays,
+      // e.g. "S, M, L" -- the supplier's options, for the catalog card.
+      optionSummary: sql<string | null>`(select string_agg(${supplierProductVariants.name}, ', ' order by ${supplierProductVariants.createdAt}) from ${supplierProductVariants} where ${supplierProductVariants.supplierProductId} = ${supplierProducts.id} and ${supplierProductVariants.stock} > 0)`,
       // This store's copy, if it already added the product.
       inStoreProductId: sql<string | null>`(select ${products.id} from ${products} where ${products.supplierProductId} = ${supplierProducts.id} and ${products.storeId} = ${opts.storeId} limit 1)`,
     })
@@ -126,6 +129,7 @@ export async function addSupplierProductToStore(storeId: string, input: unknown)
       variants: [],
     });
     await db.update(products).set({ supplierProductId }).where(eq(products.id, created.id));
+    await syncLinkedProducts([supplierProductId]); // copies the supplier's sizes/colours, with stock
     return created;
   } catch (error) {
     if (error instanceof ProductServiceError) throw new CatalogServiceError(error.message);

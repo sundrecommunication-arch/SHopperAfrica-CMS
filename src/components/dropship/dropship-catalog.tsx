@@ -27,6 +27,7 @@ interface CatalogProduct {
   deliveryAreas: string;
   deliveryDays: string;
   inStoreProductId: string | null;
+  optionSummary: string | null;
 }
 
 interface MyProduct {
@@ -176,6 +177,11 @@ export function DropshipCatalog({
                     <p className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Truck className="size-3.5" /> {p.deliveryDays} · {p.deliveryAreas}
                     </p>
+                    {p.optionSummary && (
+                      <p className="line-clamp-1 text-xs text-muted-foreground" title={p.optionSummary}>
+                        Options: {p.optionSummary}
+                      </p>
+                    )}
                     <div className="mt-auto space-y-0.5 pt-2 text-xs">
                       <p>Supplier price <span className="font-semibold">{naira(p.wholesalePrice)}</span></p>
                       <p>Sell for <span className="font-semibold">{naira(suggested)}</span></p>

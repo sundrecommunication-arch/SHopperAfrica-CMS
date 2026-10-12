@@ -11,7 +11,7 @@ import {
   AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { stores } from "./tenant";
-import { supplierProducts } from "./dropship";
+import { supplierProducts, supplierProductVariants } from "./dropship";
 
 export const productStatusEnum = pgEnum("product_status", ["DRAFT", "ACTIVE", "ARCHIVED"]);
 
@@ -101,6 +101,10 @@ export const productVariants = pgTable("product_variants", {
   compareAtPrice: numeric("compare_at_price", { precision: 12, scale: 2 }),
   inventoryQuantity: integer("inventory_quantity").notNull().default(0),
   imageUrl: text("image_url"),
+  // Dropship products: the supplier's size/colour this mirrors (stock synced).
+  supplierVariantId: text("supplier_variant_id").references(() => supplierProductVariants.id, {
+    onDelete: "set null",
+  }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }).enableRLS();

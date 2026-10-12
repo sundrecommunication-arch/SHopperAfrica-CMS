@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, integer, numeric, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, integer, numeric, pgEnum, jsonb } from "drizzle-orm/pg-core";
 import { users } from "./auth";
 import { stores } from "./tenant";
 
@@ -52,6 +52,23 @@ export const supplierProducts = pgTable("supplier_products", {
   stock: integer("stock").notNull().default(0),
   sku: text("sku"),
   isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}).enableRLS();
+
+// Sizes/colours of a supplier product, each with its own stock (same
+// wholesale price). When present, supplierProducts.stock is their total.
+// Merchants' copies get matching product_variants rows (supplierVariantId).
+export const supplierProductVariants = pgTable("supplier_product_variants", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  supplierProductId: text("supplier_product_id")
+    .notNull()
+    .references(() => supplierProducts.id, { onDelete: "cascade" }),
+  name: text("name").notNull(), // e.g. "Black / M"
+  options: jsonb("options").$type<Record<string, string>>().notNull().default({}),
+  stock: integer("stock").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }).enableRLS();

@@ -17,6 +17,7 @@ import {
   fulfillmentStatusEnum,
   paymentStatusEnum,
   supplierProducts,
+  supplierProductVariants,
   suppliers,
 } from "@/db/schema";
 
@@ -124,6 +125,20 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
 
   const variantMap = new Map(dbVariants.map((v) => [v.id, v]));
 
+  // The supplier's size/colour behind each chosen option (stock lives there).
+  const supplierVariantIds = dbVariants
+    .map((v) => v.supplierVariantId)
+    .filter((id): id is string => Boolean(id));
+  const supplierVariantMap = new Map(
+    (supplierVariantIds.length > 0
+      ? await db
+          .select({ id: supplierProductVariants.id, stock: supplierProductVariants.stock })
+          .from(supplierProductVariants)
+          .where(inArray(supplierProductVariants.id, supplierVariantIds))
+      : []
+    ).map((v) => [v.id, v])
+  );
+
   // 3. Validate items & calculate authoritative line totals
   const validatedItems: {
     productId: string;
@@ -138,6 +153,7 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
     allowBackorder: boolean;
     inventoryQuantity: number;
     supplierProductId: string | null;
+    supplierVariantId: string | null;
     supplierId: string | null;
     supplierUnitCost: number | null;
   }[] = [];
@@ -175,6 +191,15 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
       }
       availableStock = Math.min(availableStock, supplierProduct.stock);
     }
+    let supplierVariantId: string | null = null;
+    if (supplierProduct && item.variantId) {
+      supplierVariantId = variantMap.get(item.variantId)?.supplierVariantId ?? null;
+      const supplierVariant = supplierVariantId ? supplierVariantMap.get(supplierVariantId) : undefined;
+      if (!supplierVariant) {
+        throw new OrderServiceError(`Sorry, that option of "${product.name}" isn't available any more.`);
+      }
+      availableStock = Math.min(availableStock, supplierVariant.stock);
+    }
 
     // Check inventory
     if (product.trackInventory && !product.allowBackorder) {
@@ -201,6 +226,7 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
       allowBackorder: product.allowBackorder,
       inventoryQuantity: availableStock,
       supplierProductId: supplierProduct ? product.supplierProductId : null,
+      supplierVariantId,
       supplierId: supplierProduct?.supplierId ?? null,
       supplierUnitCost: supplierProduct ? Number(supplierProduct.wholesalePrice) : null,
     });
@@ -479,13 +505,25 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
     // store selling the product); then every store's copy is re-synced.
     const soldFromSuppliers = validatedItems.filter((v) => v.supplierProductId);
     for (const item of soldFromSuppliers) {
-      const updated = await tx
-        .update(supplierProducts)
-        .set({ stock: sql`${supplierProducts.stock} - ${item.quantity}`, updatedAt: new Date() })
-        .where(and(eq(supplierProducts.id, item.supplierProductId!), gte(supplierProducts.stock, item.quantity)))
-        .returning({ id: supplierProducts.id });
-      if (updated.length === 0) {
-        throw new OrderServiceError(`Sorry, "${item.productName}" just sold out. Please update your cart.`);
+      const soldOut = () =>
+        new OrderServiceError(
+          `Sorry, "${item.productName}${item.variantName ? ` (${item.variantName})` : ""}" just sold out. Please update your cart.`
+        );
+      if (item.supplierVariantId) {
+        const updated = await tx
+          .update(supplierProductVariants)
+          .set({ stock: sql`${supplierProductVariants.stock} - ${item.quantity}`, updatedAt: new Date() })
+          .where(and(eq(supplierProductVariants.id, item.supplierVariantId), gte(supplierProductVariants.stock, item.quantity)))
+          .returning({ id: supplierProductVariants.id });
+        if (updated.length === 0) throw soldOut();
+        await recountSupplierStock(tx, item.supplierProductId!);
+      } else {
+        const updated = await tx
+          .update(supplierProducts)
+          .set({ stock: sql`${supplierProducts.stock} - ${item.quantity}`, updatedAt: new Date() })
+          .where(and(eq(supplierProducts.id, item.supplierProductId!), gte(supplierProducts.stock, item.quantity)))
+          .returning({ id: supplierProducts.id });
+        if (updated.length === 0) throw soldOut();
       }
     }
     await syncLinkedProducts(soldFromSuppliers.map((v) => v.supplierProductId!), tx);
@@ -785,10 +823,12 @@ async function adjustOrderInventory(tx: Tx, orderId: string, direction: "restock
       quantity: orderItems.quantity,
       trackInventory: products.trackInventory,
       supplierProductId: products.supplierProductId,
+      supplierVariantId: productVariants.supplierVariantId,
       fromSupplier: orderItems.supplierId,
     })
     .from(orderItems)
     .innerJoin(products, eq(products.id, orderItems.productId))
+    .leftJoin(productVariants, eq(productVariants.id, orderItems.variantId))
     .where(and(eq(orderItems.orderId, orderId), isNotNull(orderItems.productId)));
 
   // Dropship lines: the stock lives with the supplier; put it back (or take
@@ -796,10 +836,18 @@ async function adjustOrderInventory(tx: Tx, orderId: string, direction: "restock
   const supplierLines = items.filter((i) => i.fromSupplier && i.supplierProductId);
   for (const item of supplierLines) {
     const delta = direction === "restock" ? item.quantity : -item.quantity;
-    await tx
-      .update(supplierProducts)
-      .set({ stock: sql`greatest(0, ${supplierProducts.stock} + ${delta})`, updatedAt: new Date() })
-      .where(eq(supplierProducts.id, item.supplierProductId!));
+    if (item.supplierVariantId) {
+      await tx
+        .update(supplierProductVariants)
+        .set({ stock: sql`greatest(0, ${supplierProductVariants.stock} + ${delta})`, updatedAt: new Date() })
+        .where(eq(supplierProductVariants.id, item.supplierVariantId));
+      await recountSupplierStock(tx, item.supplierProductId!);
+    } else {
+      await tx
+        .update(supplierProducts)
+        .set({ stock: sql`greatest(0, ${supplierProducts.stock} + ${delta})`, updatedAt: new Date() })
+        .where(eq(supplierProducts.id, item.supplierProductId!));
+    }
   }
   await syncLinkedProducts(supplierLines.map((i) => i.supplierProductId!), tx);
 
@@ -827,4 +875,15 @@ async function adjustOrderInventory(tx: Tx, orderId: string, direction: "restock
       })
       .where(eq(products.id, item.productId!));
   }
+}
+
+/** A supplier product with sizes/colours keeps its total stock = sum of its options. */
+async function recountSupplierStock(tx: Tx, supplierProductId: string) {
+  await tx
+    .update(supplierProducts)
+    .set({
+      stock: sql`(select coalesce(sum(${supplierProductVariants.stock}), 0) from ${supplierProductVariants} where ${supplierProductVariants.supplierProductId} = ${supplierProductId})`,
+      updatedAt: new Date(),
+    })
+    .where(eq(supplierProducts.id, supplierProductId));
 }

@@ -203,8 +203,8 @@ export function ProductForm({
         <p className="rounded-xl border bg-muted/40 p-3 text-sm">
           <strong>Dropship product</strong> — supplied by {supplierInfo.supplierName} at ₦
           {supplierInfo.wholesalePrice.toLocaleString()} (incl. delivery, {supplierInfo.deliveryDays}). They deliver every
-          order, and stock updates automatically from the supplier, so changes to stock here are replaced. You can change
-          the name, description, photos and your price.
+          order, and stock and sizes/colours update automatically from the supplier, so changes to those here are
+          replaced. You can change the name, description, photos and your price.
         </p>
       )}
 
@@ -390,11 +390,27 @@ export function ProductForm({
           <CardDescription>Add options like Color or Size if this product comes in variants.</CardDescription>
         </CardHeader>
         <CardContent className="pb-6">
-          <VariantEditor
-            key={formKey}
-            variants={variants as ProductVariantInput[]}
-            onChange={(v) => setValue("variants", v)}
-          />
+          {supplierInfo ? (
+            // Dropship: the supplier's sizes/colours, kept in sync -- not editable here.
+            variants.length > 0 ? (
+              <div className="divide-y rounded-lg border text-sm">
+                {(variants as ProductVariantInput[]).map((variant) => (
+                  <div key={variant.id ?? variant.name} className="flex justify-between px-3 py-2">
+                    <span>{variant.name}</span>
+                    <span className="text-muted-foreground">{variant.inventoryQuantity} in stock</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">This supplier product has no size or colour options.</p>
+            )
+          ) : (
+            <VariantEditor
+              key={formKey}
+              variants={variants as ProductVariantInput[]}
+              onChange={(v) => setValue("variants", v)}
+            />
+          )}
         </CardContent>
       </Card>
 

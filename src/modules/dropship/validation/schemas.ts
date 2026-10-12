@@ -29,6 +29,18 @@ export const supplierProductSchema = z
     stock: z.coerce.number().int("Whole number").min(0),
     sku: z.string().trim().max(100).optional().or(z.literal("")),
     isActive: z.boolean().default(true),
+    // Sizes/colours, each with its own stock. Empty = no options.
+    variants: z
+      .array(
+        z.object({
+          id: z.string().optional(),
+          name: z.string().trim().min(1).max(120),
+          options: z.record(z.string(), z.string()).default({}),
+          inventoryQuantity: z.coerce.number().int().min(0).default(0),
+        })
+      )
+      .max(100)
+      .default([]),
   })
   .refine((p) => !p.suggestedPrice || p.suggestedPrice >= p.wholesalePrice, {
     message: "Suggested selling price should be at least your wholesale price",

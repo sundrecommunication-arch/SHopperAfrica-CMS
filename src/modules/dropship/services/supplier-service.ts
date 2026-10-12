@@ -1,12 +1,14 @@
 import "server-only";
-import { and, desc, eq, sql, count } from "drizzle-orm";
+import { and, desc, eq, sql, count, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
   suppliers,
   supplierProducts,
+  supplierProductVariants,
   supplierOrders,
   products,
+  productVariants,
   orders,
   orderItems,
   customers,
@@ -80,6 +82,8 @@ export async function applyAsSupplier(userId: string, input: unknown) {
 // --- Supplier products -----------------------------------------------------------
 
 function productValues(data: SupplierProductInput) {
+  // With sizes/colours, the product's stock is their total.
+  const stock = data.variants.length > 0 ? data.variants.reduce((n, v) => n + v.inventoryQuantity, 0) : data.stock;
   return {
     name: data.name,
     description: data.description || null,
@@ -87,10 +91,39 @@ function productValues(data: SupplierProductInput) {
     category: data.category || null,
     wholesalePrice: String(data.wholesalePrice),
     suggestedPrice: data.suggestedPrice ? String(data.suggestedPrice) : null,
-    stock: data.stock,
+    stock,
     sku: data.sku || null,
     isActive: data.isActive,
   };
+}
+
+/** Upserts a supplier product's sizes/colours by id; removes the ones no longer listed. */
+async function saveSupplierVariants(supplierProductId: string, variants: SupplierProductInput["variants"]) {
+  const existing = await db
+    .select({ id: supplierProductVariants.id })
+    .from(supplierProductVariants)
+    .where(eq(supplierProductVariants.supplierProductId, supplierProductId));
+  const existingIds = new Set(existing.map((v) => v.id));
+  const keep = new Set<string>();
+  for (const v of variants) {
+    const values = { name: v.name, options: v.options, stock: v.inventoryQuantity, updatedAt: new Date() };
+    if (v.id && existingIds.has(v.id)) {
+      keep.add(v.id);
+      await db.update(supplierProductVariants).set(values).where(eq(supplierProductVariants.id, v.id));
+    } else {
+      await db.insert(supplierProductVariants).values({ supplierProductId, ...values });
+    }
+  }
+  const removed = [...existingIds].filter((id) => !keep.has(id));
+  if (removed.length > 0) await db.delete(supplierProductVariants).where(inArray(supplierProductVariants.id, removed));
+}
+
+export async function listSupplierProductVariants(supplierProductId: string) {
+  return db
+    .select()
+    .from(supplierProductVariants)
+    .where(eq(supplierProductVariants.supplierProductId, supplierProductId))
+    .orderBy(supplierProductVariants.createdAt);
 }
 
 export async function listSupplierProducts(supplierId: string) {
@@ -116,6 +149,7 @@ export async function getSupplierProduct(supplierId: string, id: string) {
 export async function createSupplierProduct(supplierId: string, input: unknown) {
   const data = parse(supplierProductSchema, input);
   const [row] = await db.insert(supplierProducts).values({ supplierId, ...productValues(data) }).returning();
+  if (data.variants.length > 0) await saveSupplierVariants(row.id, data.variants);
   return row;
 }
 
@@ -128,6 +162,7 @@ export async function updateSupplierProduct(supplierId: string, id: string, inpu
     .set({ ...productValues(data), updatedAt: new Date() })
     .where(eq(supplierProducts.id, id))
     .returning();
+  await saveSupplierVariants(id, data.variants);
   await syncLinkedProducts([id]);
   return row;
 }
@@ -143,6 +178,7 @@ export async function syncLinkedProducts(
   executor: Pick<typeof db, "execute"> = db
 ) {
   if (supplierProductIds.length === 0) return;
+  const ids = sql.join(supplierProductIds.map((id) => sql`${id}`), sql`, `);
   await executor.execute(sql`
     update ${products} p
     set inventory_quantity = case when sp.is_active and s.status = 'APPROVED' then sp.stock else 0 end,
@@ -150,7 +186,34 @@ export async function syncLinkedProducts(
         allow_backorder = false,
         updated_at = now()
     from ${supplierProducts} sp join ${suppliers} s on s.id = sp.supplier_id
-    where p.supplier_product_id = sp.id and sp.id in (${sql.join(supplierProductIds.map((id) => sql`${id}`), sql`, `)})
+    where p.supplier_product_id = sp.id and sp.id in (${ids})
+  `);
+
+  // Sizes/colours: same rules per option. Merchants' copies follow the
+  // supplier's list exactly -- options added, renamed, restocked or removed.
+  const available = sql`case when sp.is_active and s.status = 'APPROVED' then sv.stock else 0 end`;
+  await executor.execute(sql`
+    update ${productVariants} pv
+    set inventory_quantity = ${available}, name = sv.name, options = sv.options, updated_at = now()
+    from ${supplierProductVariants} sv
+      join ${supplierProducts} sp on sp.id = sv.supplier_product_id
+      join ${suppliers} s on s.id = sp.supplier_id
+    where pv.supplier_variant_id = sv.id and sp.id in (${ids})
+  `);
+  await executor.execute(sql`
+    insert into ${productVariants} (id, product_id, name, options, inventory_quantity, supplier_variant_id)
+    select gen_random_uuid()::text, p.id, sv.name, sv.options, ${available}, sv.id
+    from ${products} p
+      join ${supplierProductVariants} sv on sv.supplier_product_id = p.supplier_product_id
+      join ${supplierProducts} sp on sp.id = sv.supplier_product_id
+      join ${suppliers} s on s.id = sp.supplier_id
+    where p.supplier_product_id in (${ids})
+      and not exists (select 1 from ${productVariants} x where x.product_id = p.id and x.supplier_variant_id = sv.id)
+  `);
+  await executor.execute(sql`
+    delete from ${productVariants} pv
+    using ${products} p
+    where pv.product_id = p.id and p.supplier_product_id in (${ids}) and pv.supplier_variant_id is null
   `);
 }
 

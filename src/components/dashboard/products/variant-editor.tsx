@@ -39,9 +39,12 @@ function placeholderFor(name: string) {
 export function VariantEditor({
   variants,
   onChange,
+  stockOnly = false,
 }: {
   variants: ProductVariantInput[];
   onChange: (variants: ProductVariantInput[]) => void;
+  /** Only the stock column (supplier portal: one wholesale price for all options). */
+  stockOnly?: boolean;
 }) {
   const [options, setOptions] = useState<OptionDraft[]>(() => deriveOptionsFromVariants(variants));
   const [draftValue, setDraftValue] = useState<Record<number, string>>({});
@@ -235,9 +238,9 @@ export function VariantEditor({
           <TableHeader>
             <TableRow>
               <TableHead>Variant</TableHead>
-              <TableHead>SKU</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Inventory</TableHead>
+              {!stockOnly && <TableHead>SKU</TableHead>}
+              {!stockOnly && <TableHead>Price</TableHead>}
+              <TableHead>{stockOnly ? "In stock" : "Inventory"}</TableHead>
               <TableHead className="w-9" />
             </TableRow>
           </TableHeader>
@@ -245,25 +248,29 @@ export function VariantEditor({
             {variants.map((variant, index) => (
               <TableRow key={variant.id ?? variant.name}>
                 <TableCell className="font-medium">{variant.name}</TableCell>
-                <TableCell>
-                  <Input
-                    value={variant.sku ?? ""}
-                    onChange={(e) => updateVariant(index, { sku: e.target.value })}
-                    className="h-8 w-28"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    placeholder="Same as product"
-                    value={variant.price ?? ""}
-                    onChange={(e) =>
-                      updateVariant(index, { price: e.target.value === "" ? null : Number(e.target.value) })
-                    }
-                    className="h-8 w-32"
-                  />
-                </TableCell>
+                {!stockOnly && (
+                  <TableCell>
+                    <Input
+                      value={variant.sku ?? ""}
+                      onChange={(e) => updateVariant(index, { sku: e.target.value })}
+                      className="h-8 w-28"
+                    />
+                  </TableCell>
+                )}
+                {!stockOnly && (
+                  <TableCell>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Same as product"
+                      value={variant.price ?? ""}
+                      onChange={(e) =>
+                        updateVariant(index, { price: e.target.value === "" ? null : Number(e.target.value) })
+                      }
+                      className="h-8 w-32"
+                    />
+                  </TableCell>
+                )}
                 <TableCell>
                   <Input
                     type="number"
