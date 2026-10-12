@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getCurrentStore, TenantError } from "@/lib/tenant";
+import Link from "next/link";
+import { Sparkles } from "lucide-react";
 import { CreateStoreForm } from "@/components/onboarding/create-store-form";
+import { isAssistantEnabled } from "@/modules/assistant/agent";
 
 export default async function OnboardingPage() {
   const session = await auth();
@@ -32,6 +35,23 @@ export default async function OnboardingPage() {
           <h1 className="text-xl font-semibold">Let&apos;s set up your store</h1>
           <p className="text-muted-foreground text-sm">Takes less than a minute.</p>
         </div>
+        {isAssistantEnabled() && (
+          <>
+            <Link
+              href="/onboarding/assistant"
+              className="hover:bg-muted mb-5 flex items-center gap-3 rounded-lg border p-3 text-left transition-colors"
+            >
+              <Sparkles className="text-primary size-5 shrink-0" />
+              <span className="flex flex-col">
+                <span className="text-sm font-medium">Set it all up by chatting with AI</span>
+                <span className="text-muted-foreground text-xs">
+                  Tell our assistant what you sell. It adds your products, delivery, payments and more.
+                </span>
+              </span>
+            </Link>
+            <p className="text-muted-foreground mb-4 text-center text-xs">or create your store yourself</p>
+          </>
+        )}
         <CreateStoreForm />
       </div>
     </div>

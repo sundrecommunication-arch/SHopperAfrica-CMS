@@ -20,6 +20,7 @@ import {
   Truck,
   Crown,
   Boxes,
+  Sparkles,
 } from "lucide-react";
 
 export interface NavItem {
@@ -34,6 +35,7 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard, mobilePrimary: true },
+  { label: "AI Assistant", href: "/dashboard/assistant", icon: Sparkles },
   { label: "Orders", href: "/dashboard/orders", icon: ShoppingBag, mobilePrimary: true },
   { label: "Abandoned Carts", href: "/dashboard/abandoned-carts", icon: ShoppingCart },
   { label: "Products", href: "/dashboard/products", icon: Package, mobilePrimary: true },

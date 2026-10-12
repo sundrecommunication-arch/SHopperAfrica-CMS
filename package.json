@@ -16,6 +16,7 @@
     "db:secure": "tsx --env-file=.env src/db/scripts/enable-rls.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
     "@auth/drizzle-adapter": "^1.11.3",
     "@hookform/resolvers": "^5.9.1",
     "@radix-ui/react-avatar": "^1.2.6",

@@ -46,6 +46,7 @@ const RATE_LIMIT_RULES: Array<{ prefix: string; limit: number; windowMs: number 
   { prefix: "/api/payments/verify", limit: 20, windowMs: 60_000 },
   { prefix: "/api/storefront/orders", limit: 20, windowMs: 60_000 },
   { prefix: "/api/invites", limit: 20, windowMs: 60_000 },
+  { prefix: "/api/assistant", limit: 20, windowMs: 60_000 },
   { prefix: "/login", limit: 15, windowMs: 60_000 },
   { prefix: "/signup", limit: 15, windowMs: 60_000 },
 ];

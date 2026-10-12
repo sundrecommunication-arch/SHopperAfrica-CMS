@@ -5,6 +5,9 @@ import { products, customers, orders } from "@/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { resolveDateRange } from "@/lib/date-range";
 import { DateRangeFilter } from "@/components/dashboard/filters/date-range-filter";
+import Link from "next/link";
+import { Sparkles } from "lucide-react";
+import { isAssistantEnabled } from "@/modules/assistant/agent";
 
 /**
  * Products, Customers, and Store Status are current-state figures -- they
@@ -86,6 +89,21 @@ export default async function DashboardOverviewPage({
         </div>
         <DateRangeFilter />
       </div>
+
+      {isAssistantEnabled() && (!store.isPublished || stats.products === 0) && (
+        <Link
+          href="/dashboard/assistant"
+          className="hover:bg-muted flex items-center gap-3 rounded-xl border p-4 transition-colors"
+        >
+          <Sparkles className="text-primary size-5 shrink-0" />
+          <span className="flex flex-col">
+            <span className="text-sm font-medium">Finish setting up with the AI assistant</span>
+            <span className="text-muted-foreground text-xs">
+              Chat to add products, delivery fees, payment methods and policies, then go live.
+            </span>
+          </span>
+        </Link>
+      )}
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
         {cards.map((c) => (

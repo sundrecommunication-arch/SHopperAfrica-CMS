@@ -10,3 +10,4 @@ export * from "./ads";
 export * from "./content";
 export * from "./dropship";
 export * from "./dropship-orders";
+export * from "./assistant";
