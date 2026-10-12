@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, integer, numeric, pgEnum, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, integer, numeric, pgEnum, jsonb, uniqueIndex } from "drizzle-orm/pg-core";
 import { users } from "./auth";
 import { stores } from "./tenant";
 
@@ -58,7 +58,7 @@ export const supplierProducts = pgTable("supplier_products", {
   isActive: boolean("is_active").notNull().default(true),
   // Worldwide (CJ) products: CJ's product id, delivery estimate, cost in USD
   // (unit + shipping to Nigeria) and when price/stock were last refreshed.
-  externalId: text("external_id").unique(),
+  externalId: text("external_id"), // unique: see the index below
   // CJ's variant id when the product has a single variant (no options shown).
   externalVariantId: text("external_variant_id"),
   deliveryDays: text("delivery_days"),
@@ -66,7 +66,12 @@ export const supplierProducts = pgTable("supplier_products", {
   syncedAt: timestamp("synced_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-}).enableRLS();
+},
+// A unique index rather than a unique constraint: drizzle-kit push asks an
+// interactive "truncate the table?" question before adding a constraint to a
+// table with rows, which fails outright (applying nothing) without a terminal.
+(t) => [uniqueIndex("supplier_products_external_id_idx").on(t.externalId)]
+).enableRLS();
 
 // Sizes/colours of a supplier product, each with its own stock (same
 // wholesale price). When present, supplierProducts.stock is their total.
