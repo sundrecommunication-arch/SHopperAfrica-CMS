@@ -139,8 +139,8 @@ const notOptedOut = sql`not exists (select 1 from ${emailOptOuts} where ${emailO
 // Staff invited onto someone else's store didn't sign up to sell -- skip the merchant tips.
 const notJustStaff = sql`(not exists (select 1 from ${storeMembers} where ${storeMembers.userId} = ${users.id} and ${storeMembers.role} <> 'OWNER')
   or exists (select 1 from ${stores} where ${stores.ownerId} = ${users.id}))`;
-const productCount = sql<number>`(select count(*) from ${products} join ${stores} s on s.id = ${products.storeId} where s.owner_id = ${users.id})`;
-const orderCount = sql<number>`(select count(*) from ${orders} join ${stores} s on s.id = ${orders.storeId} where s.owner_id = ${users.id})`;
+const productCount = sql<number>`(select count(*) from ${products} join ${stores} s on s.id = ${products.storeId} where s.owner_id = ${users}.id)`;
+const orderCount = sql<number>`(select count(*) from ${orders} join ${stores} s on s.id = ${orders.storeId} where s.owner_id = ${users}.id)`;
 
 function signedUpBetween(fromAgoMs: number, toAgoMs: number) {
   const now = Date.now();

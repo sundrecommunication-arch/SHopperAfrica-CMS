@@ -130,8 +130,8 @@ export async function getSignupFunnelBySource(days = 90) {
       signups: sql<number>`count(distinct ${users.id})`.mapWith(Number),
       stores: sql<number>`count(distinct ${stores.id})`.mapWith(Number),
       activated: sql<number>`count(distinct ${stores.id}) filter (where
-        exists (select 1 from ${products} where ${products.storeId} = ${stores.id})
-        and exists (select 1 from ${orders} where ${orders.storeId} = ${stores.id} and ${orders.fulfillmentStatus} <> 'CANCELLED'))`.mapWith(Number),
+        exists (select 1 from ${products} where ${products.storeId} = ${stores}.id)
+        and exists (select 1 from ${orders} where ${orders.storeId} = ${stores}.id and ${orders.fulfillmentStatus} <> 'CANCELLED'))`.mapWith(Number),
       paying: sql<number>`count(distinct ${stores.id}) filter (where
         ${subscriptions.plan} <> 'FREE' and not ${subscriptions.isTrial} and ${subscriptions.currentPeriodEnd} > now())`.mapWith(Number),
     })
@@ -164,9 +164,9 @@ export async function listStoresForAdmin(opts: { search?: string; storeId?: stri
       plan: subscriptions.plan,
       periodEnd: subscriptions.currentPeriodEnd,
       isTrial: subscriptions.isTrial,
-      productCount: sql<number>`(select count(*) from ${products} where ${products.storeId} = ${stores.id})`.mapWith(Number),
-      orderCount: sql<number>`(select count(*) from ${orders} where ${orders.storeId} = ${stores.id} and ${orders.fulfillmentStatus} <> 'CANCELLED')`.mapWith(Number),
-      sales: sql<string>`(select coalesce(sum(${orders.total}), 0) from ${orders} where ${orders.storeId} = ${stores.id} and ${orders.fulfillmentStatus} <> 'CANCELLED')`,
+      productCount: sql<number>`(select count(*) from ${products} where ${products.storeId} = ${stores}.id)`.mapWith(Number),
+      orderCount: sql<number>`(select count(*) from ${orders} where ${orders.storeId} = ${stores}.id and ${orders.fulfillmentStatus} <> 'CANCELLED')`.mapWith(Number),
+      sales: sql<string>`(select coalesce(sum(${orders.total}), 0) from ${orders} where ${orders.storeId} = ${stores}.id and ${orders.fulfillmentStatus} <> 'CANCELLED')`,
     })
     .from(stores)
     .innerJoin(users, eq(users.id, stores.ownerId))

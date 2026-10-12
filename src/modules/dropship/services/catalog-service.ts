@@ -32,9 +32,9 @@ export async function listCatalog(opts: { search?: string; category?: string; st
       deliveryAreas: suppliers.deliveryAreas,
       deliveryDays: suppliers.deliveryDays,
       // e.g. "S, M, L" -- the supplier's options, for the catalog card.
-      optionSummary: sql<string | null>`(select string_agg(${supplierProductVariants.name}, ', ' order by ${supplierProductVariants.createdAt}) from ${supplierProductVariants} where ${supplierProductVariants.supplierProductId} = ${supplierProducts.id} and ${supplierProductVariants.stock} > 0)`,
+      optionSummary: sql<string | null>`(select string_agg(${supplierProductVariants.name}, ', ' order by ${supplierProductVariants.createdAt}) from ${supplierProductVariants} where ${supplierProductVariants.supplierProductId} = ${supplierProducts}.id and ${supplierProductVariants.stock} > 0)`,
       // This store's copy, if it already added the product.
-      inStoreProductId: sql<string | null>`(select ${products.id} from ${products} where ${products.supplierProductId} = ${supplierProducts.id} and ${products.storeId} = ${opts.storeId} limit 1)`,
+      inStoreProductId: sql<string | null>`(select ${products.id} from ${products} where ${products.supplierProductId} = ${supplierProducts}.id and ${products.storeId} = ${opts.storeId} limit 1)`,
     })
     .from(supplierProducts)
     .innerJoin(suppliers, eq(suppliers.id, supplierProducts.supplierId))

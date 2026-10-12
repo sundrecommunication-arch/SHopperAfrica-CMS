@@ -130,7 +130,7 @@ export async function listSupplierProducts(supplierId: string) {
   return db
     .select({
       product: supplierProducts,
-      stores: sql<number>`(select count(*) from ${products} where ${products.supplierProductId} = ${supplierProducts.id})`.mapWith(Number),
+      stores: sql<number>`(select count(*) from ${products} where ${products.supplierProductId} = ${supplierProducts}.id)`.mapWith(Number),
     })
     .from(supplierProducts)
     .where(eq(supplierProducts.supplierId, supplierId))
@@ -292,8 +292,8 @@ export async function listSuppliersForAdmin() {
   return db
     .select({
       supplier: suppliers,
-      productCount: sql<number>`(select count(*) from ${supplierProducts} where ${supplierProducts.supplierId} = ${suppliers.id})`.mapWith(Number),
-      orderCount: sql<number>`(select count(*) from ${supplierOrders} where ${supplierOrders.supplierId} = ${suppliers.id})`.mapWith(Number),
+      productCount: sql<number>`(select count(*) from ${supplierProducts} where ${supplierProducts.supplierId} = ${suppliers}.id)`.mapWith(Number),
+      orderCount: sql<number>`(select count(*) from ${supplierOrders} where ${supplierOrders.supplierId} = ${suppliers}.id)`.mapWith(Number),
     })
     .from(suppliers)
     .where(eq(suppliers.kind, "LOCAL")) // the built-in worldwide (CJ) supplier isn't an applicant

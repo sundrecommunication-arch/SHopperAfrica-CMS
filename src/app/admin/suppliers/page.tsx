@@ -6,7 +6,22 @@ import { AdminSupplierActions } from "@/components/admin/admin-supplier-actions"
 const VARIANT = { PENDING: "default", APPROVED: "outline", REJECTED: "secondary", SUSPENDED: "destructive" } as const;
 
 export default async function AdminSuppliersPage() {
-  const rows = await listSuppliersForAdmin();
+  let rows: Awaited<ReturnType<typeof listSuppliersForAdmin>>;
+  try {
+    rows = await listSuppliersForAdmin();
+  } catch (error) {
+    // Admin-only page: show the real reason (usually the database is missing
+    // a dropship column, fixed by `npm run db:push`) instead of a blank error.
+    console.error("admin suppliers failed", error);
+    const cause = error instanceof Error ? ((error.cause as Error | undefined)?.message ?? error.message) : String(error);
+    return (
+      <div className="flex flex-col gap-2">
+        <h1 className="text-2xl font-semibold">Suppliers</h1>
+        <p className="text-sm text-destructive">Couldn&apos;t load suppliers: {cause}</p>
+        <p className="text-sm text-muted-foreground">If this mentions a missing column or table, run <code>npm run db:push</code> against the live database.</p>
+      </div>
+    );
+  }
   const pending = rows.filter((r) => r.supplier.status === "PENDING").length;
 
   return (

@@ -64,7 +64,7 @@ export async function searchWorldwide(keyword: string, page: number, storeId: st
     ? await db
         .select({
           externalId: supplierProducts.externalId,
-          inStoreProductId: sql<string | null>`(select ${products.id} from ${products} where ${products.supplierProductId} = ${supplierProducts.id} and ${products.storeId} = ${storeId} limit 1)`,
+          inStoreProductId: sql<string | null>`(select ${products.id} from ${products} where ${products.supplierProductId} = ${supplierProducts}.id and ${products.storeId} = ${storeId} limit 1)`,
         })
         .from(supplierProducts)
         .where(inArray(supplierProducts.externalId, result.items.map((i) => i.pid)))
@@ -181,7 +181,7 @@ export async function dueWorldwideRefreshes(limit: number) {
       and(
         eq(supplierProducts.supplierId, supplier.id),
         sql`${supplierProducts.syncedAt} < now() - interval '12 hours'`,
-        sql`exists (select 1 from ${products} where ${products.supplierProductId} = ${supplierProducts.id})`
+        sql`exists (select 1 from ${products} where ${products.supplierProductId} = ${supplierProducts}.id)`
       )
     )
     .orderBy(supplierProducts.syncedAt)
