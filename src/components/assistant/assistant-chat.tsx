@@ -24,6 +24,7 @@ type ServerEvent =
   | { type: "tool"; id: string; label: string; status: "running" | "done" | "error" }
   | { type: "store"; name: string; slug: string }
   | { type: "done" }
+  | { type: "unavailable"; message: string }
   | { type: "error"; message: string };
 
 interface Loaded {
@@ -138,6 +139,9 @@ export function AssistantChat({ variant }: { variant: "onboarding" | "dashboard"
         case "error":
           setError(event.message);
           break;
+        case "unavailable":
+          setLoaded((l) => (l ? { ...l, enabled: false } : l));
+          break;
       }
     };
 
@@ -148,6 +152,10 @@ export function AssistantChat({ variant }: { variant: "onboarding" | "dashboard"
         body: JSON.stringify({ message, conversationId: conversationId.current, newConversation: startFresh.current }),
         signal: controller.signal,
       });
+      if (res.status === 503) {
+        setLoaded((l) => (l ? { ...l, enabled: false } : l));
+        return;
+      }
       if (!res.ok || !res.body) {
         const data = await res.json().catch(() => null);
         setError(data?.error ?? "Sorry, something went wrong. Please try again.");

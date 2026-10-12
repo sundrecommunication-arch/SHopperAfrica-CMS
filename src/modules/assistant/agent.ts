@@ -28,11 +28,28 @@ export type AssistantEvent =
   | { type: "tool"; id: string; label: string; status: "running" | "done" | "error" }
   | { type: "store"; name: string; slug: string }
   | { type: "done" }
+  | { type: "unavailable"; message: string } // switch the chat to "coming soon"
   | { type: "error"; message: string };
 
 export class AssistantLimitError extends Error {}
+export class AssistantUnavailableError extends Error {}
 
-export const isAssistantEnabled = () => Boolean(process.env.ANTHROPIC_API_KEY);
+// Safety net: when the Anthropic account can't serve requests (out of credit,
+// key revoked or wrong), the assistant hides itself and shows "coming soon"
+// instead of failing every message. It tries again after a pause, so topping
+// up credit brings it back without a redeploy.
+const ACCOUNT_PAUSE_MS = 15 * 60 * 1000;
+// On globalThis, not a module variable: pages and API routes are bundled
+// separately, and both need to see the pause.
+const pause = ((globalThis as { __shopperAssistantPause?: { until: number } }).__shopperAssistantPause ??= { until: 0 });
+
+function isAccountProblem(err: unknown) {
+  if (!(err instanceof Anthropic.APIError)) return false;
+  if (err.status === 401 || err.status === 402 || err.status === 403) return true;
+  return err.status === 400 && /credit balance|billing/i.test(err.message);
+}
+
+export const isAssistantEnabled = () => Boolean(process.env.ANTHROPIC_API_KEY) && Date.now() >= pause.until;
 
 export function dailyTurnLimit() {
   const n = Number(process.env.AI_ASSISTANT_DAILY_LIMIT);
@@ -198,6 +215,12 @@ async function runTurn({ ctx, userText, conversationId, newConversation, emit, s
         message = await stream.finalMessage();
         jsonRetries = 0;
       } catch (err) {
+        if (isAccountProblem(err)) {
+          pause.until = Date.now() + ACCOUNT_PAUSE_MS;
+          console.error("AI assistant paused: the Anthropic account can't take requests (check credit and ANTHROPIC_API_KEY)", err);
+          emit({ type: "discard" });
+          throw new AssistantUnavailableError("The AI assistant is taking a short break. Please try again later.");
+        }
         // With eager input streaming a tool input that isn't parseable JSON
         // rejects here. Only that is retried; API errors and aborts are not.
         if (err instanceof Anthropic.APIError || signal?.aborted || jsonRetries++ >= 2) throw err;
@@ -247,7 +270,8 @@ async function runTurn({ ctx, userText, conversationId, newConversation, emit, s
   } finally {
     // Only complete steps are in `messages`, so what's saved is always a valid history.
     await save();
-    await db.insert(aiTurns).values({
+    // A turn that never got a reply (e.g. the API was unavailable) doesn't count against the daily limit.
+    if (usage.input > 0) await db.insert(aiTurns).values({
       userId: ctx.userId,
       conversationId: conversationRowId,
       inputTokens: usage.input,

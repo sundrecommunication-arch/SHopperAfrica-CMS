@@ -5,6 +5,7 @@ import { NotSignedInError } from "@/lib/current-user";
 import { getAssistantContext } from "@/modules/assistant/context";
 import {
   AssistantLimitError,
+  AssistantUnavailableError,
   dailyTurnLimit,
   getLatestConversation,
   isAssistantEnabled,
@@ -78,7 +79,9 @@ export async function POST(request: Request) {
           signal: request.signal,
         });
       } catch (error) {
-        if (error instanceof AssistantLimitError) {
+        if (error instanceof AssistantUnavailableError) {
+          emit({ type: "unavailable", message: error.message });
+        } else if (error instanceof AssistantLimitError) {
           emit({ type: "error", message: error.message });
         } else if (!request.signal.aborted) {
           console.error("assistant turn failed", error);
