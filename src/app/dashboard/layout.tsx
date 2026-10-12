@@ -2,6 +2,7 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getCurrentStore, TenantError } from "@/lib/tenant";
+import { getSupplierForUser } from "@/modules/dropship/services/supplier-service";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { UserMenu } from "@/components/dashboard/user-menu";
@@ -34,7 +35,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
     suspended = Boolean(result.store.suspendedAt);
   } catch (error) {
     if (error instanceof TenantError) {
-      redirect("/onboarding");
+      // No store yet. Dropship suppliers who signed in from the normal login
+      // page belong in their own portal, not store setup.
+      redirect((await getSupplierForUser(session.user.id!)) ? "/supplier" : "/onboarding");
     }
     throw error;
   }

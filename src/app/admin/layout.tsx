@@ -16,11 +16,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <Image src="/logo-mark.png" alt="" width={24} height={24} className="size-6" />
             Shopper Admin
           </Link>
-          <nav className="flex gap-4 text-sm">
+          <nav className="flex min-w-0 gap-4 overflow-x-auto whitespace-nowrap text-sm">
             <Link href="/admin" className="text-muted-foreground hover:text-foreground">Overview</Link>
             <Link href="/admin/stores" className="text-muted-foreground hover:text-foreground">Stores</Link>
             <Link href="/admin/users" className="text-muted-foreground hover:text-foreground">No store</Link>
             <Link href="/admin/suppliers" className="text-muted-foreground hover:text-foreground">Suppliers</Link>
+            <Link href="/admin/dropship" className="text-muted-foreground hover:text-foreground">Dropship</Link>
           </nav>
           <span className="ml-auto hidden text-xs text-muted-foreground sm:block">{email}</span>
         </div>

@@ -562,3 +562,77 @@ export async function sendSupplierStatusEmail(
   });
   if (error) throw new Error(`Failed to send supplier status email: ${error.message}`);
 }
+
+function getAdminInbox(): string {
+  return process.env.CONTACT_INBOX_EMAIL ?? "sundrecommunication@gmail.com";
+}
+
+/** Supplier hasn't shipped a paid order after ~2 days. */
+export async function sendSupplierReminderEmail(
+  to: string,
+  d: { supplierName: string; orderNumber: string; storeName: string; orderUrl: string }
+): Promise<void> {
+  const resend = getClient();
+  const { error } = await resend.emails.send({
+    from: getFromAddress(),
+    to,
+    replyTo: getSupportEmail(),
+    subject: `Reminder: order ${d.orderNumber} is waiting to be delivered`,
+    html: lifecycleLayout(
+      `<h2 style="margin-bottom: 8px;">Order ${esc(d.orderNumber)} hasn't shipped yet</h2>
+       <p style="color: #333; line-height: 1.6;">${greeting(d.supplierName)}</p>
+       <p style="color: #333; line-height: 1.6;">The customer of <strong>${esc(d.storeName)}</strong> paid 2 days ago and is waiting. Please deliver it and tap “Mark as shipped” — or, if you can't deliver it, tap “Can't deliver this order” so the customer can be refunded quickly.</p>
+       <p style="margin: 24px 0;">${ctaButton(d.orderUrl, "Open order " + esc(d.orderNumber))}</p>`,
+      { name: d.supplierName, appUrl: d.orderUrl }
+    ),
+  });
+  if (error) throw new Error(`Failed to send supplier reminder: ${error.message}`);
+}
+
+/** To Shopper's inbox: a dropship order needs a human (problem reported, or very late). */
+export async function sendDropshipAlertEmail(d: {
+  reason: string;
+  orderNumber: string;
+  storeName: string;
+  supplierName: string;
+  supplierPhone: string;
+  adminUrl: string;
+}): Promise<void> {
+  const resend = getClient();
+  const { error } = await resend.emails.send({
+    from: getFromAddress(),
+    to: getAdminInbox(),
+    subject: `Dropship order ${d.orderNumber} needs attention`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; color: #111;">
+        <h2 style="margin-bottom: 8px;">Dropship order ${esc(d.orderNumber)} needs attention</h2>
+        <p style="color: #333; line-height: 1.6;"><strong>Why:</strong> ${esc(d.reason)}</p>
+        <p style="color: #333; line-height: 1.6;">Store: ${esc(d.storeName)}<br />Supplier: ${esc(d.supplierName)} (${esc(d.supplierPhone)})</p>
+        <p style="margin: 24px 0;">${ctaButton(d.adminUrl, "Open dropship monitor")}</p>
+      </div>
+    `,
+  });
+  if (error) throw new Error(`Failed to send dropship alert: ${error.message}`);
+}
+
+/** To the merchant: their supplier can't deliver one of their orders. */
+export async function sendMerchantDropshipProblemEmail(
+  to: string[],
+  d: { storeName: string; orderNumber: string; supplierName: string; note: string; orderUrl: string }
+): Promise<void> {
+  const resend = getClient();
+  const { error } = await resend.emails.send({
+    from: getFromAddress(),
+    to,
+    replyTo: getSupportEmail(),
+    subject: `Supplier can't deliver order ${d.orderNumber}`,
+    html: lifecycleLayout(
+      `<h2 style="margin-bottom: 8px;">A supplier can't deliver order ${esc(d.orderNumber)}</h2>
+       <p style="color: #333; line-height: 1.6;"><strong>${esc(d.supplierName)}</strong> says: “${esc(d.note)}”</p>
+       <p style="color: #333; line-height: 1.6;">The Shopper team has been told and will refund your customer if the order can't be delivered. You may want to message your customer to let them know.</p>
+       <p style="margin: 24px 0;">${ctaButton(d.orderUrl, "View order")}</p>`,
+      { name: d.storeName, appUrl: d.orderUrl }
+    ),
+  });
+  if (error) throw new Error(`Failed to send merchant problem email: ${error.message}`);
+}

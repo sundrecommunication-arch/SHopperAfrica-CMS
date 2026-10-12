@@ -57,7 +57,7 @@ export default async function SupplierOrderPage({ params }: { params: Promise<{ 
         </Card>
       </div>
 
-      <SupplierOrderActions supplierOrderId={o.so.id} status={o.so.status} trackingNote={o.so.trackingNote} />
+      <SupplierOrderActions supplierOrderId={o.so.id} status={o.so.status} trackingNote={o.so.trackingNote} problemNote={o.so.problemNote} />
     </div>
   );
 }

@@ -36,6 +36,14 @@ export const supplierOrders = pgTable(
     trackingNote: text("tracking_note"), // e.g. "GIG Logistics, waybill 12345"
     shippedAt: timestamp("shipped_at"),
     deliveredAt: timestamp("delivered_at"),
+    // Supplier reported they can't deliver (out of stock, etc.); Shopper
+    // follows up and refunds. Cleared only by cancelling.
+    problemNote: text("problem_note"),
+    problemAt: timestamp("problem_at"),
+    // Hourly cron (src/app/api/cron/lifecycle): reminder to the supplier
+    // after 2 days unshipped, alert to Shopper after 4.
+    reminderSentAt: timestamp("reminder_sent_at"),
+    escalatedAt: timestamp("escalated_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

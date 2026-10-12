@@ -1,6 +1,6 @@
 import "server-only";
 import { after } from "next/server";
-import { and, eq, inArray, isNotNull, ne, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull, lt, ne, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -11,8 +11,15 @@ import {
   supplierOrders,
   suppliers,
   stores,
+  storeMembers,
+  users,
 } from "@/db/schema";
-import { sendSupplierNewOrderEmail } from "@/lib/email";
+import {
+  sendDropshipAlertEmail,
+  sendMerchantDropshipProblemEmail,
+  sendSupplierNewOrderEmail,
+  sendSupplierReminderEmail,
+} from "@/lib/email";
 import { notifyOrderPlaced, notifyOrderStatusChanged } from "@/modules/notifications/services/order-notifications";
 
 export class FulfilmentError extends Error {}
@@ -263,4 +270,189 @@ export async function listSupplierOrdersForOrder(storeId: string, orderId: strin
     .from(supplierOrders)
     .innerJoin(suppliers, eq(suppliers.id, supplierOrders.supplierId))
     .where(and(eq(supplierOrders.storeId, storeId), eq(supplierOrders.orderId, orderId)));
+}
+
+// --- Problems & monitoring ---------------------------------------------------------
+
+async function orderContext(supplierOrderId: string) {
+  const [row] = await db
+    .select({
+      so: supplierOrders,
+      orderNumber: orders.orderNumber,
+      storeName: stores.name,
+      supplierName: suppliers.businessName,
+      supplierPhone: suppliers.phone,
+      supplierEmail: suppliers.email,
+    })
+    .from(supplierOrders)
+    .innerJoin(orders, eq(orders.id, supplierOrders.orderId))
+    .innerJoin(stores, eq(stores.id, supplierOrders.storeId))
+    .innerJoin(suppliers, eq(suppliers.id, supplierOrders.supplierId))
+    .where(eq(supplierOrders.id, supplierOrderId))
+    .limit(1);
+  return row ?? null;
+}
+
+/** Supplier: "I can't deliver this order" -- Shopper and the merchant are told straight away. */
+export async function reportSupplierProblem(supplierId: string, supplierOrderId: string, note: string, origin: string) {
+  const text = note.trim().slice(0, 500);
+  if (text.length < 3) throw new FulfilmentError("Tell us briefly why (e.g. out of stock)");
+  const [so] = await db
+    .update(supplierOrders)
+    .set({ problemNote: text, problemAt: new Date(), updatedAt: new Date() })
+    .where(
+      and(
+        eq(supplierOrders.id, supplierOrderId),
+        eq(supplierOrders.supplierId, supplierId),
+        inArray(supplierOrders.status, ["NEW", "ACCEPTED"])
+      )
+    )
+    .returning({ id: supplierOrders.id });
+  if (!so) throw new FulfilmentError("This order can't be changed any more.");
+
+  const ctx = await orderContext(so.id);
+  if (!ctx) return;
+  const owners = await db
+    .select({ email: users.email })
+    .from(storeMembers)
+    .innerJoin(users, eq(users.id, storeMembers.userId))
+    .where(and(eq(storeMembers.storeId, ctx.so.storeId), eq(storeMembers.role, "OWNER")));
+  await Promise.allSettled([
+    sendDropshipAlertEmail({
+      reason: `Supplier can't deliver: “${text}”`,
+      orderNumber: ctx.orderNumber,
+      storeName: ctx.storeName,
+      supplierName: ctx.supplierName,
+      supplierPhone: ctx.supplierPhone,
+      adminUrl: `${origin}/admin/dropship`,
+    }),
+    owners.length > 0
+      ? sendMerchantDropshipProblemEmail(owners.map((o) => o.email), {
+          storeName: ctx.storeName,
+          orderNumber: ctx.orderNumber,
+          supplierName: ctx.supplierName,
+          note: text,
+          orderUrl: `${origin}/dashboard/orders/${ctx.so.orderId}`,
+        })
+      : Promise.resolve(),
+  ]);
+}
+
+const HOUR = 60 * 60 * 1000;
+const REMIND_AFTER_MS = 48 * HOUR;
+const ESCALATE_AFTER_MS = 96 * HOUR;
+
+/** Hourly: nudge suppliers sitting on paid orders, and alert Shopper about very late ones. */
+export async function runDropshipChecks(origin: string) {
+  const now = Date.now();
+  const open = inArray(supplierOrders.status, ["NEW", "ACCEPTED"]);
+  const toRemind = await db
+    .select({ id: supplierOrders.id })
+    .from(supplierOrders)
+    .where(and(open, isNull(supplierOrders.reminderSentAt), isNull(supplierOrders.problemAt), lt(supplierOrders.createdAt, new Date(now - REMIND_AFTER_MS))))
+    .limit(100);
+  const toEscalate = await db
+    .select({ id: supplierOrders.id })
+    .from(supplierOrders)
+    .where(and(open, isNull(supplierOrders.escalatedAt), lt(supplierOrders.createdAt, new Date(now - ESCALATE_AFTER_MS))))
+    .limit(100);
+
+  let reminded = 0;
+  let escalated = 0;
+  for (const { id } of toRemind) {
+    const ctx = await orderContext(id);
+    if (!ctx) continue;
+    await db.update(supplierOrders).set({ reminderSentAt: new Date() }).where(eq(supplierOrders.id, id));
+    await sendSupplierReminderEmail(ctx.supplierEmail, {
+      supplierName: ctx.supplierName,
+      orderNumber: ctx.orderNumber,
+      storeName: ctx.storeName,
+      orderUrl: `${origin}/supplier/orders/${id}`,
+    }).then(() => reminded++, (e: unknown) => console.error("supplier reminder failed", e));
+  }
+  for (const { id } of toEscalate) {
+    const ctx = await orderContext(id);
+    if (!ctx) continue;
+    await db.update(supplierOrders).set({ escalatedAt: new Date() }).where(eq(supplierOrders.id, id));
+    await sendDropshipAlertEmail({
+      reason: "Paid 4+ days ago and still not shipped.",
+      orderNumber: ctx.orderNumber,
+      storeName: ctx.storeName,
+      supplierName: ctx.supplierName,
+      supplierPhone: ctx.supplierPhone,
+      adminUrl: `${origin}/admin/dropship`,
+    }).then(() => escalated++, (e: unknown) => console.error("dropship alert failed", e));
+  }
+  return { reminded, escalated };
+}
+
+/** /admin/dropship: every supplier order, newest first, with what needs a human. */
+export async function listDropshipOrdersForAdmin(filter: "all" | "attention") {
+  const lateCutoff = new Date(Date.now() - REMIND_AFTER_MS);
+  const rows = await db
+    .select({
+      id: supplierOrders.id,
+      status: supplierOrders.status,
+      amountDue: supplierOrders.amountDue,
+      createdAt: supplierOrders.createdAt,
+      trackingNote: supplierOrders.trackingNote,
+      problemNote: supplierOrders.problemNote,
+      orderId: orders.id,
+      orderNumber: orders.orderNumber,
+      orderTotal: orders.total,
+      paymentReference: sql<string | null>`(select ${payments.transactionReference} from ${payments} where ${payments.orderId} = ${orders}.id limit 1)`,
+      storeName: stores.name,
+      supplierName: suppliers.businessName,
+      supplierPhone: suppliers.phone,
+    })
+    .from(supplierOrders)
+    .innerJoin(orders, eq(orders.id, supplierOrders.orderId))
+    .innerJoin(stores, eq(stores.id, supplierOrders.storeId))
+    .innerJoin(suppliers, eq(suppliers.id, supplierOrders.supplierId))
+    .where(
+      filter === "attention"
+        ? and(
+            inArray(supplierOrders.status, ["NEW", "ACCEPTED"]),
+            or(isNotNull(supplierOrders.problemAt), lt(supplierOrders.createdAt, lateCutoff))
+          )
+        : undefined
+    )
+    .orderBy(desc(supplierOrders.createdAt))
+    .limit(300);
+  return rows.map((r) => ({
+    ...r,
+    late: (r.status === "NEW" || r.status === "ACCEPTED") && r.createdAt < lateCutoff,
+  }));
+}
+
+/**
+ * Admin, after refunding the customer in the Paystack dashboard: cancel the
+ * supplier's part, and the whole order if nothing else is left to deliver
+ * (marked REFUNDED, customer emailed). Stock isn't put back -- the usual
+ * reason is the supplier ran out.
+ */
+export async function adminCancelRefundedSupplierOrder(supplierOrderId: string, origin: string) {
+  const [so] = await db
+    .update(supplierOrders)
+    .set({ status: "CANCELLED", updatedAt: new Date() })
+    .where(and(eq(supplierOrders.id, supplierOrderId), inArray(supplierOrders.status, ["NEW", "ACCEPTED"])))
+    .returning();
+  if (!so) throw new FulfilmentError("Only orders that haven't shipped can be cancelled.");
+
+  const others = await db
+    .select({ status: supplierOrders.status })
+    .from(supplierOrders)
+    .where(eq(supplierOrders.orderId, so.orderId));
+  const [ownItems] = await db
+    .select({ id: orderItems.id })
+    .from(orderItems)
+    .where(and(eq(orderItems.orderId, so.orderId), sql`${orderItems.supplierId} is null`))
+    .limit(1);
+  if (!ownItems && others.every((o) => o.status === "CANCELLED")) {
+    await db
+      .update(orders)
+      .set({ fulfillmentStatus: "CANCELLED", paymentStatus: "REFUNDED", updatedAt: new Date() })
+      .where(eq(orders.id, so.orderId));
+    await notifyOrderStatusChanged(so.orderId, origin, { fulfillmentStatus: "CANCELLED" });
+  }
 }

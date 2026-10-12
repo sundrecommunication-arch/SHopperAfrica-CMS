@@ -13,10 +13,12 @@ export function SupplierOrderActions({
   supplierOrderId,
   status,
   trackingNote,
+  problemNote = null,
 }: {
   supplierOrderId: string;
   status: string;
   trackingNote: string | null;
+  problemNote?: string | null;
 }) {
   const router = useRouter();
   const [note, setNote] = useState(trackingNote ?? "");
@@ -36,6 +38,27 @@ export function SupplierOrderActions({
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not update");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function reportProblem() {
+    const reason = prompt("Why can't you deliver this order? (e.g. out of stock, can't reach the customer)");
+    if (!reason) return;
+    setBusy("PROBLEM");
+    try {
+      const res = await fetch(`/api/supplier/orders/${supplierOrderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ problem: reason }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Could not send");
+      toast.success("Thanks — Shopper will sort it out with the store and customer");
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not send");
     } finally {
       setBusy(null);
     }
@@ -72,7 +95,17 @@ export function SupplierOrderActions({
             </Button>
           )}
         </div>
-        <p className="text-xs text-muted-foreground">Can&apos;t deliver this order? Contact admin@shopperafrica.com straight away so the customer can be refunded.</p>
+        {problemNote ? (
+          <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
+            You reported a problem: “{problemNote}”. The Shopper team will contact you and refund the customer if needed.
+          </p>
+        ) : (
+          (status === "NEW" || status === "ACCEPTED") && (
+            <Button type="button" variant="ghost" size="sm" className="px-0 text-destructive" onClick={reportProblem} disabled={busy !== null}>
+              {busy === "PROBLEM" ? <Loader2 className="size-4 animate-spin" /> : "Can't deliver this order?"}
+            </Button>
+          )
+        )}
       </CardContent>
     </Card>
   );
