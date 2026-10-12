@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { runLifecycleEmails } from "@/modules/lifecycle/services/lifecycle-service";
 import { runDropshipChecks } from "@/modules/dropship/services/fulfilment-service";
+import { refreshWorldwideProducts, syncCjOrders } from "@/modules/dropship/global/cj-fulfilment";
 import { getPublicOrigin } from "@/lib/request-origin";
 
 // Sends any merchant lifecycle emails that are due (see lifecycle-service.ts),
@@ -24,8 +25,14 @@ async function handle(request: Request) {
   }
   const result = await runLifecycleEmails();
   // Same hourly run: remind suppliers sitting on paid orders, alert Shopper about late ones.
-  const dropship = await runDropshipChecks(getPublicOrigin(request));
-  return NextResponse.json({ ...result, dropship });
+  const origin = getPublicOrigin(request);
+  const dropship = await runDropshipChecks(origin);
+  // Worldwide (CJ): place/pay/track orders, refresh prices & stock.
+  const worldwide = {
+    orders: await syncCjOrders(origin),
+    products: await refreshWorldwideProducts(origin),
+  };
+  return NextResponse.json({ ...result, dropship, worldwide });
 }
 
 export const GET = handle;

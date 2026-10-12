@@ -43,6 +43,9 @@ export const supplierOrders = pgTable(
     // Hourly cron (src/app/api/cron/lifecycle): reminder to the supplier
     // after 2 days unshipped, alert to Shopper after 4.
     reminderSentAt: timestamp("reminder_sent_at"),
+    // Worldwide (CJ) orders: CJ's order id and last known CJ status.
+    externalOrderId: text("external_order_id"),
+    externalStatus: text("external_status"),
     escalatedAt: timestamp("escalated_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),

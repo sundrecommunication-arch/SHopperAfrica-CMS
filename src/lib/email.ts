@@ -636,3 +636,25 @@ export async function sendMerchantDropshipProblemEmail(
   });
   if (error) throw new Error(`Failed to send merchant problem email: ${error.message}`);
 }
+
+/** To a merchant: a worldwide product's cost went up past their price, so it was hidden. */
+export async function sendMerchantPriceRiseEmail(
+  to: string[],
+  d: { storeName: string; productName: string; newCost: number; minPrice: number; productUrl: string }
+): Promise<void> {
+  const resend = getClient();
+  const { error } = await resend.emails.send({
+    from: getFromAddress(),
+    to,
+    replyTo: getSupportEmail(),
+    subject: `"${d.productName}" was hidden — the supplier's price went up`,
+    html: lifecycleLayout(
+      `<h2 style="margin-bottom: 8px;">Please update your price</h2>
+       <p style="color: #333; line-height: 1.6;">The cost of <strong>${esc(d.productName)}</strong> (including shipping) is now <strong>₦${d.newCost.toLocaleString()}</strong>, so at your current price you'd lose money on each sale. We've moved it to draft so customers can't buy it at a loss.</p>
+       <p style="color: #333; line-height: 1.6;">Set a price above <strong>₦${d.minPrice.toLocaleString()}</strong> and make it active again.</p>
+       <p style="margin: 24px 0;">${ctaButton(d.productUrl, "Update price")}</p>`,
+      { name: d.storeName, appUrl: d.productUrl }
+    ),
+  });
+  if (error) throw new Error(`Failed to send price rise email: ${error.message}`);
+}

@@ -296,6 +296,7 @@ export async function listSuppliersForAdmin() {
       orderCount: sql<number>`(select count(*) from ${supplierOrders} where ${supplierOrders.supplierId} = ${suppliers.id})`.mapWith(Number),
     })
     .from(suppliers)
+    .where(eq(suppliers.kind, "LOCAL")) // the built-in worldwide (CJ) supplier isn't an applicant
     .orderBy(sql`case ${suppliers.status} when 'PENDING' then 0 else 1 end`, desc(suppliers.createdAt));
 }
 

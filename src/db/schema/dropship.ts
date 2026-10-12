@@ -15,9 +15,13 @@ export const suppliers = pgTable("suppliers", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
-  // The Shopper login that runs this supplier account.
+  // LOCAL = a wholesaler with a supplier login. CJ = the built-in worldwide
+  // supplier (CJ Dropshipping through Shopper's own account): no login, no
+  // payout subaccount -- its share stays in Shopper's Paystack account and
+  // Shopper places and pays the order on CJ (modules/dropship/global).
+  kind: text("kind").$type<"LOCAL" | "CJ">().notNull().default("LOCAL"),
+  // The Shopper login that runs this supplier account (null for CJ).
   userId: text("user_id")
-    .notNull()
     .unique()
     .references(() => users.id, { onDelete: "cascade" }),
   businessName: text("business_name").notNull(),
@@ -52,6 +56,14 @@ export const supplierProducts = pgTable("supplier_products", {
   stock: integer("stock").notNull().default(0),
   sku: text("sku"),
   isActive: boolean("is_active").notNull().default(true),
+  // Worldwide (CJ) products: CJ's product id, delivery estimate, cost in USD
+  // (unit + shipping to Nigeria) and when price/stock were last refreshed.
+  externalId: text("external_id").unique(),
+  // CJ's variant id when the product has a single variant (no options shown).
+  externalVariantId: text("external_variant_id"),
+  deliveryDays: text("delivery_days"),
+  costUsd: numeric("cost_usd", { precision: 12, scale: 2 }),
+  syncedAt: timestamp("synced_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }).enableRLS();
@@ -69,7 +81,18 @@ export const supplierProductVariants = pgTable("supplier_product_variants", {
   name: text("name").notNull(), // e.g. "Black / M"
   options: jsonb("options").$type<Record<string, string>>().notNull().default({}),
   stock: integer("stock").notNull().default(0),
+  externalId: text("external_id"), // CJ variant id (vid)
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}).enableRLS();
+
+// Small key/value store for third-party API tokens (e.g. CJ's access token,
+// which may only be requested every few minutes -- so it must survive
+// restarts and be shared, not kept in memory).
+export const integrationTokens = pgTable("integration_tokens", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }).enableRLS();
 

@@ -53,6 +53,7 @@ export function DropshipCatalog({
   category,
   canAdd,
   mine,
+  showCatalog = true,
 }: {
   products: CatalogProduct[];
   categories: string[];
@@ -60,6 +61,8 @@ export function DropshipCatalog({
   category: string;
   canAdd: boolean;
   mine: MyProduct[];
+  /** false on the Worldwide tab: only "Your dropship products" is shown here. */
+  showCatalog?: boolean;
 }) {
   const router = useRouter();
   const [adding, setAdding] = useState<CatalogProduct | null>(null);
@@ -134,6 +137,7 @@ export function DropshipCatalog({
         </Card>
       )}
 
+      {showCatalog && (
       <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <h2 className="text-lg font-semibold">Supplier catalog</h2>
@@ -208,6 +212,7 @@ export function DropshipCatalog({
           <p className="text-sm text-muted-foreground">Add your bank account above to start adding products.</p>
         )}
       </section>
+      )}
 
       <Dialog open={adding !== null} onOpenChange={(o) => !o && !busy && setAdding(null)}>
         <DialogContent>

@@ -21,6 +21,7 @@ import {
   sendSupplierReminderEmail,
 } from "@/lib/email";
 import { notifyOrderPlaced, notifyOrderStatusChanged } from "@/modules/notifications/services/order-notifications";
+import { placeCjOrder } from "../global/cj-fulfilment";
 
 export class FulfilmentError extends Error {}
 
@@ -63,6 +64,16 @@ export async function planDropshipSplit(input: {
         sql`, `
       )})`
     );
+  // Worldwide (CJ) suppliers have no payout account: their share simply stays
+  // in Shopper's main Paystack account, which pays for the CJ order.
+  const platformSupplierIds = new Set(
+    (
+      await db
+        .select({ id: suppliers.id })
+        .from(suppliers)
+        .where(and(inArray(suppliers.id, [...bySupplier.keys()]), eq(suppliers.kind, "CJ")))
+    ).map((r) => r.id)
+  );
   const storeAccount = accounts.find((a) => a.storeId === input.storeId);
   if (!storeAccount) {
     throw new FulfilmentError("Some items in your cart can't be bought online from this store right now. Please remove them or contact the store.");
@@ -75,7 +86,7 @@ export async function planDropshipSplit(input: {
     throw new FulfilmentError("This discount can't be used with some items in your cart.");
   }
 
-  const shares = [...bySupplier.entries()].map(([supplierId, amount]) => {
+  const shares = [...bySupplier.entries()].filter(([supplierId]) => !platformSupplierIds.has(supplierId)).map(([supplierId, amount]) => {
     const account = accounts.find((a) => a.supplierId === supplierId);
     if (!account) {
       throw new FulfilmentError("Some items in your cart can't be bought online right now. Please remove them or contact the store.");
@@ -147,12 +158,17 @@ export async function onDropshipOrderPaid(orderId: string, origin: string) {
 
     if (created.length === 0) return;
     const contacts = await db
-      .select({ id: suppliers.id, email: suppliers.email, businessName: suppliers.businessName })
+      .select({ id: suppliers.id, email: suppliers.email, businessName: suppliers.businessName, kind: suppliers.kind })
       .from(suppliers)
       .where(inArray(suppliers.id, created.map((c) => c.supplierId)));
     for (const so of created) {
       const s = contacts.find((c) => c.id === so.supplierId);
       if (!s) continue;
+      if (s.kind === "CJ") {
+        // Worldwide: Shopper places and pays the order on CJ itself.
+        await placeCjOrder(so.id, origin);
+        continue;
+      }
       await sendSupplierNewOrderEmail(s.email, {
         supplierName: s.businessName,
         storeName: order.storeName,
@@ -349,7 +365,16 @@ export async function runDropshipChecks(origin: string) {
   const toRemind = await db
     .select({ id: supplierOrders.id })
     .from(supplierOrders)
-    .where(and(open, isNull(supplierOrders.reminderSentAt), isNull(supplierOrders.problemAt), lt(supplierOrders.createdAt, new Date(now - REMIND_AFTER_MS))))
+    .innerJoin(suppliers, eq(suppliers.id, supplierOrders.supplierId))
+    .where(
+      and(
+        open,
+        eq(suppliers.kind, "LOCAL"), // worldwide (CJ) orders are followed up by the CJ sync instead
+        isNull(supplierOrders.reminderSentAt),
+        isNull(supplierOrders.problemAt),
+        lt(supplierOrders.createdAt, new Date(now - REMIND_AFTER_MS))
+      )
+    )
     .limit(100);
   const toEscalate = await db
     .select({ id: supplierOrders.id })

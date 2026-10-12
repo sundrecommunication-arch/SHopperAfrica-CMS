@@ -5,17 +5,21 @@ import {
   listCatalogCategories,
   listStoreDropshipProducts,
 } from "@/modules/dropship/services/catalog-service";
+import Link from "next/link";
 import { DropshipCatalog } from "@/components/dropship/dropship-catalog";
+import { WorldwideCatalog } from "@/components/dropship/worldwide-catalog";
+import { cjConfigured } from "@/modules/dropship/global/cj-client";
 import { PayoutAccountForm } from "@/components/dropship/payout-account-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function DropshippingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; category?: string }>;
+  searchParams: Promise<{ q?: string; category?: string; tab?: string }>;
 }) {
   const { store, role } = await getCurrentStore();
-  const { q, category } = await searchParams;
+  const { q, category, tab } = await searchParams;
+  const worldwide = tab === "worldwide";
 
   if (store.currency !== "NGN") {
     return (
@@ -83,7 +87,23 @@ export default async function DropshippingPage({
         </Card>
       )}
 
+      <div className="flex gap-1 rounded-lg border p-1 text-sm sm:w-fit">
+        <Link
+          href="/dashboard/dropshipping"
+          className={`flex-1 rounded-md px-4 py-1.5 text-center sm:flex-none ${!worldwide ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+        >
+          Nigerian suppliers
+        </Link>
+        <Link
+          href="/dashboard/dropshipping?tab=worldwide"
+          className={`flex-1 rounded-md px-4 py-1.5 text-center sm:flex-none ${worldwide ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+        >
+          Worldwide
+        </Link>
+      </div>
+
       <DropshipCatalog
+        showCatalog={!worldwide}
         products={catalog}
         categories={categories}
         search={q ?? ""}
@@ -100,6 +120,14 @@ export default async function DropshippingPage({
           available: m.available,
         }))}
       />
+      {worldwide &&
+        (cjConfigured() ? (
+          <WorldwideCatalog canAdd={Boolean(payout) && role !== "STAFF"} />
+        ) : (
+          <Card>
+            <CardContent className="py-10 text-center text-sm text-muted-foreground">Worldwide products are coming soon.</CardContent>
+          </Card>
+        ))}
     </div>
   );
 }

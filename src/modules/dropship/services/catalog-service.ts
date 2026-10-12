@@ -41,6 +41,7 @@ export async function listCatalog(opts: { search?: string; category?: string; st
     .where(
       and(
         eq(suppliers.status, "APPROVED"),
+        eq(suppliers.kind, "LOCAL"), // worldwide (CJ) products have their own tab
         eq(supplierProducts.isActive, true),
         sql`${supplierProducts.stock} > 0`,
         opts.category ? eq(supplierProducts.category, opts.category) : undefined,
@@ -68,7 +69,7 @@ export async function listCatalogCategories() {
     .selectDistinct({ category: supplierProducts.category })
     .from(supplierProducts)
     .innerJoin(suppliers, eq(suppliers.id, supplierProducts.supplierId))
-    .where(and(eq(suppliers.status, "APPROVED"), eq(supplierProducts.isActive, true)));
+    .where(and(eq(suppliers.status, "APPROVED"), eq(suppliers.kind, "LOCAL"), eq(supplierProducts.isActive, true)));
   return rows.map((r) => r.category).filter((c): c is string => Boolean(c)).sort();
 }
 

@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SupplierOrderStatusBadge } from "@/components/dropship/supplier-order-status";
 import { AdminDropshipCancel } from "@/components/admin/admin-dropship-cancel";
+import { AdminWorldwideStatus } from "@/components/admin/admin-worldwide-status";
 
 export default async function AdminDropshipPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
   const { view } = await searchParams;
@@ -30,6 +31,8 @@ export default async function AdminDropshipPage({ searchParams }: { searchParams
           </Link>
         </div>
       </div>
+
+      <AdminWorldwideStatus />
 
       {rows.length === 0 && (
         <p className="text-sm text-muted-foreground">{filter === "attention" ? "Nothing needs attention. 🎉" : "No dropship orders yet."}</p>
