@@ -25,7 +25,7 @@ import { Reveal } from "@/components/marketing/reveal";
 import { HeroCarousel } from "@/components/marketing/hero-carousel";
 
 export const metadata: Metadata = {
-  title: "A free-to-start e-commerce website builder for every African business",
+  title: "A free-to-start e-commerce website builder for businesses worldwide",
 };
 
 const AD_PLATFORMS = [
@@ -90,13 +90,13 @@ export default function WelcomePage() {
         <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center gap-5 px-5 text-center sm:gap-6 sm:px-6">
           <span className="animate-fade-up inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/90 px-3 py-1 text-xs font-medium text-neutral-800 backdrop-blur-sm">
             <Sparkles className="h-3.5 w-3.5 text-primary" />
-            Free e-commerce website builder for Africa
+            Free to start · Stripe &amp; Paystack<span className="hidden sm:inline"> payments · Worldwide</span>
           </span>
           <h1
             className="animate-fade-up text-[2.15rem] font-semibold leading-[1.1] tracking-tight text-white min-[400px]:text-4xl sm:text-6xl"
             style={{ fontFamily: "var(--font-marketing-display)", animationDelay: "0.1s" }}
           >
-            The free way for African businesses to sell online.
+            The free way for any business to sell online, anywhere.
           </h1>
           <p
             className="animate-fade-up max-w-2xl text-base text-white/85 sm:text-xl"
@@ -105,9 +105,9 @@ export default function WelcomePage() {
             {/* Shorter on phones so the sign-up button stays on the first screen. */}
             Shopper is an e-commerce website you can start for free
             <span className="hidden sm:inline">
-              {" "}— a real alternative to every other online store builder in Africa —
+              {" "}— a real alternative to every other online store builder —
             </span>{" "}
-            with a storefront, checkout, and a website Google can actually find
+            with a storefront, card payments through Stripe or Paystack, and a website Google can actually find
             <span className="hidden sm:inline">, so your business shows up everywhere your customers already are</span>.
           </p>
           <div
@@ -129,17 +129,17 @@ export default function WelcomePage() {
         <Reveal className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
             <div className="max-w-2xl">
-              <span className="text-sm font-semibold uppercase tracking-wide text-primary">New: now in 7 countries</span>
+              <span className="text-sm font-semibold uppercase tracking-wide text-primary">Sell worldwide</span>
               <h2
                 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl"
                 style={{ fontFamily: "var(--font-marketing-display)" }}
               >
-                From Lagos to Cotonou to London.
+                One store. Paid by Stripe or Paystack. Anywhere.
               </h2>
               <p className="mt-3 text-muted-foreground">
-                Pick your country and Shopper sets up your currency, local payments, tax and addresses: Paystack in
-                Nigeria, Ghana and Kenya, PayDunya mobile money in Benin, and Stripe in the UK, US and Canada with plans
-                from £5 a month.
+                Pick your country and Shopper sets up your currency, payments, tax and addresses for you: Stripe in the
+                UK, US and Canada, Paystack in Nigeria, Ghana and Kenya, and PayDunya mobile money in Benin. Plans from
+                £5 a month.
               </p>
             </div>
             <Link href="/sell-online" className="shrink-0 text-sm font-semibold text-primary underline underline-offset-4">
@@ -303,14 +303,14 @@ export default function WelcomePage() {
         </Reveal>
       </section>
 
-      {/* Free for Africa */}
+      {/* Free to start */}
       <section className="border-y border-border/70 bg-primary/5 py-16 sm:py-24">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <Reveal className="grid items-center gap-10 md:grid-cols-2 md:gap-16">
             <div className="overflow-hidden rounded-2xl border border-border shadow-sm">
               <img
                 src="https://images.unsplash.com/photo-1687422808384-c896d0efd4ab?q=80&w=1200&auto=format&fit=crop"
-                alt="A confident African small business owner standing at her shop with her phone"
+                alt="A confident small business owner standing at her shop with her phone"
                 width={1200}
                 height={900}
                 loading="lazy"
@@ -330,7 +330,7 @@ export default function WelcomePage() {
                 developer every time something changes. With Shopper you open your store, list up to
                 25 products and take WhatsApp, bank transfer and cash-on-delivery orders for free —
                 no card required. When you want card payments, your own domain or a team, plans
-                start at ₦10,000 a month.
+                start at £5, $6 or ₦10,000 a month.
               </p>
               <p className="mt-3 text-sm text-muted-foreground">
                 Already selling on WordPress, Wix, Bumpa, Shopify, or any other e-commerce website

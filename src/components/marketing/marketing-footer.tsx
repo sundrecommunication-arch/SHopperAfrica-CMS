@@ -41,8 +41,8 @@ export function MarketingFooter() {
               Shopper
             </div>
             <p className="max-w-sm text-sm text-muted-foreground">
-              Shopper is an e-commerce website you can start for free — a real alternative to every
-              other online store builder in Africa — so every ad, every search, and every WhatsApp chat leads to a sale.
+              Shopper is an e-commerce website you can start for free, wherever you sell — card payments
+              through Stripe and Paystack, so every ad, every search, and every WhatsApp chat leads to a sale.
             </p>
             <a
               href="https://www.instagram.com/shopperafricacms/"

@@ -100,8 +100,8 @@ export default async function SellOnlinePage({ params }: { params: Promise<{ cou
       a: `${page.tax} You choose the rate; if you're unsure what applies to you, ask your accountant.`,
     },
     {
-      q: "Can I sell African fashion, food and beauty products?",
-      a: "Yes. Shopper was built with African businesses and works for ankara and aso-oke, jewellery, hair and skincare, foodstuff and more. Sell to your community and to everyone else.",
+      q: "What can I sell on Shopper?",
+      a: "Physical products of every kind: fashion (including ankara and aso-oke), jewellery, hair and skincare, food, home goods and more. Sell to your local community and to customers everywhere.",
     },
   ];
 

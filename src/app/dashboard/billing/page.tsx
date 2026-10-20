@@ -50,7 +50,12 @@ export default async function BillingPage() {
           subscribedPlan={plan.subscribedPlan}
           isTrial={plan.isTrial}
           lapsed={plan.lapsed}
-          intlCurrency={getCountry(store.country).cardProvider === "STRIPE" ? intlCurrencyFor(store.currency) ?? "USD" : null}
+          intlCurrency={(() => {
+            // Outside Paystack's countries plans are priced locally and upgraded through our team.
+            const provider = getCountry(store.country).cardProvider;
+            if (provider === "PAYSTACK") return null;
+            return intlCurrencyFor(store.currency) ?? (provider === "STRIPE" ? "USD" : "XOF");
+          })()}
           storeName={store.name}
         />
       </Suspense>

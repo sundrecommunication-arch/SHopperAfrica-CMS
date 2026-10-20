@@ -28,7 +28,7 @@ const GROUPS = [
     items: [
       { icon: ShoppingBag, title: "A real online storefront", body: "Products, categories, and a checkout, live at your own store address in minutes." },
       { icon: MessageCircle, title: "WhatsApp ordering", body: "Let customers order straight into WhatsApp, exactly how they already like to buy." },
-      { icon: CreditCard, title: "Online payments", body: "Accept card and bank transfer payments directly on your store, no WhatsApp back-and-forth required." },
+      { icon: CreditCard, title: "Online payments", body: "Accept cards, Apple Pay and Google Pay through Stripe or Paystack, plus bank transfer, directly on your store." },
       { icon: Tag, title: "Discounts & promo codes", body: "Launch a sale or a coupon code whenever you want — no developer, no waiting." },
     ],
   },

@@ -5,12 +5,13 @@
 
 export type PlanKey = "FREE" | "STARTER" | "BUSINESS";
 
-/** Currencies plans are priced in outside Africa. */
-export type IntlCurrency = "GBP" | "USD" | "CAD";
+/** Currencies plans are priced in besides naira (paid via our team for now). */
+export type IntlCurrency = "GBP" | "USD" | "CAD" | "XOF";
 export const INTL_CURRENCIES: { code: IntlCurrency; symbol: string; country: string }[] = [
   { code: "GBP", symbol: "£", country: "UK" },
   { code: "USD", symbol: "$", country: "US" },
   { code: "CAD", symbol: "CA$", country: "Canada" },
+  { code: "XOF", symbol: "CFA", country: "Benin" },
 ];
 
 export interface PlanLimits {
@@ -45,7 +46,7 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
     key: "FREE",
     name: "Free",
     priceMonthly: 0,
-    intlPrices: { GBP: 0, USD: 0, CAD: 0 },
+    intlPrices: { GBP: 0, USD: 0, CAD: 0, XOF: 0 },
     tagline: "Start selling today",
     limits: {
       maxProducts: 25,
@@ -69,7 +70,7 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
     key: "STARTER",
     name: "Starter",
     priceMonthly: 10_000,
-    intlPrices: { GBP: 5, USD: 6, CAD: 8 },
+    intlPrices: { GBP: 5, USD: 6, CAD: 8, XOF: 3_500 },
     tagline: "Look professional, get paid online",
     limits: {
       maxProducts: 200,
@@ -91,7 +92,7 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
     key: "BUSINESS",
     name: "Business",
     priceMonthly: 25_000,
-    intlPrices: { GBP: 12, USD: 15, CAD: 20 },
+    intlPrices: { GBP: 12, USD: 15, CAD: 20, XOF: 8_500 },
     tagline: "For growing teams",
     limits: {
       maxProducts: null,
@@ -122,6 +123,8 @@ export function formatNaira(amount: number) {
 /** A plan's monthly price in naira or one of the overseas currencies. */
 export function formatPlanPrice(plan: PlanDefinition, currency: "NGN" | IntlCurrency) {
   if (currency === "NGN") return formatNaira(plan.priceMonthly);
+  // CFA francs are written after the amount: "3,500 CFA".
+  if (currency === "XOF") return `${plan.intlPrices.XOF.toLocaleString("en-US")} CFA`;
   const symbol = INTL_CURRENCIES.find((c) => c.code === currency)!.symbol;
   return `${symbol}${plan.intlPrices[currency].toLocaleString()}`;
 }

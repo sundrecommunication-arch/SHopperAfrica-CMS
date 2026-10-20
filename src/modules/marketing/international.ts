@@ -80,7 +80,7 @@ export const MARKETS: {
   { code: "NG", flag: "🇳🇬", name: "Nigeria", currency: "₦ Naira", payments: "Paystack, bank transfer, WhatsApp", href: "/guides/how-to-create-an-online-store-in-nigeria", blurb: "Where Shopper started, with dropshipping from Nigerian suppliers." },
   { code: "GH", flag: "🇬🇭", name: "Ghana", currency: "₵ Cedi", payments: "Paystack, mobile money, WhatsApp", href: "/signup", blurb: "Sell in cedis and take orders on WhatsApp." },
   { code: "KE", flag: "🇰🇪", name: "Kenya", currency: "KSh Shilling", payments: "Paystack, WhatsApp", href: "/signup", blurb: "Sell in shillings, storefront in English or Swahili." },
-  { code: "BJ", flag: "🇧🇯", name: "Benin", currency: "CFA franc", payments: "PayDunya (mobile money & cards), WhatsApp", href: "/signup", blurb: "Votre boutique en ligne en français, paiement mobile money avec PayDunya." },
+  { code: "BJ", flag: "🇧🇯", name: "Benin", currency: "CFA franc", payments: "PayDunya (mobile money & cards), WhatsApp", href: "/signup", blurb: "Votre boutique en ligne en français, paiement mobile money avec PayDunya. Dès 3 500 CFA par mois." },
   { code: "GB", flag: "🇬🇧", name: "United Kingdom", currency: "£ Pound", payments: "Stripe cards, Apple Pay, Google Pay", href: "/sell-online/uk", blurb: "VAT, postcodes and card payments into your own Stripe." },
   { code: "US", flag: "🇺🇸", name: "United States", currency: "$ Dollar", payments: "Stripe cards, Apple Pay, Google Pay", href: "/sell-online/us", blurb: "Sales tax, ZIP codes and card payments into your own Stripe." },
   { code: "CA", flag: "🇨🇦", name: "Canada", currency: "CA$ Dollar", payments: "Stripe cards, Apple Pay, Google Pay", href: "/sell-online/canada", blurb: "GST/HST, postal codes and card payments into your own Stripe." },

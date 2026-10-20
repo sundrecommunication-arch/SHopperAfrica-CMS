@@ -10,7 +10,7 @@ const DESCRIPTION =
   "Shopper works in Nigeria, Ghana, Kenya, Benin, the UK, the US and Canada: your local currency, local card and mobile-money payments, tax and addresses.";
 
 export const metadata: Metadata = {
-  title: "Countries: sell online from Africa to the UK, US and Canada",
+  title: "Sell online worldwide: countries, currencies and payments",
   description: DESCRIPTION,
   alternates: { canonical: "/sell-online" },
   openGraph: { title: "Shopper works where you sell", description: DESCRIPTION },
@@ -32,8 +32,8 @@ export default function CountriesPage() {
           Shopper works where you sell.
         </h1>
         <p className="mt-4 text-lg text-muted-foreground">
-          From Lagos to Cotonou to London. Pick your country when you create your store and Shopper sets up your
-          currency, payments, tax and address format for you.
+          From London to Lagos to Toronto. Pick your country when you create your store and Shopper sets up your
+          currency, payments (Stripe, Paystack or PayDunya), tax and address format for you.
         </p>
       </Reveal>
 

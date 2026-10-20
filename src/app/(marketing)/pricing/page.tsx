@@ -8,7 +8,7 @@ import { INTL_CURRENCIES, PLANS, PLAN_ORDER, formatPlanPrice, type IntlCurrency 
 
 export const metadata: Metadata = {
   title: "Pricing",
-  description: "Start free. Paid plans from ₦10,000 a month in Nigeria, or from £5 / $6 / CA$8 a month in the UK, US and Canada.",
+  description: "Start free. Paid plans from ₦10,000 a month in Nigeria, 3,500 CFA in Benin, or from £5 / $6 / CA$8 a month in the UK, US and Canada.",
   alternates: { canonical: "/pricing" },
 };
 
@@ -20,7 +20,7 @@ const CURRENCY_TABS: { code: "NGN" | IntlCurrency; label: string }[] = [
 export default async function PricingPage({ searchParams }: { searchParams: Promise<{ currency?: string }> }) {
   const requested = (await searchParams).currency?.toUpperCase();
   const currency = CURRENCY_TABS.find((t) => t.code === requested)?.code ?? "NGN";
-  const overseas = currency !== "NGN";
+  const overseas = currency !== "NGN" && currency !== "XOF";
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
@@ -100,7 +100,13 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
       </div>
 
       <Reveal className="mt-10 text-center text-sm text-muted-foreground">
-        {overseas ? (
+        {currency === "XOF" ? (
+          <p>
+            In Benin your customers pay by mobile money and card through PayDunya, straight into your own account.
+            Plans are paid month by month with no contract; if a plan ends, your store moves to Free and nothing is
+            ever deleted.
+          </p>
+        ) : overseas ? (
           <p>
             Card payments go straight into your own Stripe account &mdash; Shopper takes no cut of your sales, only
             Stripe&apos;s standard card fees apply. Plans are paid month by month with no contract; if a plan ends, your
