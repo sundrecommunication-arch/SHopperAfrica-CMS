@@ -124,7 +124,7 @@ const getOverview = tool({
         tax: Number(store.taxRate) > 0
           ? { label: store.taxLabel, rate_percent: Number(store.taxRate), prices_include_tax: store.pricesIncludeTax }
           : "none",
-        card_payments_via: getCountry(store.country).cardProvider === "STRIPE" ? "Stripe (merchant connects at /dashboard/payments)" : "Paystack (merchant adds keys at /dashboard/payments)",
+        card_payments_via: getCountry(store.country).cardProvider === "STRIPE" ? "Stripe (merchant pastes their own Stripe key at /dashboard/payments)" : "Paystack (merchant adds keys at /dashboard/payments)",
         whatsapp_number: store.whatsappNumber,
         whatsapp_orders_on: store.whatsappEnabled,
         contact_email: store.contactEmail,

@@ -6,6 +6,7 @@ import { stores, orders, payments, paymentProviders, customers } from "@/db/sche
 import { initializePaystackTransaction } from "@/modules/payments/adapters/paystack-adapter";
 import { initializePaydunyaTransaction } from "@/modules/payments/adapters/paydunya-adapter";
 import { createOrderCheckout } from "@/modules/payments/adapters/stripe-adapter";
+import { stripeCredentials } from "@/modules/payments/services/stripe-connect-service";
 import { STRIPE_CURRENCIES } from "@/modules/regions/countries";
 import { getPublicOrigin } from "@/lib/request-origin";
 import {
@@ -121,16 +122,16 @@ export async function POST(request: Request) {
     let transactionReference: string;
 
     if (providerType === "STRIPE") {
-      // Paid on the merchant's own connected Stripe account (direct charge).
-      const accountId = provider?.config?.accountId as string | undefined;
-      if (!provider || !accountId || !STRIPE_CURRENCIES.has(store.currency)) {
+      // Paid on the merchant's own Stripe account (their key, or Connect).
+      const credentials = stripeCredentials(provider?.config);
+      if (!provider || !credentials || !STRIPE_CURRENCIES.has(store.currency)) {
         return NextResponse.json(
           { error: "Card payment isn't available for this store right now. Please choose another payment method." },
           { status: 400 }
         );
       }
       const result = await createOrderCheckout({
-        accountId,
+        credentials,
         currency: store.currency,
         amount: parseFloat(order.total),
         orderNumber: order.orderNumber,

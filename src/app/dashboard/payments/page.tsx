@@ -2,13 +2,16 @@ import { getCurrentStore } from "@/lib/tenant";
 import { listStorePaymentProviders } from "@/modules/payments/services/payment-service";
 import {
   getStripeConnection,
+  getStripeSetup,
   refreshStripeConnection,
   stripeEligibility,
 } from "@/modules/payments/services/stripe-connect-service";
+import { stripeConfigured } from "@/modules/payments/adapters/stripe-adapter";
 import { getStorePlan } from "@/modules/subscriptions/services/subscription-service";
 import { getCountry } from "@/modules/regions/countries";
 import { PaymentMethodsForm } from "@/components/dashboard/payments/payment-methods-form";
 import { StripeConnectCard } from "@/components/dashboard/payments/stripe-connect-card";
+import { StripeKeysCard } from "@/components/dashboard/payments/stripe-keys-card";
 
 export default async function PaymentsPage({
   searchParams,
@@ -36,9 +39,12 @@ export default async function PaymentsPage({
   }
 
   // Card payments: Paystack/PayDunya for African stores, Stripe for UK/US/Canada.
+  // Stripe via the merchant's own key, unless Shopper has a platform account
+  // (STRIPE_SECRET_KEY) for Stripe Connect.
   const usesStripe = getCountry(store.country).cardProvider === "STRIPE";
+  const platformConnect = stripeConfigured();
   let stripeError = sp.stripe_error ?? null;
-  if (usesStripe && sp.stripe === "return") {
+  if (usesStripe && platformConnect && sp.stripe === "return") {
     // Back from Stripe's onboarding: read the account's status now rather
     // than waiting for the webhook.
     await refreshStripeConnection(store.id).catch((error) => {
@@ -47,11 +53,16 @@ export default async function PaymentsPage({
     });
   }
 
-  const [providers, connection, plan] = await Promise.all([
+  const [allProviders, connection, keysSetup, plan] = await Promise.all([
     listStorePaymentProviders(store.id),
-    usesStripe ? getStripeConnection(store.id) : null,
+    usesStripe && platformConnect ? getStripeConnection(store.id) : null,
+    usesStripe ? getStripeSetup(store.id) : null,
     usesStripe ? getStorePlan(store.id) : null,
   ]);
+  // The Stripe row holds the merchant's key; it has its own card and must
+  // not be sent to the browser with the other providers.
+  const providers = allProviders.filter((p) => p.type !== "STRIPE");
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
   const stripeBlocked =
     usesStripe &&
     (stripeEligibility(store) ??
@@ -66,13 +77,16 @@ export default async function PaymentsPage({
         </p>
       </div>
 
-      {usesStripe && (
-        <StripeConnectCard
-          blockedReason={stripeBlocked || null}
-          connection={connection}
-          error={stripeError}
-        />
-      )}
+      {usesStripe &&
+        (platformConnect && !keysSetup ? (
+          <StripeConnectCard blockedReason={stripeBlocked || null} connection={connection} error={stripeError} />
+        ) : (
+          <StripeKeysCard
+            blockedReason={stripeBlocked || null}
+            setup={keysSetup}
+            webhookUrl={`${appUrl}/api/payments/webhooks/stripe?store=${store.id}`}
+          />
+        ))}
 
       <PaymentMethodsForm initialProviders={providers} showAfricanGateways={!usesStripe} />
     </div>

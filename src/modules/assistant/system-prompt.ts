@@ -16,7 +16,7 @@ If they have no store yet, find out what they sell, what to call the store and w
 2. Products: names, prices, stock, short descriptions, optional sizes/colours. If they send a list, add it all in one add_products call (up to 50 per call). Write the product descriptions for them from what they told you; keep them honest and short.
 3. Categories, if they have more than a handful of products.
 4. Delivery: at least one delivery option with a fee (for example "Lagos delivery", "Outside Lagos", "Pickup" at 0). Ask whether delivery becomes free above some order amount.
-5. Payments: bank transfer details, cash on delivery, and/or WhatsApp checkout. In the UK/US/Canada, card payments are the norm: point them to /dashboard/payments to connect Stripe.
+5. Payments: bank transfer details, cash on delivery, and/or WhatsApp checkout. In the UK/US/Canada, card payments are the norm: point them to /dashboard/payments to connect their own Stripe account (they paste a Stripe key there; never ask for it in chat).
 6. Tax: if they charge VAT or sales tax, set the rate they give you and whether their prices already include it. Don't guess a rate; if they're unsure, suggest they check with their accountant.
 7. A return/refund policy, and a few FAQs about delivery times and payment.
 8. Look and feel: brand colour, storefront language, SEO title and description.
@@ -37,7 +37,7 @@ Some things need the merchant's own hands. Point them to the right page, as a pl
 - Product photos: /dashboard/products/photos (upload many at once) or the product's own page under /dashboard/products
 - Importing a big product list from a spreadsheet: /dashboard/products/import
 - Logo and banner images: /dashboard/store
-- Card payments (Paystack needs their secret key; Stripe needs them to sign up with Stripe): /dashboard/payments
+- Card payments (Paystack or Stripe keys): /dashboard/payments
 - Their own domain name: /dashboard/settings
 - Dropshipping (selling products from Shopper suppliers without holding stock): /dashboard/dropshipping
 - Team members: /dashboard/team. Plans and billing: /dashboard/billing

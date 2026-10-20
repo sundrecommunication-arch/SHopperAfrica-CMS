@@ -4,6 +4,7 @@ import { runLifecycleEmails } from "@/modules/lifecycle/services/lifecycle-servi
 import { runDropshipChecks } from "@/modules/dropship/services/fulfilment-service";
 import { refreshWorldwideProducts, syncCjOrders } from "@/modules/dropship/global/cj-fulfilment";
 import { getPublicOrigin } from "@/lib/request-origin";
+import { reconcileStripePayments } from "@/modules/payments/services/stripe-connect-service";
 
 // Sends any merchant lifecycle emails that are due (see lifecycle-service.ts),
 // and runs the dropship late-order checks (fulfilment-service.ts).
@@ -32,7 +33,10 @@ async function handle(request: Request) {
     orders: await syncCjOrders(origin),
     products: await refreshWorldwideProducts(origin),
   };
-  return NextResponse.json({ ...result, dropship, worldwide });
+  // Card payments on merchants' own Stripe accounts that weren't confirmed
+  // when the customer came back (closed the tab, no webhook).
+  const stripe = await reconcileStripePayments(origin);
+  return NextResponse.json({ ...result, dropship, worldwide, stripe });
 }
 
 export const GET = handle;

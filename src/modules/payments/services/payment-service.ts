@@ -4,7 +4,7 @@ import { eq, and } from "drizzle-orm";
 import { db } from "@/db";
 import { paymentProviders, stores } from "@/db/schema";
 import { STRIPE_CURRENCIES } from "@/modules/regions/countries";
-import { stripeConfigured } from "../adapters/stripe-adapter";
+import { stripeCredentials } from "./stripe-connect-service";
 import { assertFeature, getStorePlan, SubscriptionServiceError } from "@/modules/subscriptions/services/subscription-service";
 import {
   savePaymentProviderSchema,
@@ -109,11 +109,12 @@ export async function getPublicStorePaymentProviders(storeId: string) {
       .from(paymentProviders)
       .where(and(eq(paymentProviders.storeId, storeId), eq(paymentProviders.isEnabled, true))),
   ]);
-  // Stripe only once the merchant's account can take charges (isEnabled
-  // tracks that) and in a currency Stripe checkout is offered in.
-  const stripeOk = stripeConfigured() && STRIPE_CURRENCIES.has(store?.currency ?? "");
+  // Stripe only when the store's account is usable (its own key, or a
+  // Connect account that can take charges -- isEnabled tracks that) and in
+  // a currency Stripe checkout is offered in.
+  const stripeCurrencyOk = STRIPE_CURRENCIES.has(store?.currency ?? "");
   const allowed = (limits.onlinePayments ? rows : rows.filter((p) => !ONLINE_TYPES.includes(p.type))).filter(
-    (p) => p.type !== "STRIPE" || stripeOk
+    (p) => p.type !== "STRIPE" || (stripeCurrencyOk && stripeCredentials(p.config) !== null)
   );
   // This goes to the customer's browser: only bank-transfer details are
   // meant to be public. Online providers' config holds secret API keys.

@@ -6,6 +6,7 @@ import { stores, orders, payments, paymentProviders } from "@/db/schema";
 import { verifyPaystackTransaction } from "@/modules/payments/adapters/paystack-adapter";
 import { confirmPaydunyaTransaction } from "@/modules/payments/adapters/paydunya-adapter";
 import { getOrderCheckout } from "@/modules/payments/adapters/stripe-adapter";
+import { stripeCredentials } from "@/modules/payments/services/stripe-connect-service";
 import { getPublicOrigin } from "@/lib/request-origin";
 import { notifyOrderPlaced } from "@/modules/notifications/services/order-notifications";
 import { getPlatformPaystackKey } from "@/modules/subscriptions/services/subscription-service";
@@ -95,11 +96,11 @@ export async function POST(request: Request) {
     let failureMessage = "Payment verification failed";
 
     if (provider.type === "STRIPE") {
-      const accountId = provider.config?.accountId as string | undefined;
-      if (!accountId) {
+      const credentials = stripeCredentials(provider.config);
+      if (!credentials) {
         return NextResponse.json({ error: "Payment gateway is not configured for this store" }, { status: 400 });
       }
-      const session = await getOrderCheckout(accountId, paymentRecord.transactionReference);
+      const session = await getOrderCheckout(credentials, paymentRecord.transactionReference);
       verifiedSuccess = session.payment_status === "paid" && session.metadata?.orderId === order.id;
       rawPayload = { id: session.id, payment_intent: session.payment_intent, amount_total: session.amount_total, currency: session.currency };
       failureMessage = "Payment not completed yet";
