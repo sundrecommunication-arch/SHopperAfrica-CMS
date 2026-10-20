@@ -49,6 +49,14 @@ const GROUPS = [
     ],
   },
   {
+    title: "Sell in your country, in your currency",
+    items: [
+      { icon: Globe2, title: "7 countries", body: "Nigeria, Ghana, Kenya, Benin, the UK, the US and Canada, with prices in your local currency." },
+      { icon: CreditCard, title: "Local payments", body: "Paystack, PayDunya mobile money, or Stripe straight into your own account, plus bank transfer and WhatsApp orders." },
+      { icon: FileText, title: "Tax and addresses", body: "VAT, TVA, sales tax or GST/HST shown on every order, and the right address fields at checkout for your country." },
+    ],
+  },
+  {
     title: "Sell without holding stock",
     items: [
       { icon: Boxes, title: "Dropshipping", body: "Add products from approved Nigerian suppliers in one tap, set your own price, and see your profit before you add anything." },

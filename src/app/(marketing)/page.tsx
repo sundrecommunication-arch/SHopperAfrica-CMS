@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MARKETS } from "@/modules/marketing/international";
 import type { Metadata } from "next";
 import {
   Search,
@@ -123,16 +124,43 @@ export default function WelcomePage() {
         </div>
       </section>
 
-      {/* Sellers outside Africa */}
-      <div className="border-b border-border/70 bg-muted/30">
-        <p className="mx-auto max-w-6xl px-4 py-3 text-center text-sm text-muted-foreground sm:px-6">
-          Selling from the{" "}
-          <Link href="/sell-online/uk" className="font-medium text-foreground underline underline-offset-2">UK</Link>,{" "}
-          <Link href="/sell-online/us" className="font-medium text-foreground underline underline-offset-2">US</Link> or{" "}
-          <Link href="/sell-online/canada" className="font-medium text-foreground underline underline-offset-2">Canada</Link>?
-          Card payments into your own Stripe account, plans from £5 a month.
-        </p>
-      </div>
+      {/* Countries */}
+      <section className="border-b border-border/70 bg-muted/30 py-12 sm:py-16">
+        <Reveal className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
+            <div className="max-w-2xl">
+              <span className="text-sm font-semibold uppercase tracking-wide text-primary">New: now in 7 countries</span>
+              <h2
+                className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl"
+                style={{ fontFamily: "var(--font-marketing-display)" }}
+              >
+                From Lagos to Cotonou to London.
+              </h2>
+              <p className="mt-3 text-muted-foreground">
+                Pick your country and Shopper sets up your currency, local payments, tax and addresses: Paystack in
+                Nigeria, Ghana and Kenya, PayDunya mobile money in Benin, and Stripe in the UK, US and Canada with plans
+                from £5 a month.
+              </p>
+            </div>
+            <Link href="/sell-online" className="shrink-0 text-sm font-semibold text-primary underline underline-offset-4">
+              See all countries →
+            </Link>
+          </div>
+          <div className="mt-8 flex flex-wrap gap-2">
+            {MARKETS.map((m) => (
+              <Link
+                key={m.code}
+                href={m.href}
+                className="inline-flex items-center gap-2 rounded-full border bg-background px-4 py-2 text-sm font-medium transition-colors hover:border-primary"
+              >
+                <span aria-hidden>{m.flag}</span>
+                {m.name}
+                <span className="text-xs font-normal text-muted-foreground">{m.currency}</span>
+              </Link>
+            ))}
+          </div>
+        </Reveal>
+      </section>
 
       {/* The problem */}
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">

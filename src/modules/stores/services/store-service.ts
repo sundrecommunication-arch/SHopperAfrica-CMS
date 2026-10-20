@@ -46,6 +46,7 @@ export async function createStoreForUser(userId: string, input: CreateStoreInput
         taxLabel: country.tax.label,
         taxRate: country.tax.rate.toFixed(2),
         pricesIncludeTax: country.tax.inclusive,
+        ...(country.locale && { locale: country.locale }),
       })
       .returning();
 

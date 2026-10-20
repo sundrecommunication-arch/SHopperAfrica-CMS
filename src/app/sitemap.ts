@@ -35,6 +35,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${appUrl}/contact`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
     { url: `${appUrl}/dropshipping`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
     { url: `${appUrl}/suppliers`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
+    { url: `${appUrl}/sell-online`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
     ...COUNTRY_PAGES.map((c) => ({
       url: `${appUrl}/sell-online/${c.slug}`,
       lastModified: new Date(),

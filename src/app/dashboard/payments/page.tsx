@@ -88,7 +88,7 @@ export default async function PaymentsPage({
           />
         ))}
 
-      <PaymentMethodsForm initialProviders={providers} showAfricanGateways={!usesStripe} />
+      <PaymentMethodsForm initialProviders={providers} cardProvider={getCountry(store.country).cardProvider} />
     </div>
   );
 }

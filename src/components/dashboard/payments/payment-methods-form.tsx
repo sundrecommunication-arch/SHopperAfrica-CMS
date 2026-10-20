@@ -20,11 +20,11 @@ interface PaymentProviderItem {
 
 interface PaymentMethodsFormProps {
   initialProviders: PaymentProviderItem[];
-  /** Paystack and PayDunya: African stores only (UK/US/Canada stores use Stripe). */
-  showAfricanGateways?: boolean;
+  /** Which card gateway fits the store's country: Paystack (NG/GH/KE), PayDunya (francophone West Africa), or Stripe (shown elsewhere). */
+  cardProvider?: "PAYSTACK" | "PAYDUNYA" | "STRIPE";
 }
 
-export function PaymentMethodsForm({ initialProviders, showAfricanGateways = true }: PaymentMethodsFormProps) {
+export function PaymentMethodsForm({ initialProviders, cardProvider = "PAYSTACK" }: PaymentMethodsFormProps) {
   // Bank Transfer (MANUAL)
   const manualProvider = initialProviders.find((p) => p.type === "MANUAL");
   const [bankEnabled, setBankEnabled] = useState(manualProvider?.isEnabled ?? false);
@@ -304,7 +304,7 @@ export function PaymentMethodsForm({ initialProviders, showAfricanGateways = tru
         </CardContent>
       </Card>
 
-      {showAfricanGateways && (
+      {cardProvider === "PAYSTACK" && (
         <>
       {/* Paystack Card */}
       <Card>
@@ -370,6 +370,11 @@ export function PaymentMethodsForm({ initialProviders, showAfricanGateways = tru
         </CardContent>
       </Card>
 
+        </>
+      )}
+
+      {cardProvider !== "STRIPE" && (
+        <>
       {/* PayDunya Card */}
       <Card>
         <CardHeader>

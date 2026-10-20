@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 
 import { MarketingNav } from "@/components/marketing/marketing-nav";
+import { AnnouncementBar } from "@/components/marketing/announcement-bar";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingAnalytics } from "@/components/marketing/analytics";
 
 export const metadata: Metadata = {
   title: {
     template: "%s | Shopper",
-    default: "Shopper — The free-to-start e-commerce website builder for Africa",
+    default: "Shopper — The free-to-start e-commerce website builder for Africa and beyond",
   },
   description:
     "Shopper is a free-to-start e-commerce website builder for African business owners who sell online — a real alternative to WordPress, Wix, Bumpa, Shopify, and every other e-commerce platform used in Africa. Built to be found on Google, AI search, and every ad platform.",
@@ -33,6 +34,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           } as React.CSSProperties
         }
       >
+        <AnnouncementBar />
         <MarketingNav />
         <main className="flex-1" style={{ fontFamily: "'Work Sans', ui-sans-serif, system-ui, sans-serif" }}>
           {children}

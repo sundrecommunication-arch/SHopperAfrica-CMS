@@ -6,6 +6,7 @@ const PRODUCT_LINKS = [
   { href: "/", label: "Home" },
   { href: "/features", label: "Features" },
   { href: "/dropshipping", label: "Dropshipping" },
+  { href: "/sell-online", label: "Countries" },
   { href: "/pricing", label: "Pricing" },
   { href: "/contact", label: "Contact us" },
 ];
