@@ -1,3 +1,4 @@
+import { OrderAlertsCard } from "@/components/pwa/order-alerts-card";
 import { InstallAppBanner } from "@/components/pwa/install-app-banner";
 import { eq, and, count, sum, gte, lte } from "drizzle-orm";
 import { getCurrentStore } from "@/lib/tenant";
@@ -92,6 +93,7 @@ export default async function DashboardOverviewPage({
       </div>
 
       <InstallAppBanner />
+      <OrderAlertsCard />
 
       {isAssistantEnabled() && (!store.isPublished || stats.products === 0) && (
         <Link

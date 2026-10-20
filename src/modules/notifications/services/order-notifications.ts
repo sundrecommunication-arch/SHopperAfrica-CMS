@@ -1,5 +1,6 @@
 import "server-only";
 import { orderTaxLine } from "@/modules/tax/calc";
+import { sendPushToUsers } from "./push-service";
 import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -63,6 +64,8 @@ function receiptUrl(origin: string, storeSlug: string, orderNumber: string) {
  * methods, or when an online payment is first confirmed.
  */
 export async function notifyOrderPlaced(orderId: string, origin: string): Promise<void> {
+  // Push to the store team's phones first -- it doesn't depend on email being set up.
+  await notifyOrderPush(orderId);
   try {
     if (!emailConfigured()) return;
     const ctx = await loadOrderContext(orderId);
@@ -188,5 +191,35 @@ export async function notifyOrderStatusChanged(
     });
   } catch (error) {
     console.error("Order status notification failed:", error);
+  }
+}
+
+/**
+ * "New order" push notification to everyone on the store's team who turned
+ * on alerts on a device (dashboard → "Get order alerts"). Respects the
+ * store's "order notifications" setting, like the merchant email.
+ */
+async function notifyOrderPush(orderId: string): Promise<void> {
+  try {
+    const ctx = await loadOrderContext(orderId);
+    if (!ctx || !ctx.prefs.merchant) return;
+    const { order, store, customer } = ctx;
+    const team = await db
+      .select({ userId: storeMembers.userId })
+      .from(storeMembers)
+      .where(eq(storeMembers.storeId, store.id));
+    const total = `${store.currencySymbol}${parseFloat(order.total).toLocaleString()}`;
+    const paid = order.paymentStatus === "PAID";
+    await sendPushToUsers(
+      team.map((m) => m.userId),
+      {
+        title: `${paid ? "New paid order" : "New order"} ${order.orderNumber}`,
+        body: `${total} from ${customer.name}${order.paymentMethod ? ` · ${order.paymentMethod}` : ""} — ${store.name}`,
+        url: `/dashboard/orders/${order.id}`,
+        tag: `order-${order.id}`,
+      }
+    );
+  } catch (error) {
+    console.error("Order push notification failed:", error);
   }
 }

@@ -1,6 +1,7 @@
 import React from "react";
 import { getCurrentStore } from "@/lib/tenant";
 import { StoreSettingsForm } from "@/components/dashboard/settings/store-settings-form";
+import { OrderAlertsCard } from "@/components/pwa/order-alerts-card";
 
 export default async function SettingsPage() {
   const { store } = await getCurrentStore();
@@ -12,6 +13,11 @@ export default async function SettingsPage() {
         <p className="text-muted-foreground text-sm">
           Manage visibility, regional currency, branding colors, and address for {store.name}.
         </p>
+      </div>
+
+      <div className="space-y-2">
+        <h2 className="text-sm font-semibold">Order alerts on this device</h2>
+        <OrderAlertsCard variant="settings" />
       </div>
 
       <StoreSettingsForm store={store} />
