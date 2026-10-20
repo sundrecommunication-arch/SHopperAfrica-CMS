@@ -1,4 +1,5 @@
 import "server-only";
+import { orderTaxLine } from "@/modules/tax/calc";
 import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -82,6 +83,10 @@ export async function notifyOrderPlaced(orderId: string, origin: string): Promis
       discount: parseFloat(order.discountAmount),
       deliveryMethod: order.deliveryMethod,
       deliveryFee: parseFloat(order.shippingAmount),
+      tax: (() => {
+        const line = orderTaxLine(order);
+        return line ? { label: store.taxLabel ?? "Tax", ...line } : null;
+      })(),
       total: parseFloat(order.total),
       paymentMethod: order.paymentMethod,
       paymentStatus: order.paymentStatus,

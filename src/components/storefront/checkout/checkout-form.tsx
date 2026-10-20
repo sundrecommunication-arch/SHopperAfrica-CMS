@@ -29,10 +29,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { calculateDeliveryFee, type DeliveryOption } from "@/modules/shipping/utils/delivery-fee";
 import { useT } from "@/i18n/client";
+import { getCountry } from "@/modules/regions/countries";
+import { calculateTax } from "@/modules/tax/calc";
+
+type PaymentMethodType = "MANUAL" | "CASH_ON_DELIVERY" | "WHATSAPP" | "PAYSTACK" | "PAYDUNYA" | "STRIPE";
+const ONLINE_METHODS: PaymentMethodType[] = ["PAYSTACK", "PAYDUNYA", "STRIPE"];
+
+// Example placeholders for stores outside Nigeria (the translated defaults
+// are Nigerian addresses).
+const PLACEHOLDERS: Record<string, { phone: string; street: string; city: string; state: string; postcode: string }> = {
+  GB: { phone: "e.g. 07700 900123", street: "e.g. 221B Baker Street", city: "e.g. London", state: "e.g. Greater London", postcode: "e.g. NW1 6XE" },
+  US: { phone: "e.g. (555) 123-4567", street: "e.g. 350 Fifth Avenue", city: "e.g. New York", state: "e.g. NY", postcode: "e.g. 10118" },
+  CA: { phone: "e.g. (416) 555-0123", street: "e.g. 290 Bremner Blvd", city: "e.g. Toronto", state: "e.g. ON", postcode: "e.g. M5V 3L9" },
+};
 
 interface PaymentOption {
   id: string;
-  type: "MANUAL" | "CASH_ON_DELIVERY" | "WHATSAPP" | "PAYSTACK" | "PAYDUNYA" | string;
+  type: PaymentMethodType | string;
   label: string;
   config: Record<string, unknown>;
 }
@@ -43,6 +56,7 @@ interface SavedAddress {
   line1: string;
   city: string;
   state: string | null;
+  postalCode?: string | null;
   isDefault: boolean;
 }
 
@@ -58,6 +72,10 @@ interface CheckoutFormProps {
     name: string;
     slug: string;
     currencySymbol: string;
+    country: string;
+    taxRate: string;
+    taxLabel: string;
+    pricesIncludeTax: boolean;
     whatsappNumber?: string | null;
     whatsappEnabled: boolean;
   };
@@ -81,6 +99,8 @@ export function CheckoutForm({
   const t = useT();
   const { items, subtotal, clearCart } = useCart();
   const cartHasDropship = items.some((i) => dropshipProductIds.includes(i.productId));
+  const country = getCountry(store.country);
+  const placeholders = PLACEHOLDERS[country.code];
 
   // Customer State -- prefilled from the logged-in customer's account, if any.
   const [customerName, setCustomerName] = useState(customer?.name ?? "");
@@ -95,6 +115,7 @@ export function CheckoutForm({
   const [deliveryAddress, setDeliveryAddress] = useState(defaultAddress?.line1 ?? "");
   const [city, setCity] = useState(defaultAddress?.city ?? "");
   const [state, setState] = useState(defaultAddress?.state ?? "");
+  const [postcode, setPostcode] = useState(defaultAddress?.postalCode ?? "");
   const [customerNotes, setCustomerNotes] = useState("");
   const [saveAddress, setSaveAddress] = useState(false);
 
@@ -104,6 +125,7 @@ export function CheckoutForm({
       setDeliveryAddress("");
       setCity("");
       setState("");
+      setPostcode("");
       return;
     }
     const addr = addresses.find((a) => a.id === id);
@@ -111,19 +133,21 @@ export function CheckoutForm({
       setDeliveryAddress(addr.line1);
       setCity(addr.city);
       setState(addr.state ?? "");
+      setPostcode(addr.postalCode ?? "");
     }
   };
 
   // Payment Selection
-  const defaultMethod =
-    paymentProviders.length > 0
-      ? (paymentProviders[0].type as "MANUAL" | "CASH_ON_DELIVERY" | "WHATSAPP" | "PAYSTACK" | "PAYDUNYA")
+  const hasStripe = paymentProviders.some((p) => p.type === "STRIPE");
+  const defaultMethod: PaymentMethodType = hasStripe
+    ? "STRIPE"
+    : paymentProviders.length > 0
+      ? (paymentProviders[0].type as PaymentMethodType)
       : "MANUAL";
-  const [chosenMethod, setSelectedMethod] = useState<
-    "MANUAL" | "CASH_ON_DELIVERY" | "WHATSAPP" | "PAYSTACK" | "PAYDUNYA"
-  >(defaultMethod);
+  const [chosenMethod, setSelectedMethod] = useState<PaymentMethodType>(defaultMethod);
   // Supplier items are paid online through Shopper (split to the supplier).
-  const selectedMethod = cartHasDropship ? "PAYSTACK" : chosenMethod;
+  const selectedMethod: PaymentMethodType = cartHasDropship ? "PAYSTACK" : chosenMethod;
+  const isOnline = ONLINE_METHODS.includes(selectedMethod);
 
   // Coupon State
   const [couponCode, setCouponCode] = useState("");
@@ -148,7 +172,9 @@ export function CheckoutForm({
   const discountAmount = appliedDiscount?.discountAmount ?? 0;
   const afterDiscount = Math.max(0, subtotal - discountAmount);
   const deliveryFee = selectedDelivery ? calculateDeliveryFee(selectedDelivery, afterDiscount) : 0;
-  const finalTotal = afterDiscount + deliveryFee;
+  // Display only -- the server recalculates tax when placing the order.
+  const tax = calculateTax(afterDiscount + deliveryFee, { rate: Number(store.taxRate), inclusive: store.pricesIncludeTax });
+  const finalTotal = Math.round((afterDiscount + deliveryFee + tax.addToTotal) * 100) / 100;
 
   // If cart is empty, show empty state
   if (items.length === 0) {
@@ -219,14 +245,15 @@ export function CheckoutForm({
       toast.error(t("checkout.errCity"));
       return;
     }
+    if (country.postcodeLabel && !postcode.trim()) {
+      toast.error(t("checkout.errPostcode"));
+      return;
+    }
     if (deliveryOptions.length > 0 && !selectedDelivery) {
       toast.error(t("checkout.errDelivery"));
       return;
     }
-    if (
-      (selectedMethod === "PAYSTACK" || selectedMethod === "PAYDUNYA") &&
-      !customerEmail.trim()
-    ) {
+    if (isOnline && !customerEmail.trim()) {
       toast.error(t("checkout.errEmailOnline"));
       return;
     }
@@ -241,6 +268,7 @@ export function CheckoutForm({
         deliveryAddress: deliveryAddress.trim(),
         city: city.trim(),
         state: state.trim() || undefined,
+        postcode: postcode.trim() || undefined,
         customerNotes: customerNotes.trim() || undefined,
         paymentMethodType: selectedMethod,
         checkoutChannel: "WEBSITE",
@@ -276,6 +304,7 @@ export function CheckoutForm({
             line1: deliveryAddress.trim(),
             city: city.trim(),
             state: state.trim() || undefined,
+            postalCode: postcode.trim() || undefined,
           }),
         }).catch(() => {});
       }
@@ -285,7 +314,7 @@ export function CheckoutForm({
       // the receipt. Every other method (bank transfer, cash on delivery,
       // WhatsApp) has nothing further to do, so it goes straight to the
       // receipt as before.
-      if (selectedMethod === "PAYSTACK" || selectedMethod === "PAYDUNYA") {
+      if (isOnline) {
         const initRes = await fetch("/api/payments/initialize", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -360,7 +389,7 @@ export function CheckoutForm({
                   <Input
                     id="customerPhone"
                     type="tel"
-                    placeholder={t("checkout.phonePlaceholder")}
+                    placeholder={placeholders?.phone ?? t("checkout.phonePlaceholder")}
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     required
@@ -370,7 +399,7 @@ export function CheckoutForm({
                 <div className="space-y-2">
                   <Label htmlFor="customerEmail">
                     {t("checkout.email")}{" "}
-                    {selectedMethod === "PAYSTACK" || selectedMethod === "PAYDUNYA" ? (
+                    {isOnline ? (
                       <span className="text-destructive">*</span>
                     ) : (
                       t("checkout.optional")
@@ -382,9 +411,9 @@ export function CheckoutForm({
                     placeholder={t("checkout.emailPlaceholder")}
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
-                    required={selectedMethod === "PAYSTACK" || selectedMethod === "PAYDUNYA"}
+                    required={isOnline}
                   />
-                  {(selectedMethod === "PAYSTACK" || selectedMethod === "PAYDUNYA") && (
+                  {isOnline && (
                     <p className="text-xs text-muted-foreground">
                       {t("checkout.emailRequiredHint")}
                     </p>
@@ -463,7 +492,7 @@ export function CheckoutForm({
                 </Label>
                 <Input
                   id="deliveryAddress"
-                  placeholder={t("checkout.streetPlaceholder")}
+                  placeholder={placeholders?.street ?? t("checkout.streetPlaceholder")}
                   value={deliveryAddress}
                   onChange={(e) => setDeliveryAddress(e.target.value)}
                   required
@@ -477,7 +506,7 @@ export function CheckoutForm({
                   </Label>
                   <Input
                     id="city"
-                    placeholder={t("checkout.cityPlaceholder")}
+                    placeholder={placeholders?.city ?? t("checkout.cityPlaceholder")}
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
                     required
@@ -485,15 +514,31 @@ export function CheckoutForm({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="state">{t("checkout.state")}</Label>
+                  <Label htmlFor="state">{placeholders && t.locale === "en" ? country.regionLabel : t("checkout.state")}</Label>
                   <Input
                     id="state"
-                    placeholder={t("checkout.statePlaceholder")}
+                    placeholder={placeholders?.state ?? t("checkout.statePlaceholder")}
                     value={state}
                     onChange={(e) => setState(e.target.value)}
                   />
                 </div>
               </div>
+
+              {country.postcodeLabel && (
+                <div className="space-y-2 sm:max-w-[50%] sm:pr-2">
+                  <Label htmlFor="postcode">
+                    {t.locale === "en" ? country.postcodeLabel : t("checkout.postcode")} <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="postcode"
+                    autoComplete="postal-code"
+                    placeholder={placeholders?.postcode}
+                    value={postcode}
+                    onChange={(e) => setPostcode(e.target.value.toUpperCase())}
+                    required
+                  />
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="customerNotes">{t("checkout.notes")}</Label>
@@ -578,6 +623,33 @@ export function CheckoutForm({
               <CardDescription>{t("checkout.paymentMethodHint")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
+              {/* Card payment through the merchant's own Stripe account */}
+              {hasStripe && !cartHasDropship && (
+                <label
+                  className={`flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-all ${
+                    selectedMethod === "STRIPE"
+                      ? "border-primary bg-primary/5 ring-1 ring-primary"
+                      : "border-border hover:bg-muted/40"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="STRIPE"
+                    checked={selectedMethod === "STRIPE"}
+                    onChange={() => setSelectedMethod("STRIPE")}
+                    className="mt-1 text-primary"
+                  />
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2 font-semibold text-sm">
+                      <CreditCard className="h-4 w-4 text-indigo-600" />
+                      <span>{t("checkout.stripeTitle")}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{t("checkout.stripeBody")}</p>
+                  </div>
+                </label>
+              )}
+
               {/* Paystack Online Payment */}
               {(cartHasDropship || paymentProviders.some((p) => p.type === "PAYSTACK")) && (
                 <label
@@ -848,6 +920,18 @@ export function CheckoutForm({
                   </span>
                 </div>
 
+                {tax.tax > 0 && !store.pricesIncludeTax && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>
+                      {store.taxLabel} ({Number(store.taxRate)}%)
+                    </span>
+                    <span>
+                      {store.currencySymbol}
+                      {tax.tax.toLocaleString()}
+                    </span>
+                  </div>
+                )}
+
                 <div className="border-t pt-2 flex justify-between font-bold text-base text-foreground">
                   <span>{t("common.total")}</span>
                   <span>
@@ -855,6 +939,11 @@ export function CheckoutForm({
                     {finalTotal.toLocaleString()}
                   </span>
                 </div>
+                {tax.tax > 0 && store.pricesIncludeTax && (
+                  <p className="text-right text-xs text-muted-foreground">
+                    {t("checkout.taxIncluded", { label: `${store.taxLabel} ${store.currencySymbol}${tax.tax.toLocaleString()}` })}
+                  </p>
+                )}
               </div>
 
               {/* Submit Button */}

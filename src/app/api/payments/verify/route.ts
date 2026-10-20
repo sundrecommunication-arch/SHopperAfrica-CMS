@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { stores, orders, payments, paymentProviders } from "@/db/schema";
 import { verifyPaystackTransaction } from "@/modules/payments/adapters/paystack-adapter";
 import { confirmPaydunyaTransaction } from "@/modules/payments/adapters/paydunya-adapter";
+import { getOrderCheckout } from "@/modules/payments/adapters/stripe-adapter";
 import { getPublicOrigin } from "@/lib/request-origin";
 import { notifyOrderPlaced } from "@/modules/notifications/services/order-notifications";
 import { getPlatformPaystackKey } from "@/modules/subscriptions/services/subscription-service";
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
       .where(eq(paymentProviders.id, paymentRecord.providerId))
       .limit(1);
 
-    if (!provider || (provider.type !== "PAYSTACK" && provider.type !== "PAYDUNYA")) {
+    if (!provider || !["PAYSTACK", "PAYDUNYA", "STRIPE"].includes(provider.type)) {
       return NextResponse.json(
         { error: "Could not determine the payment provider for this order" },
         { status: 400 }
@@ -93,7 +94,16 @@ export async function POST(request: Request) {
     let rawPayload: Record<string, unknown> = {};
     let failureMessage = "Payment verification failed";
 
-    if (provider.type === "PAYSTACK") {
+    if (provider.type === "STRIPE") {
+      const accountId = provider.config?.accountId as string | undefined;
+      if (!accountId) {
+        return NextResponse.json({ error: "Payment gateway is not configured for this store" }, { status: 400 });
+      }
+      const session = await getOrderCheckout(accountId, paymentRecord.transactionReference);
+      verifiedSuccess = session.payment_status === "paid" && session.metadata?.orderId === order.id;
+      rawPayload = { id: session.id, payment_intent: session.payment_intent, amount_total: session.amount_total, currency: session.currency };
+      failureMessage = "Payment not completed yet";
+    } else if (provider.type === "PAYSTACK") {
       const secretKey = (provider.config?.secretKey as string) || process.env.PAYSTACK_SECRET_KEY;
       if (!secretKey) {
         return NextResponse.json(

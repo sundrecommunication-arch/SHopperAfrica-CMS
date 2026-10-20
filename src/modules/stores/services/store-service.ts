@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { stores, storeMembers, storeSettings, subscriptions } from "@/db/schema";
+import { currencySymbol, getCountry } from "@/modules/regions/countries";
 import {
   createStoreSchema,
   updateStoreGeneralSchema,
@@ -23,6 +24,7 @@ export async function createStoreForUser(userId: string, input: CreateStoreInput
     throw new StoreServiceError(parsed.error.issues[0]?.message ?? "Invalid input");
   }
   const { name, slug, whatsappNumber } = parsed.data;
+  const country = getCountry(parsed.data.country ?? "NG");
 
   const [existingSlug] = await db.select({ id: stores.id }).from(stores).where(eq(stores.slug, slug)).limit(1);
   if (existingSlug) {
@@ -38,6 +40,12 @@ export async function createStoreForUser(userId: string, input: CreateStoreInput
         slug,
         whatsappNumber: whatsappNumber || null,
         whatsappEnabled: Boolean(whatsappNumber),
+        country: country.code,
+        currency: country.currency,
+        currencySymbol: currencySymbol(country.currency),
+        taxLabel: country.tax.label,
+        taxRate: country.tax.rate.toFixed(2),
+        pricesIncludeTax: country.tax.inclusive,
       })
       .returning();
 

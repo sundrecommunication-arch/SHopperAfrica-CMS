@@ -1,4 +1,5 @@
 import React from "react";
+import { orderTaxLine } from "@/modules/tax/calc";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
@@ -43,6 +44,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
   }
 
   const { order, customer, items } = orderData;
+  const taxLine = orderTaxLine(order);
   const supplierDeliveries = order.isDropship ? await listSupplierOrdersForOrder(store.id, order.id) : [];
   const dateFormatted = new Date(order.createdAt).toLocaleString(undefined, {
     dateStyle: "medium",
@@ -157,6 +159,14 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                   <span>Discount</span>
                   <span>-{store.currencySymbol}{parseFloat(order.discountAmount).toLocaleString()}</span>
                 </div>
+                {taxLine && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>
+                      {taxLine.included ? `Includes ${store.taxLabel}` : store.taxLabel}
+                    </span>
+                    <span>{store.currencySymbol}{taxLine.amount.toLocaleString()}</span>
+                  </div>
+                )}
                 <div className="border-t pt-2 flex justify-between font-bold text-sm text-foreground">
                   <span>Total Amount</span>
                   <span>

@@ -14,9 +14,10 @@ export const createOrderSchema = z.object({
   deliveryAddress: z.string().min(3, "Delivery address is required"),
   city: z.string().min(2, "City is required"),
   state: z.string().optional(),
+  postcode: z.string().trim().max(20).optional(),
   customerNotes: z.string().optional(),
   paymentMethodType: z
-    .enum(["MANUAL", "CASH_ON_DELIVERY", "WHATSAPP", "PAYSTACK", "PAYDUNYA"])
+    .enum(["MANUAL", "CASH_ON_DELIVERY", "WHATSAPP", "PAYSTACK", "PAYDUNYA", "STRIPE"])
     .default("MANUAL"),
   checkoutChannel: z.enum(["WEBSITE", "WHATSAPP"]).default("WEBSITE"),
   discountCode: z.string().optional(),

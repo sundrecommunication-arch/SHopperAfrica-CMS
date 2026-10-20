@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, integer, pgEnum, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, integer, numeric, pgEnum, unique } from "drizzle-orm/pg-core";
 import { users } from "./auth";
 
 // --- Enums -----------------------------------------------------------------
@@ -49,6 +49,15 @@ export const stores = pgTable("stores", {
   addressText: text("address_text"),
   currency: text("currency").notNull().default("NGN"),
   currencySymbol: text("currency_symbol").notNull().default("₦"),
+  // Where the business is (ISO 3166-1 alpha-2, e.g. "NG", "GB", "US", "CA"):
+  // drives address labels, card payment provider and default wording.
+  country: text("country").notNull().default("NG"),
+  // Sales tax / VAT on orders (src/modules/tax). 0 = no tax line. Inclusive:
+  // prices already contain the tax (UK/EU/Canada style, tax shown as "of
+  // which"); exclusive: added on top at checkout (US style).
+  taxRate: numeric("tax_rate", { precision: 5, scale: 2 }).notNull().default("0"),
+  taxLabel: text("tax_label").notNull().default("Tax"),
+  pricesIncludeTax: boolean("prices_include_tax").notNull().default(true),
 
   // WhatsApp (core differentiator — see docs/master-instruction.md section 18/19)
   whatsappNumber: text("whatsapp_number"),

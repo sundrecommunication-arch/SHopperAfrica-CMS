@@ -7,12 +7,17 @@ import { stores } from "@/db/schema";
 import { getCurrentStore, requireRole, TenantError } from "@/lib/tenant";
 import { generateDomainVerificationToken, isValidDomain } from "@/lib/domain-verification";
 import { LOCALES } from "@/i18n/config";
+import { COUNTRY_CODES } from "@/modules/regions/countries";
 import { assertFeature, SubscriptionServiceError } from "@/modules/subscriptions/services/subscription-service";
 
 const updateStoreSettingsSchema = z.object({
   isPublished: z.boolean().optional(),
   currency: z.string().min(1).optional(),
   currencySymbol: z.string().min(1).optional(),
+  country: z.enum(COUNTRY_CODES).optional(),
+  taxRate: z.number().min(0).max(50).transform((n) => n.toFixed(2)).optional(),
+  taxLabel: z.string().trim().min(1).max(30).optional(),
+  pricesIncludeTax: z.boolean().optional(),
   primaryColor: z.string().optional(),
   secondaryColor: z.string().optional(),
   addressText: z.string().nullable().optional(),

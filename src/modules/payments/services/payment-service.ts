@@ -2,7 +2,9 @@ import "server-only";
 import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
-import { paymentProviders } from "@/db/schema";
+import { paymentProviders, stores } from "@/db/schema";
+import { STRIPE_CURRENCIES } from "@/modules/regions/countries";
+import { stripeConfigured } from "../adapters/stripe-adapter";
 import { assertFeature, getStorePlan, SubscriptionServiceError } from "@/modules/subscriptions/services/subscription-service";
 import {
   savePaymentProviderSchema,
@@ -11,7 +13,7 @@ import {
 
 export class PaymentServiceError extends Error {}
 
-const ONLINE_TYPES: string[] = ["PAYSTACK", "PAYDUNYA"];
+const ONLINE_TYPES: string[] = ["PAYSTACK", "PAYDUNYA", "STRIPE"];
 
 /**
  * Lists all payment providers configured for a merchant's store.
@@ -94,8 +96,9 @@ export async function upsertPaymentProvider(
 export async function getPublicStorePaymentProviders(storeId: string) {
   // A store whose plan lapsed keeps its saved keys, but card payments stop
   // being offered until it's on a paid plan again.
-  const [{ limits }, rows] = await Promise.all([
+  const [{ limits }, [store], rows] = await Promise.all([
     getStorePlan(storeId),
+    db.select({ currency: stores.currency }).from(stores).where(eq(stores.id, storeId)).limit(1),
     db
       .select({
         id: paymentProviders.id,
@@ -106,7 +109,12 @@ export async function getPublicStorePaymentProviders(storeId: string) {
       .from(paymentProviders)
       .where(and(eq(paymentProviders.storeId, storeId), eq(paymentProviders.isEnabled, true))),
   ]);
-  const allowed = limits.onlinePayments ? rows : rows.filter((p) => !ONLINE_TYPES.includes(p.type));
+  // Stripe only once the merchant's account can take charges (isEnabled
+  // tracks that) and in a currency Stripe checkout is offered in.
+  const stripeOk = stripeConfigured() && STRIPE_CURRENCIES.has(store?.currency ?? "");
+  const allowed = (limits.onlinePayments ? rows : rows.filter((p) => !ONLINE_TYPES.includes(p.type))).filter(
+    (p) => p.type !== "STRIPE" || stripeOk
+  );
   // This goes to the customer's browser: only bank-transfer details are
   // meant to be public. Online providers' config holds secret API keys.
   return allowed.map((p) => ({ ...p, config: p.type === "MANUAL" ? p.config : {} }));

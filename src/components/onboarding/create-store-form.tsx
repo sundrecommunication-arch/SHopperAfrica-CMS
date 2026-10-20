@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { COUNTRIES, getCountry } from "@/modules/regions/countries";
 
 export function CreateStoreForm() {
   const { update } = useSession();
@@ -24,9 +25,10 @@ export function CreateStoreForm() {
     control,
     setValue,
     formState: { errors },
-  } = useForm<CreateStoreInput>({ resolver: zodResolver(createStoreSchema) });
+  } = useForm<CreateStoreInput>({ resolver: zodResolver(createStoreSchema), defaultValues: { country: "NG" } });
 
   const name = useWatch({ control, name: "name" });
+  const country = getCountry(useWatch({ control, name: "country" }));
 
   async function onSubmit(values: CreateStoreInput) {
     setIsSubmitting(true);
@@ -80,8 +82,23 @@ export function CreateStoreForm() {
         {errors.slug && <p className="text-destructive text-xs">{errors.slug.message}</p>}
       </div>
       <div className="flex flex-col gap-1.5">
+        <Label htmlFor="country">Where is your business?</Label>
+        <select
+          id="country"
+          {...register("country")}
+          className="border-input focus-visible:ring-ring h-9 rounded-md border bg-transparent px-3 text-base shadow-sm outline-none focus-visible:ring-2 md:text-sm"
+        >
+          {COUNTRIES.map((c) => (
+            <option key={c.code} value={c.code}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+        <p className="text-muted-foreground text-xs">Sets your currency ({country.currency}) and tax. You can change these later.</p>
+      </div>
+      <div className="flex flex-col gap-1.5">
         <Label htmlFor="whatsappNumber">WhatsApp number (optional)</Label>
-        <Input id="whatsappNumber" placeholder="+234..." {...register("whatsappNumber")} />
+        <Input id="whatsappNumber" placeholder={`${country.dialCode}...`} {...register("whatsappNumber")} />
         <p className="text-muted-foreground text-xs">
           You can turn on WhatsApp checkout anytime from Store settings.
         </p>

@@ -12,6 +12,8 @@ import {
   getPlatformPaystackKey,
 } from "@/modules/subscriptions/services/subscription-service";
 import { markDropshipOrderPaid } from "@/modules/dropship/services/fulfilment-service";
+import { parseWebhookEvent, toStatus, type Stripe } from "@/modules/payments/adapters/stripe-adapter";
+import { applyAccountUpdate } from "@/modules/payments/services/stripe-connect-service";
 
 /**
  * Verifies that a webhook payload was actually signed by Paystack using the
@@ -35,6 +37,7 @@ export async function POST(
   try {
     const { provider } = await params;
     const bodyText = await request.text();
+    if (provider === "stripe") return handleStripeEvent(request, bodyText);
     const event = JSON.parse(bodyText);
 
     // Plan payments made to Shopper's own Paystack account arrive on this
@@ -245,4 +248,68 @@ export async function POST(
     console.error("Webhook processing error:", error);
     return NextResponse.json({ error: "Webhook error" }, { status: 500 });
   }
+}
+
+/**
+ * Stripe Connect events: a connected (merchant) account's checkout completing,
+ * and account status changes (e.g. finishing onboarding). The signature check
+ * proves the event came from Stripe; event.account says which merchant
+ * account it happened on, and must match the order's store.
+ */
+async function handleStripeEvent(request: Request, bodyText: string) {
+  let event: Stripe.Event;
+  try {
+    event = parseWebhookEvent(bodyText, request.headers.get("stripe-signature"));
+  } catch {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+  }
+
+  if (event.type === "account.updated") {
+    await applyAccountUpdate(toStatus(event.data.object));
+    return NextResponse.json({ received: true });
+  }
+
+  if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
+    const session = event.data.object;
+    const orderId = session.metadata?.orderId;
+    if (session.payment_status !== "paid" || !orderId) return NextResponse.json({ received: true });
+
+    const [paymentRecord] = await db.select().from(payments).where(eq(payments.orderId, orderId)).limit(1);
+    if (!paymentRecord || paymentRecord.transactionReference !== session.id) {
+      return NextResponse.json({ received: true });
+    }
+    const [providerRow] = await db
+      .select({ config: paymentProviders.config })
+      .from(paymentProviders)
+      .where(and(eq(paymentProviders.storeId, paymentRecord.storeId), eq(paymentProviders.type, "STRIPE")))
+      .limit(1);
+    if (!providerRow || providerRow.config?.accountId !== event.account) {
+      console.error("Stripe webhook: session from an account that isn't this store's", { orderId, account: event.account });
+      return NextResponse.json({ received: true });
+    }
+
+    await db.transaction(async (tx) => {
+      // Conditional on not-yet-PAID: webhook retries (and the verify route
+      // racing us) must only send the new-order emails once.
+      const transitioned = await tx
+        .update(orders)
+        .set({ paymentStatus: "PAID", updatedAt: new Date() })
+        .where(and(eq(orders.id, orderId), ne(orders.paymentStatus, "PAID")))
+        .returning({ id: orders.id });
+      if (transitioned.length > 0) {
+        const origin = getPublicOrigin(request);
+        after(() => notifyOrderPlaced(orderId, origin));
+      }
+      await tx
+        .update(payments)
+        .set({
+          status: "SUCCEEDED",
+          rawPayload: { id: session.id, payment_intent: session.payment_intent, amount_total: session.amount_total, currency: session.currency },
+          updatedAt: new Date(),
+        })
+        .where(eq(payments.id, paymentRecord.id));
+    });
+  }
+
+  return NextResponse.json({ received: true });
 }

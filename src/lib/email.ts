@@ -158,6 +158,8 @@ export interface OrderEmailDetails {
   discount: number;
   deliveryMethod: string | null;
   deliveryFee: number;
+  /** Tax contained in (included) or added to the total; omitted when the order has none. */
+  tax?: { label: string; amount: number; included: boolean } | null;
   total: number;
   paymentMethod: string | null;
   paymentStatus: string;
@@ -207,7 +209,9 @@ function renderOrderSummary(d: OrderEmailDetails): string {
               )
             : ""
         }
+        ${d.tax && !d.tax.included ? line(esc(d.tax.label), money(d.currencySymbol, d.tax.amount)) : ""}
         ${line("Total", money(d.currencySymbol, d.total), true)}
+        ${d.tax?.included ? line(`Includes ${esc(d.tax.label)}`, money(d.currencySymbol, d.tax.amount)) : ""}
       </table>`;
 }
 

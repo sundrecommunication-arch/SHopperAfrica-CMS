@@ -29,6 +29,7 @@ import {
 import { getStorePlan, SubscriptionServiceError } from "@/modules/subscriptions/services/subscription-service";
 import { PLANS } from "@/modules/subscriptions/plans";
 import { policyTypes } from "@/modules/policies/validation/schemas";
+import { COUNTRIES, COUNTRY_CODES, getCountry } from "@/modules/regions/countries";
 
 // Tools the AI setup assistant can call. Every write goes through the same
 // service functions (and validation, plan limits, slug rules) as the
@@ -119,6 +120,11 @@ const getOverview = tool({
         description: store.description,
         published: store.isPublished,
         currency: store.currency,
+        country: getCountry(store.country).name,
+        tax: Number(store.taxRate) > 0
+          ? { label: store.taxLabel, rate_percent: Number(store.taxRate), prices_include_tax: store.pricesIncludeTax }
+          : "none",
+        card_payments_via: getCountry(store.country).cardProvider === "STRIPE" ? "Stripe (merchant connects at /dashboard/payments)" : "Paystack (merchant adds keys at /dashboard/payments)",
         whatsapp_number: store.whatsappNumber,
         whatsapp_orders_on: store.whatsappEnabled,
         contact_email: store.contactEmail,
@@ -200,11 +206,21 @@ const createStoreTool = tool({
         name: { type: "string", description: "Store name, e.g. \"Adunni Fashion House\"" },
         slug: { type: "string", description: "Optional store link name: lowercase letters, numbers, hyphens" },
         whatsapp_number: { type: "string", description: "Optional WhatsApp number for orders, e.g. 08012345678" },
+        country: {
+          type: "string",
+          enum: COUNTRY_CODES,
+          description: `Where the business is (sets currency and tax defaults): ${COUNTRIES.map((c) => `${c.code}=${c.name}`).join(", ")}. Default NG.`,
+        },
       },
       required: ["name"],
     },
   },
-  schema: z.object({ name: z.string().trim().min(2).max(100), slug: optStr(60), whatsapp_number: optStr(30) }),
+  schema: z.object({
+    name: z.string().trim().min(2).max(100),
+    slug: optStr(60),
+    whatsapp_number: optStr(30),
+    country: z.enum(COUNTRY_CODES).optional(),
+  }),
   label: (i) => `Creating "${i.name}"`,
   run: async (input, ctx) => {
     if (ctx.store) throw new ToolUserError("This merchant already has a store; update it instead.");
@@ -215,7 +231,12 @@ const createStoreTool = tool({
       if (!taken) break;
       slug = `${base}-${n}`;
     }
-    const store = await createStoreForUser(ctx.userId, { name: input.name, slug, whatsappNumber: input.whatsapp_number ?? "" });
+    const store = await createStoreForUser(ctx.userId, {
+      name: input.name,
+      slug,
+      whatsappNumber: input.whatsapp_number ?? "",
+      country: input.country,
+    });
     ctx.store = { id: store.id, slug: store.slug, name: store.name, currency: store.currency, currencySymbol: store.currencySymbol };
     ctx.role = "OWNER";
     return { created: true, name: store.name, link: `/store/${store.slug}`, dashboard: linkTo("/dashboard") };
@@ -677,6 +698,42 @@ const setPayments = tool({
 });
 
 // Fixed order: the tool list is part of the cached prompt prefix.
+const setTax = tool({
+  definition: {
+    name: "set_tax",
+    description:
+      "Set the sales tax / VAT shown on orders: its name (e.g. VAT, Sales tax, GST/HST), rate in percent (0 = no tax), and whether the store's prices already include it (UK/EU style) or tax is added at checkout (US/Canada style). Only set a rate the merchant has confirmed -- don't guess tax rates for them.",
+    input_schema: {
+      type: "object",
+      properties: {
+        label: { type: "string", description: "Tax name shown to customers, e.g. VAT" },
+        rate_percent: { type: "number", description: "e.g. 20 for 20%. 0 turns tax off." },
+        prices_include_tax: { type: "boolean", description: "true if product prices already include the tax" },
+      },
+      required: ["rate_percent", "prices_include_tax"],
+    },
+  },
+  schema: z.object({
+    label: optStr(30),
+    rate_percent: z.number().min(0).max(50),
+    prices_include_tax: z.boolean(),
+  }),
+  label: (i) => (i.rate_percent > 0 ? `Setting ${i.label ?? "tax"} to ${i.rate_percent}%` : "Turning tax off"),
+  run: async (input, ctx) => {
+    const store = requireStore(ctx);
+    await db
+      .update(stores)
+      .set({
+        taxRate: input.rate_percent.toFixed(2),
+        ...(input.label && { taxLabel: input.label }),
+        pricesIncludeTax: input.prices_include_tax,
+        updatedAt: new Date(),
+      })
+      .where(eq(stores.id, store.id));
+    return { saved: true, rate_percent: input.rate_percent, prices_include_tax: input.prices_include_tax };
+  },
+});
+
 const ALL = [
   getOverview,
   listProductsTool,
@@ -692,6 +749,7 @@ const ALL = [
   savePolicy,
   setFaqs,
   setPayments,
+  setTax,
 ] as AssistantTool<z.ZodTypeAny>[];
 
 /** Tool definitions for the API request (streamed inputs: validated with zod before running). */

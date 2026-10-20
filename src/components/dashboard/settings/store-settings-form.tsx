@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LOCALES, LOCALE_ENGLISH_NAMES, LOCALE_NAMES } from "@/i18n/config";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageUploader, type UploadedImage } from "@/components/dashboard/products/image-uploader";
+import { COUNTRIES, CURRENCIES, getCountry } from "@/modules/regions/countries";
 
 interface StoreSettingsFormProps {
   store: {
@@ -21,6 +22,10 @@ interface StoreSettingsFormProps {
     slug: string;
     currency: string;
     currencySymbol: string;
+    country: string;
+    taxRate: string;
+    taxLabel: string;
+    pricesIncludeTax: boolean;
     primaryColor: string;
     secondaryColor: string;
     addressText: string | null;
@@ -49,20 +54,28 @@ const heroTextPositions: { value: HeroTextPosition; label: string }[] = [
   { value: "bottom-right", label: "Bottom right" },
 ];
 
-const currencies = [
-  { code: "NGN", symbol: "₦", label: "Nigerian Naira (₦)" },
-  { code: "USD", symbol: "$", label: "US Dollar ($)" },
-  { code: "GBP", symbol: "£", label: "British Pound (£)" },
-  { code: "EUR", symbol: "€", label: "Euro (€)" },
-  { code: "GHS", symbol: "₵", label: "Ghanaian Cedi (₵)" },
-  { code: "KES", symbol: "KSh", label: "Kenyan Shilling (KSh)" },
-];
+const currencies = CURRENCIES;
 
 export function StoreSettingsForm({ store }: StoreSettingsFormProps) {
   const router = useRouter();
 
   const [isPublished, setIsPublished] = useState(store.isPublished);
   const [currency, setCurrency] = useState(store.currency);
+  const [country, setCountry] = useState(store.country ?? "NG");
+  const [taxRate, setTaxRate] = useState(String(Number(store.taxRate ?? 0)));
+  const [taxLabel, setTaxLabel] = useState(store.taxLabel ?? "Tax");
+  const [pricesIncludeTax, setPricesIncludeTax] = useState(store.pricesIncludeTax ?? true);
+
+  // Picking a country fills in its usual currency and tax setup; the
+  // merchant can still change each one afterwards.
+  function chooseCountry(code: string) {
+    const info = getCountry(code);
+    setCountry(code);
+    setCurrency(info.currency);
+    setTaxLabel(info.tax.label);
+    setTaxRate(String(info.tax.rate));
+    setPricesIncludeTax(info.tax.inclusive);
+  }
   const [primaryColor, setPrimaryColor] = useState(store.primaryColor || "#16a34a");
   const [addressText, setAddressText] = useState(store.addressText ?? "");
   const [customDomain, setCustomDomain] = useState(store.customDomain ?? "");
@@ -111,6 +124,10 @@ export function StoreSettingsForm({ store }: StoreSettingsFormProps) {
           isPublished,
           currency: selectedCurrencyObj.code,
           currencySymbol: selectedCurrencyObj.symbol,
+          country,
+          taxRate: Number(taxRate) || 0,
+          taxLabel: taxLabel.trim() || "Tax",
+          pricesIncludeTax,
           primaryColor,
           addressText: addressText.trim() || null,
           customDomain: customDomain.trim() || null,
@@ -224,25 +241,83 @@ export function StoreSettingsForm({ store }: StoreSettingsFormProps) {
       {/* 2. Currency & Formatting */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Currency & Region</CardTitle>
-          <CardDescription>Choose the primary currency displayed on your store.</CardDescription>
+          <CardTitle className="text-base">Country, Currency & Tax</CardTitle>
+          <CardDescription>
+            Where your business is based, the currency your prices are in, and the tax shown on orders.
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="max-w-xs space-y-2">
-            <Label>Store Currency</Label>
-            <Select value={currency} onValueChange={setCurrency}>
-              <SelectTrigger className="h-10">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {currencies.map((c) => (
-                  <SelectItem key={c.code} value={c.code}>
-                    {c.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <CardContent className="space-y-5">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Country</Label>
+              <Select value={country} onValueChange={chooseCountry}>
+                <SelectTrigger className="h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {COUNTRIES.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Store Currency</Label>
+              <Select value={currency} onValueChange={setCurrency}>
+                <SelectTrigger className="h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {currencies.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="taxLabel">Tax name</Label>
+              <Input id="taxLabel" value={taxLabel} onChange={(e) => setTaxLabel(e.target.value)} maxLength={30} placeholder="VAT" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="taxRate">Rate (%)</Label>
+              <Input
+                id="taxRate"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                max={50}
+                step="0.01"
+                value={taxRate}
+                onChange={(e) => setTaxRate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Your prices</Label>
+              <Select value={pricesIncludeTax ? "inclusive" : "exclusive"} onValueChange={(v) => setPricesIncludeTax(v === "inclusive")}>
+                <SelectTrigger className="h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="inclusive">Already include tax</SelectItem>
+                  <SelectItem value="exclusive">Tax added at checkout</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {Number(taxRate) > 0
+              ? pricesIncludeTax
+                ? `Orders show the ${taxLabel || "tax"} included in the total (${taxRate}% of the price). Totals don't change.`
+                : `${taxLabel || "Tax"} of ${taxRate}% is added to the order total at checkout, including on delivery.`
+              : "Set a rate of 0 if you don't charge tax. Ask your accountant which rate applies to you."}
+          </p>
         </CardContent>
       </Card>
 

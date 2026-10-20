@@ -1,4 +1,5 @@
 import React, { Suspense } from "react";
+import { orderTaxLine } from "@/modules/tax/calc";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -50,6 +51,7 @@ export default async function OrderReceiptPage({ params }: OrderReceiptPageProps
   const { t } = await getStorefrontI18n(store.locale);
   const subtotalNum = parseFloat(order.subtotal);
   const totalNum = parseFloat(order.total);
+  const taxLine = orderTaxLine(order);
 
   const isBankTransfer =
     order.paymentMethod?.toLowerCase().includes("bank") ||
@@ -197,6 +199,15 @@ export default async function OrderReceiptPage({ params }: OrderReceiptPageProps
                       : `${store.currencySymbol}${parseFloat(order.shippingAmount).toLocaleString()}`}
                   </span>
                 </div>
+                {taxLine && !taxLine.included && (
+                  <div className="flex justify-between text-muted-foreground text-xs">
+                    <span>{store.taxLabel}</span>
+                    <span>
+                      {store.currencySymbol}
+                      {taxLine.amount.toLocaleString()}
+                    </span>
+                  </div>
+                )}
                 <div className="border-t pt-2 flex justify-between font-extrabold text-base text-foreground">
                   <span>{t("common.total")}</span>
                   <span>
@@ -204,6 +215,11 @@ export default async function OrderReceiptPage({ params }: OrderReceiptPageProps
                     {totalNum.toLocaleString()}
                   </span>
                 </div>
+                {taxLine?.included && (
+                  <p className="text-right text-xs text-muted-foreground">
+                    {t("checkout.taxIncluded", { label: `${store.taxLabel} ${store.currencySymbol}${taxLine.amount.toLocaleString()}` })}
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>

@@ -178,6 +178,7 @@ export async function saveCustomerAddress(customerId: string, input: SaveAddress
       line1: input.line1.trim(),
       city: input.city.trim(),
       state: input.state?.trim() || null,
+      postalCode: input.postalCode?.trim() || null,
       isDefault: existing.length === 0,
     })
     .returning();

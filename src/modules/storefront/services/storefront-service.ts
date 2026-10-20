@@ -52,6 +52,7 @@ export async function getCustomerAddresses(customerId: string) {
       line1: addresses.line1,
       city: addresses.city,
       state: addresses.state,
+      postalCode: addresses.postalCode,
       isDefault: addresses.isDefault,
     })
     .from(addresses)
@@ -92,6 +93,10 @@ export async function getPublicStoreBySlug(slug: string) {
       addressText: stores.addressText,
       currency: stores.currency,
       currencySymbol: stores.currencySymbol,
+      country: stores.country,
+      taxRate: stores.taxRate,
+      taxLabel: stores.taxLabel,
+      pricesIncludeTax: stores.pricesIncludeTax,
       whatsappNumber: stores.whatsappNumber,
       whatsappEnabled: stores.whatsappEnabled,
       whatsappOrderBehavior: stores.whatsappOrderBehavior,

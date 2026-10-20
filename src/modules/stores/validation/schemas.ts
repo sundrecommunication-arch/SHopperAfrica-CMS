@@ -1,3 +1,4 @@
+import { COUNTRY_CODES } from "@/modules/regions/countries";
 import { z } from "zod";
 
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -10,6 +11,8 @@ export const createStoreSchema = z.object({
     .max(60)
     .regex(slugPattern, "Use lowercase letters, numbers and hyphens only"),
   whatsappNumber: z.string().min(7, "Enter a valid phone number").optional().or(z.literal("")),
+  // Where the business is: sets the store's currency, tax defaults and address wording.
+  country: z.enum(COUNTRY_CODES).optional(),
 });
 
 export type CreateStoreInput = z.infer<typeof createStoreSchema>;

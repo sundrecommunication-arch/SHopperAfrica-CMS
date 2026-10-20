@@ -15,7 +15,8 @@ export const savePaymentProviderSchema = z.object({
     "PAYSTACK",
     "PAYDUNYA",
     "FLUTTERWAVE",
-    "STRIPE",
+    // Not STRIPE: its config (connected account id, charges enabled) only
+    // ever comes from Stripe itself -- see stripe-connect-service.
   ]),
   label: z.string().min(1, "Label is required"),
   isEnabled: z.boolean().default(true),

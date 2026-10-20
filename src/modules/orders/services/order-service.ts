@@ -38,6 +38,10 @@ import {
   listDeliveryOptions,
   calculateDeliveryFee,
 } from "@/modules/shipping/services/shipping-service";
+import { calculateTax } from "@/modules/tax/calc";
+import { getCountry } from "@/modules/regions/countries";
+
+const ONLINE_METHODS = ["PAYSTACK", "PAYDUNYA", "STRIPE"];
 
 export class OrderServiceError extends Error {}
 
@@ -105,10 +109,15 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
   }
   if (
     !isDropship &&
-    (data.paymentMethodType === "PAYSTACK" || data.paymentMethodType === "PAYDUNYA") &&
+    ONLINE_METHODS.includes(data.paymentMethodType) &&
     !(await getStorePlan(store.id)).limits.onlinePayments
   ) {
     throw new OrderServiceError("Online payment isn't available for this store. Please choose another payment method.");
+  }
+
+  const storeCountry = getCountry(store.country);
+  if (storeCountry.postcodeLabel && !data.postcode?.trim()) {
+    throw new OrderServiceError(`Please enter your ${storeCountry.postcodeLabel.toLowerCase()}.`);
   }
 
   const variantIds = data.items
@@ -285,10 +294,17 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
     deliveryMethod = chosen.name;
   }
 
+  // Tax on goods after discount plus delivery: contained in the total when
+  // the store's prices include it, added on top when they don't.
+  const tax = calculateTax(afterDiscount + deliveryFee, {
+    rate: Number(store.taxRate),
+    inclusive: store.pricesIncludeTax,
+  });
+
   const subtotalStr = String(calculatedSubtotal);
   const discountStr = String(Math.round(calculatedDiscount * 100) / 100);
   const shippingStr = String(deliveryFee);
-  const finalTotalNum = afterDiscount + deliveryFee;
+  const finalTotalNum = Math.round((afterDiscount + deliveryFee + tax.addToTotal) * 100) / 100;
   const totalStr = String(finalTotalNum);
 
   // Fail now (not at the payment step) if the split can't work: missing
@@ -357,7 +373,8 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
       line1: data.deliveryAddress.trim(),
       city: data.city.trim(),
       state: data.state?.trim() || null,
-      country: "Nigeria",
+      country: storeCountry.name,
+      postalCode: data.postcode?.trim() || null,
       isDefault: true,
     });
 
@@ -370,7 +387,10 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
     const orderNumber = `QS-${1000 + nextNum}`;
 
     // 4c. Format WhatsApp message
-    const fullDeliveryAddress = `${data.deliveryAddress.trim()}, ${data.city.trim()}${data.state ? `, ${data.state.trim()}` : ""}`;
+    const fullDeliveryAddress = [data.deliveryAddress, data.city, data.state, data.postcode]
+      .map((part) => part?.trim())
+      .filter(Boolean)
+      .join(", ");
     const whatsappOrderMsg = buildCartWhatsAppUrl({
       whatsappNumber: store.whatsappNumber || "",
       storeName: store.name,
@@ -400,6 +420,8 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
         ? "Paystack Online Payment"
         : data.paymentMethodType === "PAYDUNYA"
         ? "Online Payment (PayDunya)"
+        : data.paymentMethodType === "STRIPE"
+        ? "Card Payment (Stripe)"
         : "Bank Transfer";
 
     // 4d. Insert order
@@ -415,7 +437,7 @@ export async function createStorefrontOrder(input: CreateOrderInput) {
         subtotal: subtotalStr,
         discountAmount: discountStr,
         shippingAmount: shippingStr,
-        taxAmount: "0",
+        taxAmount: String(tax.tax),
         total: totalStr,
         paymentMethod: paymentLabel,
         deliveryMethod,
@@ -559,6 +581,7 @@ export async function getPublicOrderReceipt(storeSlug: string, orderNumber: stri
       name: stores.name,
       slug: stores.slug,
       currencySymbol: stores.currencySymbol,
+      taxLabel: stores.taxLabel,
       whatsappNumber: stores.whatsappNumber,
       whatsappEnabled: stores.whatsappEnabled,
       locale: stores.locale,

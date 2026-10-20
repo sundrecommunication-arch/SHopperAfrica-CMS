@@ -5,6 +5,8 @@ import { db } from "@/db";
 import { stores, orders, payments, paymentProviders, customers } from "@/db/schema";
 import { initializePaystackTransaction } from "@/modules/payments/adapters/paystack-adapter";
 import { initializePaydunyaTransaction } from "@/modules/payments/adapters/paydunya-adapter";
+import { createOrderCheckout } from "@/modules/payments/adapters/stripe-adapter";
+import { STRIPE_CURRENCIES } from "@/modules/regions/countries";
 import { getPublicOrigin } from "@/lib/request-origin";
 import {
   getStorePlan,
@@ -13,7 +15,7 @@ import {
 import { computeDropshipSplit, FulfilmentError } from "@/modules/dropship/services/fulfilment-service";
 
 /**
- * Starts an online-payment transaction (Paystack or PayDunya) for an
+ * Starts an online-payment transaction (Paystack, PayDunya or Stripe) for an
  * already-created (PENDING) order and returns the hosted checkout URL to
  * redirect the customer to. Called from the checkout form right after order
  * creation with `paymentMethodType` set to whichever the customer picked,
@@ -74,7 +76,7 @@ export async function POST(request: Request) {
     }
     providerType = providerType || "PAYSTACK";
 
-    if (providerType !== "PAYSTACK" && providerType !== "PAYDUNYA") {
+    if (providerType !== "PAYSTACK" && providerType !== "PAYDUNYA" && providerType !== "STRIPE") {
       return NextResponse.json({ error: "Unsupported online payment method" }, { status: 400 });
     }
 
@@ -118,7 +120,28 @@ export async function POST(request: Request) {
     let authorizationUrl: string;
     let transactionReference: string;
 
-    if (providerType === "PAYSTACK") {
+    if (providerType === "STRIPE") {
+      // Paid on the merchant's own connected Stripe account (direct charge).
+      const accountId = provider?.config?.accountId as string | undefined;
+      if (!provider || !accountId || !STRIPE_CURRENCIES.has(store.currency)) {
+        return NextResponse.json(
+          { error: "Card payment isn't available for this store right now. Please choose another payment method." },
+          { status: 400 }
+        );
+      }
+      const result = await createOrderCheckout({
+        accountId,
+        currency: store.currency,
+        amount: parseFloat(order.total),
+        orderNumber: order.orderNumber,
+        storeName: store.name,
+        customerEmail: customer.email,
+        returnUrl,
+        metadata: { orderId: order.id, orderNumber: order.orderNumber, storeId: store.id },
+      });
+      authorizationUrl = result.url;
+      transactionReference = result.sessionId;
+    } else if (providerType === "PAYSTACK") {
       const secretKey = (provider?.config?.secretKey as string) || process.env.PAYSTACK_SECRET_KEY;
       if (!secretKey) {
         return NextResponse.json(

@@ -24,6 +24,7 @@ export const saveAddressSchema = z.object({
   line1: z.string().min(3, "Enter a street address").max(200),
   city: z.string().min(1, "Enter a city").max(100),
   state: z.string().max(100).optional().or(z.literal("")),
+  postalCode: z.string().max(20).optional().or(z.literal("")),
 });
 
 export type SaveAddressInput = z.infer<typeof saveAddressSchema>;
