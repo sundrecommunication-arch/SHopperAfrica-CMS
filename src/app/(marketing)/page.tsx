@@ -26,6 +26,7 @@ import { HeroCarousel } from "@/components/marketing/hero-carousel";
 
 export const metadata: Metadata = {
   title: "A free-to-start e-commerce website builder for businesses worldwide",
+  alternates: { canonical: "/" },
 };
 
 const AD_PLATFORMS = [

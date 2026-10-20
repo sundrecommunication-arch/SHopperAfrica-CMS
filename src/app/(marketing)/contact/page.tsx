@@ -4,7 +4,7 @@ import { Mail, MapPin } from "lucide-react";
 import { ContactForm } from "@/components/marketing/contact-form";
 import { Reveal } from "@/components/marketing/reveal";
 
-export const metadata: Metadata = { title: "Contact us" };
+export const metadata: Metadata = { title: "Contact us", alternates: { canonical: "/contact" } };
 
 export default async function ContactPage({ searchParams }: { searchParams: Promise<{ message?: string }> }) {
   // Prefilled from links like the overseas "Get Starter" button in Billing.

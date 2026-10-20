@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Become a supplier — sell wholesale through hundreds of online stores",
+  alternates: { canonical: "/suppliers" },
   description:
     "List your products once on Shopper. Online stores across Nigeria sell them, you deliver to their customers, and you're paid automatically for every order.",
 };

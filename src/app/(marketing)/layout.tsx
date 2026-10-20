@@ -11,6 +11,12 @@ export const viewport = SELLER_APP_VIEWPORT;
 
 export const metadata: Metadata = {
   ...SELLER_APP_METADATA,
+  // Turns every page's relative canonical / Open Graph URL into the full
+  // https://www.shopperafrica.com address, so Google treats the www https
+  // site as the one true version (the apex and http:// versions redirect
+  // there). Set here, not in the root layout: storefronts can live on
+  // merchants' own domains.
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://www.shopperafrica.com"),
   title: {
     template: "%s | Shopper",
     default: "Shopper — The free-to-start e-commerce website builder, worldwide",

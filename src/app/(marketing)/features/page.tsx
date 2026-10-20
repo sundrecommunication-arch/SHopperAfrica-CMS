@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/marketing/reveal";
 
-export const metadata: Metadata = { title: "Features" };
+export const metadata: Metadata = { title: "Features", alternates: { canonical: "/features" } };
 
 const GROUPS = [
   {
