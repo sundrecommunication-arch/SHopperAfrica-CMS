@@ -1,3 +1,4 @@
+import { COUNTRY_PAGES } from "@/modules/marketing/international";
 import type { MetadataRoute } from "next";
 import { and, eq } from "drizzle-orm";
 
@@ -34,6 +35,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${appUrl}/contact`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
     { url: `${appUrl}/dropshipping`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
     { url: `${appUrl}/suppliers`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
+    ...COUNTRY_PAGES.map((c) => ({
+      url: `${appUrl}/sell-online/${c.slug}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    })),
     {
       url: `${appUrl}/guides/how-to-create-an-online-store-in-nigeria`,
       lastModified: new Date(),

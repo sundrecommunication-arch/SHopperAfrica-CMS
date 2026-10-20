@@ -6,7 +6,9 @@ import { Reveal } from "@/components/marketing/reveal";
 
 export const metadata: Metadata = { title: "Contact us" };
 
-export default function ContactPage() {
+export default async function ContactPage({ searchParams }: { searchParams: Promise<{ message?: string }> }) {
+  // Prefilled from links like the overseas "Get Starter" button in Billing.
+  const defaultMessage = (await searchParams).message?.slice(0, 500);
   return (
     <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-24">
       <Reveal className="mx-auto max-w-2xl text-center">
@@ -23,7 +25,7 @@ export default function ContactPage() {
 
       <Reveal className="mt-14 grid gap-10 md:grid-cols-2 md:gap-16">
         <div>
-          <ContactForm />
+          <ContactForm defaultMessage={defaultMessage} />
         </div>
         <div className="flex flex-col gap-6">
           <div className="flex items-start gap-3">

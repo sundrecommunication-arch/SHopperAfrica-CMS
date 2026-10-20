@@ -18,7 +18,7 @@ const contactSchema = z.object({
 });
 type ContactInput = z.infer<typeof contactSchema>;
 
-export function ContactForm() {
+export function ContactForm({ defaultMessage }: { defaultMessage?: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
   const {
@@ -26,7 +26,10 @@ export function ContactForm() {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<ContactInput>({ resolver: zodResolver(contactSchema) });
+  } = useForm<ContactInput>({
+    resolver: zodResolver(contactSchema),
+    defaultValues: defaultMessage ? { message: defaultMessage } : undefined,
+  });
 
   async function onSubmit(values: ContactInput) {
     setIsSubmitting(true);

@@ -11,6 +11,9 @@ const PRODUCT_LINKS = [
 ];
 
 const RESOURCE_LINKS = [
+  { href: "/sell-online/uk", label: "Sell online in the UK" },
+  { href: "/sell-online/us", label: "Sell online in the US" },
+  { href: "/sell-online/canada", label: "Sell online in Canada" },
   { href: "/guides/how-to-create-an-online-store-in-nigeria", label: "Create an online store in Nigeria" },
   { href: "/compare/shopper-vs-bumpa", label: "Shopper vs Bumpa" },
   { href: "/compare/shopper-vs-shopify", label: "Shopper vs Shopify" },

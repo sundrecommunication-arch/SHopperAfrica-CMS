@@ -4,7 +4,8 @@ import {
   getStorePlan,
   listPlanPayments,
 } from "@/modules/subscriptions/services/subscription-service";
-import { PLANS, formatNaira } from "@/modules/subscriptions/plans";
+import { PLANS, formatNaira, intlCurrencyFor } from "@/modules/subscriptions/plans";
+import { getCountry } from "@/modules/regions/countries";
 import { PlanPicker } from "@/components/dashboard/billing/plan-picker";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -49,6 +50,8 @@ export default async function BillingPage() {
           subscribedPlan={plan.subscribedPlan}
           isTrial={plan.isTrial}
           lapsed={plan.lapsed}
+          intlCurrency={getCountry(store.country).cardProvider === "STRIPE" ? intlCurrencyFor(store.currency) ?? "USD" : null}
+          storeName={store.name}
         />
       </Suspense>
 

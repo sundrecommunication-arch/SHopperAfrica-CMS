@@ -123,6 +123,17 @@ export default function WelcomePage() {
         </div>
       </section>
 
+      {/* Sellers outside Africa */}
+      <div className="border-b border-border/70 bg-muted/30">
+        <p className="mx-auto max-w-6xl px-4 py-3 text-center text-sm text-muted-foreground sm:px-6">
+          Selling from the{" "}
+          <Link href="/sell-online/uk" className="font-medium text-foreground underline underline-offset-2">UK</Link>,{" "}
+          <Link href="/sell-online/us" className="font-medium text-foreground underline underline-offset-2">US</Link> or{" "}
+          <Link href="/sell-online/canada" className="font-medium text-foreground underline underline-offset-2">Canada</Link>?
+          Card payments into your own Stripe account, plans from £5 a month.
+        </p>
+      </div>
+
       {/* The problem */}
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
         <Reveal className="grid items-center gap-10 md:grid-cols-2 md:gap-16">

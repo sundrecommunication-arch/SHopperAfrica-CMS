@@ -4,11 +4,24 @@ import { CheckCircle2, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/marketing/reveal";
-import { PLANS, PLAN_ORDER, formatNaira } from "@/modules/subscriptions/plans";
+import { INTL_CURRENCIES, PLANS, PLAN_ORDER, formatPlanPrice, type IntlCurrency } from "@/modules/subscriptions/plans";
 
-export const metadata: Metadata = { title: "Pricing" };
+export const metadata: Metadata = {
+  title: "Pricing",
+  description: "Start free. Paid plans from ₦10,000 a month in Nigeria, or from £5 / $6 / CA$8 a month in the UK, US and Canada.",
+  alternates: { canonical: "/pricing" },
+};
 
-export default function PricingPage() {
+const CURRENCY_TABS: { code: "NGN" | IntlCurrency; label: string }[] = [
+  { code: "NGN", label: "₦ Nigeria" },
+  ...INTL_CURRENCIES.map((c) => ({ code: c.code, label: `${c.symbol} ${c.country}` })),
+];
+
+export default async function PricingPage({ searchParams }: { searchParams: Promise<{ currency?: string }> }) {
+  const requested = (await searchParams).currency?.toUpperCase();
+  const currency = CURRENCY_TABS.find((t) => t.code === requested)?.code ?? "NGN";
+  const overseas = currency !== "NGN";
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
       <Reveal className="mx-auto max-w-2xl text-center">
@@ -28,7 +41,23 @@ export default function PricingPage() {
         </p>
       </Reveal>
 
-      <div className="mt-12 grid gap-6 md:grid-cols-3">
+      <nav aria-label="Currency" className="mx-auto mt-8 flex w-fit flex-wrap justify-center gap-1 rounded-full border p-1 text-sm">
+        {CURRENCY_TABS.map((tab) => (
+          <Link
+            key={tab.code}
+            href={tab.code === "NGN" ? "/pricing" : `/pricing?currency=${tab.code}`}
+            scroll={false}
+            aria-current={tab.code === currency ? "page" : undefined}
+            className={`rounded-full px-4 py-1.5 transition-colors ${
+              tab.code === currency ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {tab.label}
+          </Link>
+        ))}
+      </nav>
+
+      <div className="mt-10 grid gap-6 md:grid-cols-3">
         {PLAN_ORDER.map((key) => {
           const plan = PLANS[key];
           const featured = key === "STARTER";
@@ -48,7 +77,7 @@ export default function PricingPage() {
                   className="text-4xl font-semibold tracking-tight"
                   style={{ fontFamily: "var(--font-marketing-display)" }}
                 >
-                  {formatNaira(plan.priceMonthly)}
+                  {formatPlanPrice(plan, currency)}
                 </span>
                 <span className="text-sm text-muted-foreground"> / month</span>
               </div>
@@ -71,10 +100,19 @@ export default function PricingPage() {
       </div>
 
       <Reveal className="mt-10 text-center text-sm text-muted-foreground">
-        <p>
-          Paid plans are bought 30 days at a time through Paystack — no automatic charges, cancel by
-          simply not renewing. If a plan ends, your store moves to Free; nothing is ever deleted.
-        </p>
+        {overseas ? (
+          <p>
+            Card payments go straight into your own Stripe account &mdash; Shopper takes no cut of your sales, only
+            Stripe&apos;s standard card fees apply. Plans are paid month by month with no contract; if a plan ends, your
+            store moves to Free and nothing is ever deleted. Selling from the UK, US or Canada?{" "}
+            <Link href="/sell-online/uk" className="text-primary underline underline-offset-2">See how it works</Link>.
+          </p>
+        ) : (
+          <p>
+            Paid plans are bought 30 days at a time through Paystack — no automatic charges, cancel by
+            simply not renewing. If a plan ends, your store moves to Free; nothing is ever deleted.
+          </p>
+        )}
       </Reveal>
     </div>
   );

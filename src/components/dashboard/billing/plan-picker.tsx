@@ -8,7 +8,7 @@ import { CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PLANS, PLAN_ORDER, formatNaira, type PlanKey } from "@/modules/subscriptions/plans";
+import { PLANS, PLAN_ORDER, formatPlanPrice, type IntlCurrency, type PlanKey } from "@/modules/subscriptions/plans";
 
 interface PlanPickerProps {
   /** The plan the store is entitled to right now. */
@@ -17,9 +17,12 @@ interface PlanPickerProps {
   subscribedPlan: PlanKey;
   isTrial: boolean;
   lapsed: boolean;
+  /** UK/US/Canada stores: prices in their currency, upgraded through our team for now. */
+  intlCurrency?: IntlCurrency | null;
+  storeName?: string;
 }
 
-export function PlanPicker({ currentPlan, subscribedPlan, isTrial, lapsed }: PlanPickerProps) {
+export function PlanPicker({ currentPlan, subscribedPlan, isTrial, lapsed, intlCurrency, storeName }: PlanPickerProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pendingPlan, setPendingPlan] = useState<PlanKey | null>(null);
@@ -97,7 +100,7 @@ export function PlanPicker({ currentPlan, subscribedPlan, isTrial, lapsed }: Pla
                 </div>
                 <CardDescription>{plan.tagline}</CardDescription>
                 <div className="pt-2">
-                  <span className="text-3xl font-bold">{formatNaira(plan.priceMonthly)}</span>
+                  <span className="text-3xl font-bold">{formatPlanPrice(plan, intlCurrency ?? "NGN")}</span>
                   <span className="text-sm text-muted-foreground"> / month</span>
                 </div>
               </CardHeader>
@@ -110,7 +113,18 @@ export function PlanPicker({ currentPlan, subscribedPlan, isTrial, lapsed }: Pla
                     </li>
                   ))}
                 </ul>
-                {key !== "FREE" && (
+                {key !== "FREE" && intlCurrency && (
+                  <Button asChild className="w-full" variant={isCurrent && !isTrial ? "outline" : "default"}>
+                    <a
+                      href={`/contact?message=${encodeURIComponent(
+                        `Hi, I'd like the ${plan.name} plan (${formatPlanPrice(plan, intlCurrency)}/month) for my store ${storeName ?? ""}.`
+                      )}`}
+                    >
+                      {isRenewal ? "Renew" : `Get ${plan.name}`}
+                    </a>
+                  </Button>
+                )}
+                {key !== "FREE" && !intlCurrency && (
                   <Button
                     className="w-full"
                     variant={isCurrent && !isTrial ? "outline" : "default"}
@@ -132,8 +146,9 @@ export function PlanPicker({ currentPlan, subscribedPlan, isTrial, lapsed }: Pla
         })}
       </div>
       <p className="text-xs text-muted-foreground">
-        Plans are paid 30 days at a time through Paystack — no automatic charges. When a period ends
-        your store moves to the Free plan; nothing is deleted.
+        {intlCurrency
+          ? "Send us a message and we'll set up your plan and how to pay — online payment in your currency is coming soon. When a period ends your store moves to the Free plan; nothing is deleted."
+          : "Plans are paid 30 days at a time through Paystack — no automatic charges. When a period ends your store moves to the Free plan; nothing is deleted."}
       </p>
     </div>
   );

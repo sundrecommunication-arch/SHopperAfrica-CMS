@@ -5,6 +5,14 @@
 
 export type PlanKey = "FREE" | "STARTER" | "BUSINESS";
 
+/** Currencies plans are priced in outside Africa. */
+export type IntlCurrency = "GBP" | "USD" | "CAD";
+export const INTL_CURRENCIES: { code: IntlCurrency; symbol: string; country: string }[] = [
+  { code: "GBP", symbol: "£", country: "UK" },
+  { code: "USD", symbol: "$", country: "US" },
+  { code: "CAD", symbol: "CA$", country: "Canada" },
+];
+
 export interface PlanLimits {
   /** null = unlimited */
   maxProducts: number | null;
@@ -24,6 +32,8 @@ export interface PlanDefinition {
   name: string;
   /** Monthly price in NGN */
   priceMonthly: number;
+  /** Monthly price for stores in the UK, US and Canada. */
+  intlPrices: Record<IntlCurrency, number>;
   tagline: string;
   limits: PlanLimits;
   /** Human-readable feature list for pricing/billing cards */
@@ -35,6 +45,7 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
     key: "FREE",
     name: "Free",
     priceMonthly: 0,
+    intlPrices: { GBP: 0, USD: 0, CAD: 0 },
     tagline: "Start selling today",
     limits: {
       maxProducts: 25,
@@ -51,13 +62,14 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
       "Bank transfer & cash on delivery",
       "Discounts, delivery fees & order emails",
       "Blog & automatic SEO",
-      "Dropshipping from Shopper suppliers",
+      "Dropshipping from Shopper suppliers (Nigeria)",
     ],
   },
   STARTER: {
     key: "STARTER",
     name: "Starter",
     priceMonthly: 10_000,
+    intlPrices: { GBP: 5, USD: 6, CAD: 8 },
     tagline: "Look professional, get paid online",
     limits: {
       maxProducts: 200,
@@ -70,7 +82,7 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
     features: [
       "Everything in Free",
       "Up to 200 products",
-      "Card & online payments (Paystack, PayDunya)",
+      "Card payments (Paystack, PayDunya or Stripe)",
       "Your own domain (e.g. www.yourstore.com)",
       "Remove \"Powered by Shopper\"",
     ],
@@ -79,6 +91,7 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
     key: "BUSINESS",
     name: "Business",
     priceMonthly: 25_000,
+    intlPrices: { GBP: 12, USD: 15, CAD: 20 },
     tagline: "For growing teams",
     limits: {
       maxProducts: null,
@@ -104,4 +117,16 @@ export const PERIOD_DAYS = 30;
 
 export function formatNaira(amount: number) {
   return `₦${amount.toLocaleString()}`;
+}
+
+/** A plan's monthly price in naira or one of the overseas currencies. */
+export function formatPlanPrice(plan: PlanDefinition, currency: "NGN" | IntlCurrency) {
+  if (currency === "NGN") return formatNaira(plan.priceMonthly);
+  const symbol = INTL_CURRENCIES.find((c) => c.code === currency)!.symbol;
+  return `${symbol}${plan.intlPrices[currency].toLocaleString()}`;
+}
+
+/** The overseas pricing currency for a store's currency, if it has one. */
+export function intlCurrencyFor(storeCurrency: string): IntlCurrency | null {
+  return INTL_CURRENCIES.some((c) => c.code === storeCurrency) ? (storeCurrency as IntlCurrency) : null;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,6 +29,17 @@ export function CreateStoreForm() {
 
   const name = useWatch({ control, name: "name" });
   const country = getCountry(useWatch({ control, name: "country" }));
+
+  // Visitors who came through a country page (/sell-online/uk etc.) start
+  // with that country picked.
+  useEffect(() => {
+    try {
+      const remembered = localStorage.getItem("shopper_country");
+      if (remembered && COUNTRIES.some((c) => c.code === remembered)) setValue("country", remembered);
+    } catch {
+      // storage blocked -- the default stays
+    }
+  }, [setValue]);
 
   async function onSubmit(values: CreateStoreInput) {
     setIsSubmitting(true);
