@@ -1,3 +1,4 @@
+import { InstallAppBanner } from "@/components/pwa/install-app-banner";
 import { eq, and, count, sum, gte, lte } from "drizzle-orm";
 import { getCurrentStore } from "@/lib/tenant";
 import { db } from "@/db";
@@ -89,6 +90,8 @@ export default async function DashboardOverviewPage({
         </div>
         <DateRangeFilter />
       </div>
+
+      <InstallAppBanner />
 
       {isAssistantEnabled() && (!store.isPublished || stats.products === 0) && (
         <Link

@@ -1,3 +1,5 @@
+import { SELLER_APP_METADATA, SELLER_APP_VIEWPORT } from "@/components/pwa/seller-app";
+import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import type { Metadata } from "next";
 
 import { MarketingNav } from "@/components/marketing/marketing-nav";
@@ -5,7 +7,10 @@ import { AnnouncementBar } from "@/components/marketing/announcement-bar";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingAnalytics } from "@/components/marketing/analytics";
 
+export const viewport = SELLER_APP_VIEWPORT;
+
 export const metadata: Metadata = {
+  ...SELLER_APP_METADATA,
   title: {
     template: "%s | Shopper",
     default: "Shopper — The free-to-start e-commerce website builder, worldwide",
@@ -41,6 +46,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
         </main>
         <MarketingFooter />
         <MarketingAnalytics />
+        <ServiceWorkerRegister />
       </div>
     </>
   );

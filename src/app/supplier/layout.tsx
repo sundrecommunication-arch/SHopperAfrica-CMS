@@ -1,10 +1,12 @@
+import { SELLER_APP_METADATA, SELLER_APP_VIEWPORT } from "@/components/pwa/seller-app";
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { getSupplierForUser } from "@/modules/dropship/services/supplier-service";
 
-export const metadata: Metadata = { title: "Shopper Suppliers", robots: { index: false, follow: false } };
+export const metadata: Metadata = { ...SELLER_APP_METADATA, title: "Shopper Suppliers", robots: { index: false, follow: false } };
+export const viewport = SELLER_APP_VIEWPORT;
 
 const NAV = [
   { href: "/supplier", label: "Overview" },

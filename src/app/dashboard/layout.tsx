@@ -1,3 +1,5 @@
+import { SELLER_APP_METADATA, SELLER_APP_VIEWPORT } from "@/components/pwa/seller-app";
+import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
@@ -10,6 +12,9 @@ import type { StoreRole } from "@/types/next-auth";
 import Link from "next/link";
 import { getStorePlan, getPlanBanner } from "@/modules/subscriptions/services/subscription-service";
 import { isAssistantEnabled } from "@/modules/assistant/agent";
+
+export const metadata = SELLER_APP_METADATA;
+export const viewport = SELLER_APP_VIEWPORT;
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -80,6 +85,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         )}
         <main className="flex-1 p-4 pb-20 md:p-8 md:pb-8">{children}</main>
         <MobileNav role={role} comingSoon={comingSoon} />
+        <ServiceWorkerRegister />
       </div>
     </div>
   );
